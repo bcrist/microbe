@@ -3655,7 +3655,7 @@ Note: The software is allowed to write this bit only when ADSTART=0 (which ensur
           <addressOffset>0x0</addressOffset>
           <size>0x20</size>
           <access>read-write</access>
-          <resetValue>0x00000600</resetValue>
+          <resetValue>0x00040600</resetValue>
           <fields>
             <field>
               <name>LATENCY</name>
@@ -4158,7 +4158,7 @@ Note: The software is allowed to write this bit only when ADSTART=0 (which ensur
           <addressOffset>0x0</addressOffset>
           <size>0x20</size>
           <access>read-write</access>
-          <resetValue>0x00000063</resetValue>
+          <resetValue>0x00000500</resetValue>
           <fields>
             <field>
               <name>HSION</name>
@@ -4268,20 +4268,6 @@ Note: The software is allowed to write this bit only when ADSTART=0 (which ensur
               <bitWidth>4</bitWidth>
               <access>read-write</access>
             </field>
-			<field>
-              <name>MCO2PRE</name>
-              <description>MCO2PRE</description>
-              <bitOffset>20</bitOffset>
-              <bitWidth>4</bitWidth>
-              <access>read-write</access>
-            </field>
-			<field>
-              <name>MCO2SEL</name>
-              <description>MCO2SEL</description>
-              <bitOffset>16</bitOffset>
-              <bitWidth>4</bitWidth>
-              <access>read-write</access>
-            </field>
             <field>
               <name>PPRE</name>
               <description>APB prescaler</description>
@@ -4313,8 +4299,8 @@ Note: The software is allowed to write this bit only when ADSTART=0 (which ensur
           </fields>
         </register>
         <register>
-          <name>PLLSYSCFGR</name>
-          <displayName>PLLSYSCFGR</displayName>
+          <name>PLLCFGR</name>
+          <displayName>PLLCFGR</displayName>
           <description>PLL configuration register</description>
           <addressOffset>0xC</addressOffset>
           <size>0x20</size>
@@ -4350,18 +4336,6 @@ Note: The software is allowed to write this bit only when ADSTART=0 (which ensur
               <description>PLL VCO division factor P for PLLPCLK clock output</description>
               <bitOffset>17</bitOffset>
               <bitWidth>5</bitWidth>
-            </field>
-            <field>
-              <name>PLLQEN</name>
-              <description>PLLQCLK clock output enable</description>
-              <bitOffset>24</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-            <field>
-              <name>PLLQ</name>
-              <description>PLL VCO division factor Q for PLLQCLK clock output</description>
-              <bitOffset>25</bitOffset>
-              <bitWidth>3</bitWidth>
             </field>
             <field>
               <name>PLLREN</name>
@@ -4411,7 +4385,7 @@ Note: The software is allowed to write this bit only when ADSTART=0 (which ensur
               <bitWidth>1</bitWidth>
             </field>
             <field>
-              <name>PLLSYSRDYIE</name>
+              <name>PLLRDYIE</name>
               <description>PLL ready interrupt enable</description>
               <bitOffset>5</bitOffset>
               <bitWidth>1</bitWidth>
@@ -4452,7 +4426,7 @@ Note: The software is allowed to write this bit only when ADSTART=0 (which ensur
               <bitWidth>1</bitWidth>
             </field>
             <field>
-              <name>PLLSYSRDYF</name>
+              <name>PLLRDYF</name>
               <description>PLL ready interrupt flag</description>
               <bitOffset>5</bitOffset>
               <bitWidth>1</bitWidth>
@@ -4505,7 +4479,7 @@ Note: The software is allowed to write this bit only when ADSTART=0 (which ensur
               <bitWidth>1</bitWidth>
             </field>
             <field>
-              <name>PLLSYSRDYC</name>
+              <name>PLLRDYC</name>
               <description>PLL ready interrupt clear</description>
               <bitOffset>5</bitOffset>
               <bitWidth>1</bitWidth>
@@ -4558,12 +4532,6 @@ Note: The software is allowed to write this bit only when ADSTART=0 (which ensur
               <bitWidth>1</bitWidth>
             </field>
             <field>
-              <name>GPIOERST</name>
-              <description>GPIOERST</description>
-              <bitOffset>4</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-            <field>
               <name>GPIOFRST</name>
               <description>GPIOFRST</description>
               <bitOffset>5</bitOffset>
@@ -4584,12 +4552,6 @@ Note: The software is allowed to write this bit only when ADSTART=0 (which ensur
               <name>DMA1RST</name>
               <description>DMA1 reset</description>
               <bitOffset>0</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-			<field>
-              <name>DMA2RST</name>
-              <description>DMA1 reset</description>
-              <bitOffset>1</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
@@ -4621,70 +4583,16 @@ Note: The software is allowed to write this bit only when ADSTART=0 (which ensur
               <bitOffset>1</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
-			<field>
-              <name>TIM4RST</name>
-              <description>TIM4 timer reset</description>
-              <bitOffset>2</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-            <field>
-              <name>TIM6RST</name>
-              <description>TIM6 timer reset</description>
-              <bitOffset>4</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-            <field>
-              <name>TIM7RST</name>
-              <description>TIM7 timer reset</description>
-              <bitOffset>5</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>			
-			<field>
-              <name>USART5RST</name>
-              <description>USART5RST</description>
-              <bitOffset>8</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-			<field>
-              <name>USART6RST</name>
-              <description>USART6RST</description>
-              <bitOffset>9</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>			
-			<field>
-              <name>USBRST</name>
-              <description>USBRST</description>
-              <bitOffset>13</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
             <field>
               <name>SPI2RST</name>
               <description>SPI2 reset</description>
               <bitOffset>14</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
-			<field>
-              <name>SPI3RST</name>
-              <description>SPI3 reset</description>
-              <bitOffset>15</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
             <field>
               <name>USART2RST</name>
               <description>USART2 reset</description>
               <bitOffset>17</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-            <field>
-              <name>USART3RST</name>
-              <description>USART3 reset</description>
-              <bitOffset>18</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-            <field>
-              <name>USART4RST</name>
-              <description>USART4 reset</description>
-              <bitOffset>19</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
@@ -4697,12 +4605,6 @@ Note: The software is allowed to write this bit only when ADSTART=0 (which ensur
               <name>I2C2RST</name>
               <description>I2C2 reset</description>
               <bitOffset>22</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-			<field>
-              <name>I2C3RST</name>
-              <description>I2C3RST reset</description>
-              <bitOffset>23</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
@@ -4759,12 +4661,6 @@ Note: The software is allowed to write this bit only when ADSTART=0 (which ensur
               <bitWidth>1</bitWidth>
             </field>
             <field>
-              <name>TIM15RST</name>
-              <description>TIM15 timer reset</description>
-              <bitOffset>16</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-            <field>
               <name>TIM16RST</name>
               <description>TIM16 timer reset</description>
               <bitOffset>17</bitOffset>
@@ -4795,37 +4691,31 @@ Note: The software is allowed to write this bit only when ADSTART=0 (which ensur
           <fields>
             <field>
               <name>GPIOAEN</name>
-              <description>I/O port A clock enable during Sleep mode</description>
+              <description>I/O port A clock enable</description>
               <bitOffset>0</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
               <name>GPIOBEN</name>
-              <description>I/O port B clock enable during Sleep mode</description>
+              <description>I/O port B clock enable</description>
               <bitOffset>1</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
               <name>GPIOCEN</name>
-              <description>I/O port C clock enable during Sleep mode</description>
+              <description>I/O port C clock enable</description>
               <bitOffset>2</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
               <name>GPIODEN</name>
-              <description>I/O port D clock enable during Sleep mode</description>
+              <description>I/O port D clock enable</description>
               <bitOffset>3</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-			<field>
-              <name>GPIOEEN</name>
-              <description>I/O port E clock enable during Sleep mode</description>
-              <bitOffset>4</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
               <name>GPIOFEN</name>
-              <description>I/O port F clock enable during Sleep mode</description>
+              <description>I/O port F clock enable</description>
               <bitOffset>5</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
@@ -4844,12 +4734,6 @@ Note: The software is allowed to write this bit only when ADSTART=0 (which ensur
               <name>DMA1EN</name>
               <description>DMA1 clock enable</description>
               <bitOffset>0</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-			<field>
-              <name>DMA2EN</name>
-              <description>DMA2 clock enable</description>
-              <bitOffset>1</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
@@ -4881,36 +4765,6 @@ Note: The software is allowed to write this bit only when ADSTART=0 (which ensur
               <bitOffset>1</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
-			<field>
-              <name>TIM4EN</name>
-              <description>TIM4 timer clock enable</description>
-              <bitOffset>2</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-            <field>
-              <name>TIM6EN</name>
-              <description>TIM6 timer clock enable</description>
-              <bitOffset>4</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-            <field>
-              <name>TIM7EN</name>
-              <description>TIM7 timer clock enable</description>
-              <bitOffset>5</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>			
-			<field>
-              <name>USART5EN</name>
-              <description>USART5EN</description>
-              <bitOffset>8</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-			<field>
-              <name>USART6EN</name>
-              <description>USART6EN</description>
-              <bitOffset>9</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>			
             <field>
               <name>RTCAPBEN</name>
               <description>RTC APB clock enable</description>
@@ -4923,40 +4777,16 @@ Note: The software is allowed to write this bit only when ADSTART=0 (which ensur
               <bitOffset>11</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
-			<field>
-              <name>USBEN</name>
-              <description>USBEN</description>
-              <bitOffset>13</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
             <field>
               <name>SPI2EN</name>
               <description>SPI2 clock enable</description>
               <bitOffset>14</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
-			<field>
-              <name>SPI3EN</name>
-              <description>SPI3 clock enable</description>
-              <bitOffset>15</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
             <field>
               <name>USART2EN</name>
               <description>USART2 clock enable</description>
               <bitOffset>17</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-            <field>
-              <name>USART3EN</name>
-              <description>USART3 clock enable</description>
-              <bitOffset>18</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-            <field>
-              <name>USART4EN</name>
-              <description>USART4 clock enable</description>
-              <bitOffset>19</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
@@ -4969,12 +4799,6 @@ Note: The software is allowed to write this bit only when ADSTART=0 (which ensur
               <name>I2C2EN</name>
               <description>I2C2 clock enable</description>
               <bitOffset>22</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-			<field>
-              <name>I2C3EN</name>
-              <description>I2C3 clock enable</description>
-              <bitOffset>23</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
@@ -5031,12 +4855,6 @@ Note: The software is allowed to write this bit only when ADSTART=0 (which ensur
               <bitWidth>1</bitWidth>
             </field>
             <field>
-              <name>TIM15EN</name>
-              <description>TIM15 timer clock enable</description>
-              <bitOffset>16</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-            <field>
               <name>TIM16EN</name>
               <description>TIM16 timer clock enable</description>
               <bitOffset>17</bitOffset>
@@ -5089,12 +4907,6 @@ Note: The software is allowed to write this bit only when ADSTART=0 (which ensur
               <bitOffset>3</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
-			      <field>
-              <name>GPIOESMEN</name>
-              <description>I/O port E clock enable during Sleep mode</description>
-              <bitOffset>4</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
             <field>
               <name>GPIOFSMEN</name>
               <description>I/O port F clock enable during Sleep mode</description>
@@ -5116,12 +4928,6 @@ Note: The software is allowed to write this bit only when ADSTART=0 (which ensur
               <name>DMA1SMEN</name>
               <description>DMA1 clock enable during Sleep mode</description>
               <bitOffset>0</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-			      <field>
-              <name>DMA2SMEN</name>
-              <description>DMA2 clock enable during Sleep mode</description>
-              <bitOffset>1</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
@@ -5159,36 +4965,6 @@ Note: The software is allowed to write this bit only when ADSTART=0 (which ensur
               <bitOffset>1</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
-			      <field>
-              <name>TIM4SMEN</name>
-              <description>TIM4 timer clock enable during Sleep mode</description>
-              <bitOffset>2</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-            <field>
-              <name>TIM6SMEN</name>
-              <description>TIM6 timer clock enable during Sleep mode</description>
-              <bitOffset>4</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-            <field>
-              <name>TIM7SMEN</name>
-              <description>TIM7 timer clock enable during Sleep mode</description>
-              <bitOffset>5</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>			
-			      <field>
-              <name>USART5SMEN</name>
-              <description>USART5 clock enable</description>
-              <bitOffset>8</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-			      <field>
-              <name>USART6SMEN</name>
-              <description>USART6 clock enable</description>
-              <bitOffset>9</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>			
             <field>
               <name>RTCAPBSMEN</name>
               <description>RTC APB clock enable during Sleep mode</description>
@@ -5201,40 +4977,16 @@ Note: The software is allowed to write this bit only when ADSTART=0 (which ensur
               <bitOffset>11</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
-			      <field>
-              <name>USBSMEN</name>
-              <description>USB clock enable during Sleep mode</description>
-              <bitOffset>13</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
             <field>
               <name>SPI2SMEN</name>
               <description>SPI2 clock enable during Sleep mode</description>
               <bitOffset>14</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
-			      <field>
-              <name>SPI3SMEN</name>
-              <description>SPI3 clock enable during Sleep mode</description>
-              <bitOffset>15</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
             <field>
               <name>USART2SMEN</name>
               <description>USART2 clock enable during Sleep mode</description>
               <bitOffset>17</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-            <field>
-              <name>USART3SMEN</name>
-              <description>USART3 clock enable during Sleep mode</description>
-              <bitOffset>18</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-            <field>
-              <name>USART4SMEN</name>
-              <description>USART4 clock enable during Sleep mode</description>
-              <bitOffset>19</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
@@ -5249,12 +5001,6 @@ Note: The software is allowed to write this bit only when ADSTART=0 (which ensur
               <bitOffset>22</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
-			      <field>
-              <name>I2C3SMEN</name>
-              <description>I2C3 clock enable during Sleep mode</description>
-              <bitOffset>23</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>          
             <field>
               <name>DBGSMEN</name>
               <description>Debug support clock enable during Sleep mode</description>
@@ -5309,12 +5055,6 @@ Note: The software is allowed to write this bit only when ADSTART=0 (which ensur
               <bitWidth>1</bitWidth>
             </field>
             <field>
-              <name>TIM15SMEN</name>
-              <description>TIM15 timer clock enable during Sleep mode</description>
-              <bitOffset>16</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-            <field>
               <name>TIM16SMEN</name>
               <description>TIM16 timer clock enable during Sleep mode</description>
               <bitOffset>17</bitOffset>
@@ -5355,69 +5095,22 @@ Note: The software is allowed to write this bit only when ADSTART=0 (which ensur
               <bitOffset>2</bitOffset>
               <bitWidth>2</bitWidth>
             </field>
-			      <field>
-              <name>USART3SEL</name>
-              <description>USART3 clock source selection</description>
-              <bitOffset>4</bitOffset>
-              <bitWidth>2</bitWidth>
-            </field>
             <field>
-              <name>I2C1SEL</name>
-              <description>I2C1 clock source selection</description>
+              <name>I2CSEL</name>
+              <description>I2C clock source selection</description>
               <bitOffset>12</bitOffset>
               <bitWidth>2</bitWidth>
             </field>
             <field>
-              <name>I2S2SEL</name>
-              <description>I2S1 clock source selection</description>
+              <name>I2SSEL</name>
+              <description>I2S clock source selection</description>
               <bitOffset>14</bitOffset>
               <bitWidth>2</bitWidth>
-            </field>
-            <field>
-              <name>TIM1SEL</name>
-              <description>TIM1 clock source selection</description>
-              <bitOffset>22</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-            <field>
-              <name>TIM15SEL</name>
-              <description>TIM15 clock source selection</description>
-              <bitOffset>24</bitOffset>
-              <bitWidth>1</bitWidth>
             </field>
             <field>
               <name>ADCSEL</name>
               <description>ADCs clock source selection</description>
               <bitOffset>30</bitOffset>
-              <bitWidth>2</bitWidth>
-            </field>
-          </fields>
-        </register>
-		<register>
-          <name>CCIPR2</name>
-          <displayName>CCIPR2</displayName>
-          <description>Peripherals independent clock configuration register 2</description>
-          <addressOffset>0x58</addressOffset>
-          <size>0x20</size>
-          <access>read-write</access>
-          <resetValue>0x00000000</resetValue>
-          <fields>
-            <field>
-              <name>I2S1SEL</name>
-              <description>2S1SEL</description>
-              <bitOffset>0</bitOffset>
-              <bitWidth>2</bitWidth>
-            </field>
-             <field>
-              <name>I2S2SEL</name>
-              <description>I2S2SEL</description>
-              <bitOffset>2</bitOffset>
-              <bitWidth>2</bitWidth>
-            </field>			
-            <field>
-              <name>USBSEL</name>
-              <description>USBSEL</description>
-              <bitOffset>12</bitOffset>
               <bitWidth>2</bitWidth>
             </field>
           </fields>
@@ -7212,8 +6905,8 @@ Note: The software is allowed to write this bit only when ADSTART=0 (which ensur
         </interrupt>
         <registers>
           <register>
-            <name>DMA_ISR</name>
-            <displayName>DMA_ISR</displayName>
+            <name>ISR</name>
+            <displayName>ISR</displayName>
             <description>DMA interrupt status register </description>
             <addressOffset>0x0</addressOffset>
             <size>0x20</size>
@@ -7600,163 +7293,11 @@ Note: The software is allowed to write this bit only when ADSTART=0 (which ensur
                   </enumeratedValue>
                 </enumeratedValues>
               </field>
-              <field>
-                <name>GIF6</name>
-                <description>global interrupt flag for channel 6</description>
-                <bitOffset>20</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>read-only</access>
-                <enumeratedValues>
-                  <enumeratedValue>
-                    <name>B_0x0</name>
-                    <description>no TE, HT or TC event</description>
-                    <value>0x0</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x1</name>
-                    <description>a TE, HT or TC event occurred</description>
-                    <value>0x1</value>
-                  </enumeratedValue>
-                </enumeratedValues>
-              </field>
-              <field>
-                <name>TCIF6</name>
-                <description>transfer complete (TC) flag for channel 6</description>
-                <bitOffset>21</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>read-only</access>
-                <enumeratedValues>
-                  <enumeratedValue>
-                    <name>B_0x0</name>
-                    <description>no TC event</description>
-                    <value>0x0</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x1</name>
-                    <description>a TC event occurred</description>
-                    <value>0x1</value>
-                  </enumeratedValue>
-                </enumeratedValues>
-              </field>
-              <field>
-                <name>HTIF6</name>
-                <description>half transfer (HT) flag for channel 6</description>
-                <bitOffset>22</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>read-only</access>
-                <enumeratedValues>
-                  <enumeratedValue>
-                    <name>B_0x0</name>
-                    <description>no HT event </description>
-                    <value>0x0</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x1</name>
-                    <description>a HT event occurred</description>
-                    <value>0x1</value>
-                  </enumeratedValue>
-                </enumeratedValues>
-              </field>
-              <field>
-                <name>TEIF6</name>
-                <description>transfer error (TE) flag for channel 6</description>
-                <bitOffset>23</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>read-only</access>
-                <enumeratedValues>
-                  <enumeratedValue>
-                    <name>B_0x0</name>
-                    <description>no TE event</description>
-                    <value>0x0</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x1</name>
-                    <description>a TE event occurred</description>
-                    <value>0x1</value>
-                  </enumeratedValue>
-                </enumeratedValues>
-              </field>
-              <field>
-                <name>GIF7</name>
-                <description>global interrupt flag for channel 7</description>
-                <bitOffset>24</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>read-only</access>
-                <enumeratedValues>
-                  <enumeratedValue>
-                    <name>B_0x0</name>
-                    <description>no TE, HT or TC event</description>
-                    <value>0x0</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x1</name>
-                    <description>a TE, HT or TC event occurred</description>
-                    <value>0x1</value>
-                  </enumeratedValue>
-                </enumeratedValues>
-              </field>
-              <field>
-                <name>TCIF7</name>
-                <description>transfer complete (TC) flag for channel 7</description>
-                <bitOffset>25</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>read-only</access>
-                <enumeratedValues>
-                  <enumeratedValue>
-                    <name>B_0x0</name>
-                    <description>no TC event</description>
-                    <value>0x0</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x1</name>
-                    <description>a TC event occurred</description>
-                    <value>0x1</value>
-                  </enumeratedValue>
-                </enumeratedValues>
-              </field>
-              <field>
-                <name>HTIF7</name>
-                <description>half transfer (HT) flag for channel 7</description>
-                <bitOffset>26</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>read-only</access>
-                <enumeratedValues>
-                  <enumeratedValue>
-                    <name>B_0x0</name>
-                    <description>no HT event </description>
-                    <value>0x0</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x1</name>
-                    <description>a HT event occurred</description>
-                    <value>0x1</value>
-                  </enumeratedValue>
-                </enumeratedValues>
-              </field>
-              <field>
-                <name>TEIF7</name>
-                <description>transfer error (TE) flag for channel 7</description>
-                <bitOffset>27</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>read-only</access>
-                <enumeratedValues>
-                  <enumeratedValue>
-                    <name>B_0x0</name>
-                    <description>no TE event</description>
-                    <value>0x0</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x1</name>
-                    <description>a TE event occurred</description>
-                    <value>0x1</value>
-                  </enumeratedValue>
-                </enumeratedValues>
-              </field>
             </fields>
           </register>
           <register>
-            <name>DMA_IFCR</name>
-            <displayName>DMA_IFCR</displayName>
+            <name>IFCR</name>
+            <displayName>IFCR</displayName>
             <description>DMA interrupt flag clear register </description>
             <addressOffset>0x4</addressOffset>
             <size>0x20</size>
@@ -7903,67 +7444,11 @@ Note: The software is allowed to write this bit only when ADSTART=0 (which ensur
                 <bitWidth>1</bitWidth>
                 <access>write-only</access>
               </field>
-              <field>
-                <name>CGIF6</name>
-                <description>global interrupt flag clear for channel 6</description>
-                <bitOffset>20</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>write-only</access>
-              </field>
-              <field>
-                <name>CTCIF6</name>
-                <description>transfer complete flag clear for channel 6</description>
-                <bitOffset>21</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>write-only</access>
-              </field>
-              <field>
-                <name>CHTIF6</name>
-                <description>half transfer flag clear for channel 6</description>
-                <bitOffset>22</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>write-only</access>
-              </field>
-              <field>
-                <name>CTEIF6</name>
-                <description>transfer error flag clear for channel 6</description>
-                <bitOffset>23</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>write-only</access>
-              </field>
-              <field>
-                <name>CGIF7</name>
-                <description>global interrupt flag clear for channel 7</description>
-                <bitOffset>24</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>write-only</access>
-              </field>
-              <field>
-                <name>CTCIF7</name>
-                <description>transfer complete flag clear for channel 7</description>
-                <bitOffset>25</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>write-only</access>
-              </field>
-              <field>
-                <name>CHTIF7</name>
-                <description>half transfer flag clear for channel 7</description>
-                <bitOffset>26</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>write-only</access>
-              </field>
-              <field>
-                <name>CTEIF7</name>
-                <description>transfer error flag clear for channel 7</description>
-                <bitOffset>27</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>write-only</access>
-              </field>
             </fields>
           </register>
           <register>
-            <name>DMA_CCR1</name>
-            <displayName>DMA_CCR1</displayName>
+            <name>CCR1</name>
+            <displayName>CCR1</displayName>
             <description>DMA channel 1 configuration register</description>
             <addressOffset>0x8</addressOffset>
             <size>0x20</size>
@@ -8273,9 +7758,9 @@ It is read-only when the channel is enabled (EN=1).</description>
             </fields>
           </register>
           <register>
-            <name>DMA_CNDTR1</name>
-            <displayName>DMA_CNDTR1</displayName>
-			<description>DMA channel x number of data register</description>
+            <name>CNDTR1</name>
+            <displayName>CNDTR1</displayName>
+			<description>DMA channel 1 number of data register</description>
             <addressOffset>0xc</addressOffset>
             <size>0x20</size>
             <resetValue>0x00000000</resetValue>
@@ -8299,9 +7784,9 @@ It is read-only when the channel is enabled (EN=1).</description>
             </fields>
           </register>
           <register>
-            <name>DMA_CPAR1</name>
-            <displayName>DMA_CPAR1</displayName>
-			<description>DMA channel x peripheral address register</description>
+            <name>CPAR1</name>
+            <displayName>CPAR1</displayName>
+			<description>DMA channel 1 peripheral address register</description>
             <addressOffset>0x10</addressOffset>
             <size>0x20</size>
             <resetValue>0x00000000</resetValue>
@@ -8325,9 +7810,9 @@ It is not read-only when the channel is enabled (EN=1).</description>
             </fields>
           </register>
           <register>
-            <name>DMA_CMAR1</name>
-            <displayName>DMA_CMAR1</displayName>
-			<description>DMA channel x memory address register</description>
+            <name>CMAR1</name>
+            <displayName>CMAR1</displayName>
+			<description>DMA channel 1 memory address register</description>
             <addressOffset>0x14</addressOffset>
             <size>0x20</size>
             <resetValue>0x00000000</resetValue>
@@ -8351,8 +7836,8 @@ It is not read-only when the channel is enabled (EN=1).</description>
             </fields>
           </register>
           <register>
-            <name>DMA_CCR2</name>
-            <displayName>DMA_CCR2</displayName>
+            <name>CCR2</name>
+            <displayName>CCR2</displayName>
             <description>DMA channel 2 configuration register</description>
             <addressOffset>0x1c</addressOffset>
             <size>0x20</size>
@@ -8662,9 +8147,9 @@ It is read-only when the channel is enabled (EN=1).</description>
             </fields>
           </register>
           <register>
-            <name>DMA_CNDTR2</name>
-            <displayName>DMA_CNDTR2</displayName>
-			<description>DMA channel x number of data register</description>
+            <name>CNDTR2</name>
+            <displayName>CNDTR2</displayName>
+			<description>DMA channel 2 number of data register</description>
             <addressOffset>0x20</addressOffset>
             <size>0x20</size>
             <resetValue>0x00000000</resetValue>
@@ -8688,9 +8173,9 @@ It is read-only when the channel is enabled (EN=1).</description>
             </fields>
           </register>
           <register>
-            <name>DMA_CPAR2</name>
-            <displayName>DMA_CPAR2</displayName>
-			<description>DMA channel x peripheral address register</description>
+            <name>CPAR2</name>
+            <displayName>CPAR2</displayName>
+			<description>DMA channel 2 peripheral address register</description>
             <addressOffset>0x24</addressOffset>
             <size>0x20</size>
             <resetValue>0x00000000</resetValue>
@@ -8714,9 +8199,9 @@ It is not read-only when the channel is enabled (EN=1).</description>
             </fields>
           </register>
           <register>
-            <name>DMA_CMAR2</name>
-            <displayName>DMA_CMAR2</displayName>
-			<description>DMA channel x memory address register</description>
+            <name>CMAR2</name>
+            <displayName>CMAR2</displayName>
+			<description>DMA channel 2 memory address register</description>
             <addressOffset>0x28</addressOffset>
             <size>0x20</size>
             <resetValue>0x00000000</resetValue>
@@ -8740,8 +8225,8 @@ It is not read-only when the channel is enabled (EN=1).</description>
             </fields>
           </register>
           <register>
-            <name>DMA_CCR3</name>
-            <displayName>DMA_CCR3</displayName>
+            <name>CCR3</name>
+            <displayName>CCR3</displayName>
             <description>DMA channel 3 configuration register</description>
             <addressOffset>0x30</addressOffset>
             <size>0x20</size>
@@ -9051,9 +8536,9 @@ It is read-only when the channel is enabled (EN=1).</description>
             </fields>
           </register>
           <register>
-            <name>DMA_CNDTR3</name>
-            <displayName>DMA_CNDTR3</displayName>
-			<description>DMA channel x configuration register</description>
+            <name>CNDTR3</name>
+            <displayName>CNDTR3</displayName>
+			<description>DMA channel 3 configuration register</description>
             <addressOffset>0x34</addressOffset>
             <size>0x20</size>
             <resetValue>0x00000000</resetValue>
@@ -9077,9 +8562,9 @@ It is read-only when the channel is enabled (EN=1).</description>
             </fields>
           </register>
           <register>
-            <name>DMA_CPAR3</name>
-            <displayName>DMA_CPAR3</displayName>
-			<description>DMA channel x peripheral address register</description>
+            <name>CPAR3</name>
+            <displayName>CPAR3</displayName>
+			<description>DMA channel 3 peripheral address register</description>
             <addressOffset>0x38</addressOffset>
             <size>0x20</size>
             <resetValue>0x00000000</resetValue>
@@ -9103,9 +8588,9 @@ It is not read-only when the channel is enabled (EN=1).</description>
             </fields>
           </register>
           <register>
-            <name>DMA_CMAR3</name>
-            <displayName>DMA_CMAR3</displayName>
-			<description>DMA channel x memory address register</description>
+            <name>CMAR3</name>
+            <displayName>CMAR3</displayName>
+			<description>DMA channel 3 memory address register</description>
             <addressOffset>0x3c</addressOffset>
             <size>0x20</size>
             <resetValue>0x00000000</resetValue>
@@ -9129,8 +8614,8 @@ It is not read-only when the channel is enabled (EN=1).</description>
             </fields>
           </register>
           <register>
-            <name>DMA_CCR4</name>
-            <displayName>DMA_CCR4</displayName>
+            <name>CCR4</name>
+            <displayName>CCR4</displayName>
             <description>DMA channel 4 configuration register</description>
             <addressOffset>0x44</addressOffset>
             <size>0x20</size>
@@ -9440,9 +8925,9 @@ It is read-only when the channel is enabled (EN=1).</description>
             </fields>
           </register>
           <register>
-            <name>DMA_CNDTR4</name>
-            <displayName>DMA_CNDTR4</displayName>
-			<description>DMA channel x configuration register</description>
+            <name>CNDTR4</name>
+            <displayName>CNDTR4</displayName>
+			<description>DMA channel 4 configuration register</description>
             <addressOffset>0x48</addressOffset>
             <size>0x20</size>
             <resetValue>0x00000000</resetValue>
@@ -9466,9 +8951,9 @@ It is read-only when the channel is enabled (EN=1).</description>
             </fields>
           </register>
           <register>
-            <name>DMA_CPAR4</name>
-            <displayName>DMA_CPAR4</displayName>
-			<description>DMA channel x peripheral address register</description>
+            <name>CPAR4</name>
+            <displayName>CPAR4</displayName>
+			<description>DMA channel 4 peripheral address register</description>
             <addressOffset>0x4c</addressOffset>
             <size>0x20</size>
             <resetValue>0x00000000</resetValue>
@@ -9492,9 +8977,9 @@ It is not read-only when the channel is enabled (EN=1).</description>
             </fields>
           </register>
           <register>
-            <name>DMA_CMAR4</name>
-            <displayName>DMA_CMAR4</displayName>
-			<description>DMA channel x memory address register</description>
+            <name>CMAR4</name>
+            <displayName>CMAR4</displayName>
+			<description>DMA channel 4 memory address register</description>
             <addressOffset>0x50</addressOffset>
             <size>0x20</size>
             <resetValue>0x00000000</resetValue>
@@ -9518,8 +9003,8 @@ It is not read-only when the channel is enabled (EN=1).</description>
             </fields>
           </register>
           <register>
-            <name>DMA_CCR5</name>
-            <displayName>DMA_CCR5</displayName>
+            <name>CCR5</name>
+            <displayName>CCR5</displayName>
             <description>DMA channel 5 configuration register</description>
             <addressOffset>0x58</addressOffset>
             <size>0x20</size>
@@ -9829,9 +9314,9 @@ It is read-only when the channel is enabled (EN=1).</description>
             </fields>
           </register>
           <register>
-            <name>DMA_CNDTR5</name>
-            <displayName>DMA_CNDTR5</displayName>
-			<description>DMA channel x configuration register</description>
+            <name>CNDTR5</name>
+            <displayName>CNDTR5</displayName>
+			<description>DMA channel 5 configuration register</description>
             <addressOffset>0x5c</addressOffset>
             <size>0x20</size>
             <resetValue>0x00000000</resetValue>
@@ -9855,9 +9340,9 @@ It is read-only when the channel is enabled (EN=1).</description>
             </fields>
           </register>
           <register>
-            <name>DMA_CPAR5</name>
-            <displayName>DMA_CPAR5</displayName>
-			<description>DMA channel x peripheral address register</description>
+            <name>CPAR5</name>
+            <displayName>CPAR5</displayName>
+			<description>DMA channel 5 peripheral address register</description>
             <addressOffset>0x60</addressOffset>
             <size>0x20</size>
             <resetValue>0x00000000</resetValue>
@@ -9881,788 +9366,10 @@ It is not read-only when the channel is enabled (EN=1).</description>
             </fields>
           </register>
           <register>
-            <name>DMA_CMAR5</name>
-            <displayName>DMA_CMAR5</displayName>
-			<description>DMA channel x memory address register</description>
+            <name>CMAR5</name>
+            <displayName>CMAR5</displayName>
+			<description>DMA channel 5 memory address register</description>
             <addressOffset>0x64</addressOffset>
-            <size>0x20</size>
-            <resetValue>0x00000000</resetValue>
-            <resetMask>0xFFFFFFFF</resetMask>
-            <fields>
-              <field>
-                <name>MA</name>
-                <description>peripheral address
-It contains the base address of the memory from/to which the data will be read/written.
-When MSIZE[1:0]=01 (16 bits), bit 0 of MA[31:0] is ignored. Access is automatically aligned to a half-word address.
-When MSIZE=10 (32 bits), bits 1 and 0 of MA[31:0] are ignored. Access is automatically aligned to a word address.
-In memory-to-memory mode, this register identifies the memory source address if DIR=1 and the memory destination address if DIR=0.
-In peripheral-to-peripheral mode, this register identifies the peripheral source address DIR=1 and the peripheral destination address if DIR=0.
-Note: this register is set and cleared by software.
-It must not be written when the channel is enabled (EN = 1).
-It is not read-only when the channel is enabled (EN=1).</description>
-                <bitOffset>0</bitOffset>
-                <bitWidth>32</bitWidth>
-                <access>read-write</access>
-              </field>
-            </fields>
-          </register>
-          <register>
-            <name>DMA_CCR6</name>
-            <displayName>DMA_CCR6</displayName>
-            <description>DMA channel 6 configuration register</description>
-            <addressOffset>0x6c</addressOffset>
-            <size>0x20</size>
-            <resetValue>0x00000000</resetValue>
-            <resetMask>0xFFFFFFFF</resetMask>
-            <fields>
-              <field>
-                <name>EN</name>
-                <description>channel enable
-When a channel transfer error occurs, this bit is cleared by hardware. It can not be set again by software (channel x re-activated) until the TEIFx bit of the DMA_ISR register is cleared (by setting the CTEIFx bit of the DMA_IFCR register).
-Note: this bit is set and cleared by software.</description>
-                <bitOffset>0</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>read-write</access>
-                <enumeratedValues>
-                  <enumeratedValue>
-                    <name>B_0x0</name>
-                    <description>disabled</description>
-                    <value>0x0</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x1</name>
-                    <description>enabled</description>
-                    <value>0x1</value>
-                  </enumeratedValue>
-                </enumeratedValues>
-              </field>
-              <field>
-                <name>TCIE</name>
-                <description>transfer complete interrupt enable
-Note: this bit is set and cleared by software.
-It must not be written when the channel is enabled (EN = 1).
-It is not read-only when the channel is enabled (EN=1).</description>
-                <bitOffset>1</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>read-write</access>
-                <enumeratedValues>
-                  <enumeratedValue>
-                    <name>B_0x0</name>
-                    <description>disabled</description>
-                    <value>0x0</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x1</name>
-                    <description>enabled</description>
-                    <value>0x1</value>
-                  </enumeratedValue>
-                </enumeratedValues>
-              </field>
-              <field>
-                <name>HTIE</name>
-                <description>half transfer interrupt enable
-Note: this bit is set and cleared by software.
-It must not be written when the channel is enabled (EN = 1).
-It is not read-only when the channel is enabled (EN=1).</description>
-                <bitOffset>2</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>read-write</access>
-                <enumeratedValues>
-                  <enumeratedValue>
-                    <name>B_0x0</name>
-                    <description>disabled</description>
-                    <value>0x0</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x1</name>
-                    <description>enabled</description>
-                    <value>0x1</value>
-                  </enumeratedValue>
-                </enumeratedValues>
-              </field>
-              <field>
-                <name>TEIE</name>
-                <description>transfer error interrupt enable
-Note: this bit is set and cleared by software.
-It must not be written when the channel is enabled (EN = 1).
-It is not read-only when the channel is enabled (EN=1).</description>
-                <bitOffset>3</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>read-write</access>
-                <enumeratedValues>
-                  <enumeratedValue>
-                    <name>B_0x0</name>
-                    <description>disabled</description>
-                    <value>0x0</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x1</name>
-                    <description>enabled</description>
-                    <value>0x1</value>
-                  </enumeratedValue>
-                </enumeratedValues>
-              </field>
-              <field>
-                <name>DIR</name>
-                <description>data transfer direction
-This bit must be set only in memory-to-peripheral and peripheral-to-memory modes.
-Source attributes are defined by PSIZE and PINC, plus the DMA_CPARx register. This is still valid in a memory-to-memory mode.
-Destination attributes are defined by MSIZE and MINC, plus the DMA_CMARx register. This is still valid in a peripheral-to-peripheral mode.
-Destination attributes are defined by PSIZE and PINC, plus the DMA_CPARx register. This is still valid in a memory-to-memory mode.
-Source attributes are defined by MSIZE and MINC, plus the DMA_CMARx register. This is still valid in a peripheral-to-peripheral mode.
-Note: this bit is set and cleared by software.
-It must not be written when the channel is enabled (EN = 1).
-It is read-only when the channel is enabled (EN=1).</description>
-                <bitOffset>4</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>read-write</access>
-                <enumeratedValues>
-                  <enumeratedValue>
-                    <name>B_0x0</name>
-                    <description>read from peripheral</description>
-                    <value>0x0</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x1</name>
-                    <description>read from memory</description>
-                    <value>0x1</value>
-                  </enumeratedValue>
-                </enumeratedValues>
-              </field>
-              <field>
-                <name>CIRC</name>
-                <description>circular mode
-Note: this bit is set and cleared by software.
-It must not be written when the channel is enabled (EN = 1).
-It is not read-only when the channel is enabled (EN=1).</description>
-                <bitOffset>5</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>read-write</access>
-                <enumeratedValues>
-                  <enumeratedValue>
-                    <name>B_0x0</name>
-                    <description>disabled</description>
-                    <value>0x0</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x1</name>
-                    <description>enabled</description>
-                    <value>0x1</value>
-                  </enumeratedValue>
-                </enumeratedValues>
-              </field>
-              <field>
-                <name>PINC</name>
-                <description>peripheral increment mode
-Defines the increment mode for each DMA transfer to the identified peripheral.
-n memory-to-memory mode, this field identifies the memory destination if DIR=1 and the memory source if DIR=0.
-In peripheral-to-peripheral mode, this field identifies the peripheral destination if DIR=1 and the peripheral source if DIR=0.
-Note: this bit is set and cleared by software.
-It must not be written when the channel is enabled (EN = 1).
-It is read-only when the channel is enabled (EN=1).</description>
-                <bitOffset>6</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>read-write</access>
-                <enumeratedValues>
-                  <enumeratedValue>
-                    <name>B_0x0</name>
-                    <description>disabled</description>
-                    <value>0x0</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x1</name>
-                    <description>enabled</description>
-                    <value>0x1</value>
-                  </enumeratedValue>
-                </enumeratedValues>
-              </field>
-              <field>
-                <name>MINC</name>
-                <description>memory increment mode
-Defines the increment mode for each DMA transfer to the identified memory.
-In memory-to-memory mode, this field identifies the memory source if DIR=1 and the memory destination if DIR=0.
-In peripheral-to-peripheral mode, this field identifies the peripheral source if DIR=1 and the peripheral destination if DIR=0.
-Note: this bit is set and cleared by software.
-It must not be written when the channel is enabled (EN = 1).
-It is read-only when the channel is enabled (EN=1).</description>
-                <bitOffset>7</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>read-write</access>
-                <enumeratedValues>
-                  <enumeratedValue>
-                    <name>B_0x0</name>
-                    <description>disabled</description>
-                    <value>0x0</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x1</name>
-                    <description>enabled</description>
-                    <value>0x1</value>
-                  </enumeratedValue>
-                </enumeratedValues>
-              </field>
-              <field>
-                <name>PSIZE</name>
-                <description>peripheral size
-Defines the data size of each DMA transfer to the identified peripheral.
-In memory-to-memory mode, this field identifies the memory destination if DIR=1 and the memory source if DIR=0.
-In peripheral-to-peripheral mode, this field identifies the peripheral destination if DIR=1 and the peripheral source if DIR=0.
-Note: this field is set and cleared by software.
-It must not be written when the channel is enabled (EN = 1).
-It is read-only when the channel is enabled (EN=1).</description>
-                <bitOffset>8</bitOffset>
-                <bitWidth>2</bitWidth>
-                <access>read-write</access>
-                <enumeratedValues>
-                  <enumeratedValue>
-                    <name>B_0x0</name>
-                    <description>8 bits</description>
-                    <value>0x0</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x1</name>
-                    <description>16 bits</description>
-                    <value>0x1</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x2</name>
-                    <description>32 bits</description>
-                    <value>0x2</value>
-                  </enumeratedValue>
-                </enumeratedValues>
-              </field>
-              <field>
-                <name>MSIZE</name>
-                <description>memory size
-Defines the data size of each DMA transfer to the identified memory.
-In memory-to-memory mode, this field identifies the memory source if DIR=1 and the memory destination if DIR=0.
-In peripheral-to-peripheral mode, this field identifies the peripheral source if DIR=1 and the peripheral destination if DIR=0.
-Note: this field is set and cleared by software.
-It must not be written when the channel is enabled (EN = 1).
-It is read-only when the channel is enabled (EN=1).</description>
-                <bitOffset>10</bitOffset>
-                <bitWidth>2</bitWidth>
-                <access>read-write</access>
-                <enumeratedValues>
-                  <enumeratedValue>
-                    <name>B_0x0</name>
-                    <description>8 bits</description>
-                    <value>0x0</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x1</name>
-                    <description>16 bits</description>
-                    <value>0x1</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x2</name>
-                    <description>32 bits</description>
-                    <value>0x2</value>
-                  </enumeratedValue>
-                </enumeratedValues>
-              </field>
-              <field>
-                <name>PL</name>
-                <description>priority level
-Note: this field is set and cleared by software.
-It must not be written when the channel is enabled (EN = 1).
-It is read-only when the channel is enabled (EN=1).</description>
-                <bitOffset>12</bitOffset>
-                <bitWidth>2</bitWidth>
-                <access>read-write</access>
-                <enumeratedValues>
-                  <enumeratedValue>
-                    <name>B_0x0</name>
-                    <description>low</description>
-                    <value>0x0</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x1</name>
-                    <description>medium</description>
-                    <value>0x1</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x2</name>
-                    <description>high</description>
-                    <value>0x2</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x3</name>
-                    <description>very high</description>
-                    <value>0x3</value>
-                  </enumeratedValue>
-                </enumeratedValues>
-              </field>
-              <field>
-                <name>MEM2MEM</name>
-                <description>memory-to-memory mode
-Note: this bit is set and cleared by software.
-It must not be written when the channel is enabled (EN = 1).
-It is read-only when the channel is enabled (EN=1).</description>
-                <bitOffset>14</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>read-write</access>
-                <enumeratedValues>
-                  <enumeratedValue>
-                    <name>B_0x0</name>
-                    <description>disabled</description>
-                    <value>0x0</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x1</name>
-                    <description>enabled</description>
-                    <value>0x1</value>
-                  </enumeratedValue>
-                </enumeratedValues>
-              </field>
-            </fields>
-          </register>
-          <register>
-            <name>DMA_CNDTR6</name>
-            <displayName>DMA_CNDTR6</displayName>
-			<description>DMA channel x configuration register</description>
-            <addressOffset>0x70</addressOffset>
-            <size>0x20</size>
-            <resetValue>0x00000000</resetValue>
-            <resetMask>0xFFFFFFFF</resetMask>
-            <fields>
-              <field>
-                <name>NDT</name>
-                <description>number of data to transfer (0 to 216-1)
-This field is updated by hardware when the channel is enabled:
-It is decremented after each single DMA 'read followed by writeâ transfer, indicating the remaining amount of data items to transfer.
-It is kept at zero when the programmed amount of data to transfer is reached, if the channel is not in circular mode (CIRC=0 in the DMA_CCRx register).
-It is reloaded automatically by the previously programmed value, when the transfer is complete, if the channel is in circular mode (CIRC=1).
-If this field is zero, no transfer can be served whatever the channel status (enabled or not).
-Note: this field is set and cleared by software.
-It must not be written when the channel is enabled (EN = 1).
-It is read-only when the channel is enabled (EN=1).</description>
-                <bitOffset>0</bitOffset>
-                <bitWidth>16</bitWidth>
-                <access>read-write</access>
-              </field>
-            </fields>
-          </register>
-          <register>
-            <name>DMA_CPAR6</name>
-            <displayName>DMA_CPAR6</displayName>
-			<description>DMA channel x peripheral address register</description>
-            <addressOffset>0x74</addressOffset>
-            <size>0x20</size>
-            <resetValue>0x00000000</resetValue>
-            <resetMask>0xFFFFFFFF</resetMask>
-            <fields>
-              <field>
-                <name>PA</name>
-                <description>peripheral address
-It contains the base address of the peripheral data register from/to which the data will be read/written.
-When PSIZE[1:0]=01 (16 bits), bit 0 of PA[31:0] is ignored. Access is automatically aligned to a half-word address.
-When PSIZE=10 (32 bits), bits 1 and 0 of PA[31:0] are ignored. Access is automatically aligned to a word address.
-In memory-to-memory mode, this register identifies the memory destination address if DIR=1 and the memory source address if DIR=0.
-In peripheral-to-peripheral mode, this register identifies the peripheral destination address DIR=1 and the peripheral source address if DIR=0.
-Note: this register is set and cleared by software.
-It must not be written when the channel is enabled (EN = 1).
-It is not read-only when the channel is enabled (EN=1).</description>
-                <bitOffset>0</bitOffset>
-                <bitWidth>32</bitWidth>
-                <access>read-write</access>
-              </field>
-            </fields>
-          </register>
-          <register>
-            <name>DMA_CMAR6</name>
-            <displayName>DMA_CMAR6</displayName>
-			<description>DMA channel x memory address register</description>
-            <addressOffset>0x78</addressOffset>
-            <size>0x20</size>
-            <resetValue>0x00000000</resetValue>
-            <resetMask>0xFFFFFFFF</resetMask>
-            <fields>
-              <field>
-                <name>MA</name>
-                <description>peripheral address
-It contains the base address of the memory from/to which the data will be read/written.
-When MSIZE[1:0]=01 (16 bits), bit 0 of MA[31:0] is ignored. Access is automatically aligned to a half-word address.
-When MSIZE=10 (32 bits), bits 1 and 0 of MA[31:0] are ignored. Access is automatically aligned to a word address.
-In memory-to-memory mode, this register identifies the memory source address if DIR=1 and the memory destination address if DIR=0.
-In peripheral-to-peripheral mode, this register identifies the peripheral source address DIR=1 and the peripheral destination address if DIR=0.
-Note: this register is set and cleared by software.
-It must not be written when the channel is enabled (EN = 1).
-It is not read-only when the channel is enabled (EN=1).</description>
-                <bitOffset>0</bitOffset>
-                <bitWidth>32</bitWidth>
-                <access>read-write</access>
-              </field>
-            </fields>
-          </register>
-          <register>
-            <name>DMA_CCR7</name>
-            <displayName>DMA_CCR7</displayName>
-            <description>DMA channel 7 configuration register</description>
-            <addressOffset>0x80</addressOffset>
-            <size>0x20</size>
-            <resetValue>0x00000000</resetValue>
-            <resetMask>0xFFFFFFFF</resetMask>
-            <fields>
-              <field>
-                <name>EN</name>
-                <description>channel enable
-When a channel transfer error occurs, this bit is cleared by hardware. It can not be set again by software (channel x re-activated) until the TEIFx bit of the DMA_ISR register is cleared (by setting the CTEIFx bit of the DMA_IFCR register).
-Note: this bit is set and cleared by software.</description>
-                <bitOffset>0</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>read-write</access>
-                <enumeratedValues>
-                  <enumeratedValue>
-                    <name>B_0x0</name>
-                    <description>disabled</description>
-                    <value>0x0</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x1</name>
-                    <description>enabled</description>
-                    <value>0x1</value>
-                  </enumeratedValue>
-                </enumeratedValues>
-              </field>
-              <field>
-                <name>TCIE</name>
-                <description>transfer complete interrupt enable
-Note: this bit is set and cleared by software.
-It must not be written when the channel is enabled (EN = 1).
-It is not read-only when the channel is enabled (EN=1).</description>
-                <bitOffset>1</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>read-write</access>
-                <enumeratedValues>
-                  <enumeratedValue>
-                    <name>B_0x0</name>
-                    <description>disabled</description>
-                    <value>0x0</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x1</name>
-                    <description>enabled</description>
-                    <value>0x1</value>
-                  </enumeratedValue>
-                </enumeratedValues>
-              </field>
-              <field>
-                <name>HTIE</name>
-                <description>half transfer interrupt enable
-Note: this bit is set and cleared by software.
-It must not be written when the channel is enabled (EN = 1).
-It is not read-only when the channel is enabled (EN=1).</description>
-                <bitOffset>2</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>read-write</access>
-                <enumeratedValues>
-                  <enumeratedValue>
-                    <name>B_0x0</name>
-                    <description>disabled</description>
-                    <value>0x0</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x1</name>
-                    <description>enabled</description>
-                    <value>0x1</value>
-                  </enumeratedValue>
-                </enumeratedValues>
-              </field>
-              <field>
-                <name>TEIE</name>
-                <description>transfer error interrupt enable
-Note: this bit is set and cleared by software.
-It must not be written when the channel is enabled (EN = 1).
-It is not read-only when the channel is enabled (EN=1).</description>
-                <bitOffset>3</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>read-write</access>
-                <enumeratedValues>
-                  <enumeratedValue>
-                    <name>B_0x0</name>
-                    <description>disabled</description>
-                    <value>0x0</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x1</name>
-                    <description>enabled</description>
-                    <value>0x1</value>
-                  </enumeratedValue>
-                </enumeratedValues>
-              </field>
-              <field>
-                <name>DIR</name>
-                <description>data transfer direction
-This bit must be set only in memory-to-peripheral and peripheral-to-memory modes.
-Source attributes are defined by PSIZE and PINC, plus the DMA_CPARx register. This is still valid in a memory-to-memory mode.
-Destination attributes are defined by MSIZE and MINC, plus the DMA_CMARx register. This is still valid in a peripheral-to-peripheral mode.
-Destination attributes are defined by PSIZE and PINC, plus the DMA_CPARx register. This is still valid in a memory-to-memory mode.
-Source attributes are defined by MSIZE and MINC, plus the DMA_CMARx register. This is still valid in a peripheral-to-peripheral mode.
-Note: this bit is set and cleared by software.
-It must not be written when the channel is enabled (EN = 1).
-It is read-only when the channel is enabled (EN=1).</description>
-                <bitOffset>4</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>read-write</access>
-                <enumeratedValues>
-                  <enumeratedValue>
-                    <name>B_0x0</name>
-                    <description>read from peripheral</description>
-                    <value>0x0</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x1</name>
-                    <description>read from memory</description>
-                    <value>0x1</value>
-                  </enumeratedValue>
-                </enumeratedValues>
-              </field>
-              <field>
-                <name>CIRC</name>
-                <description>circular mode
-Note: this bit is set and cleared by software.
-It must not be written when the channel is enabled (EN = 1).
-It is not read-only when the channel is enabled (EN=1).</description>
-                <bitOffset>5</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>read-write</access>
-                <enumeratedValues>
-                  <enumeratedValue>
-                    <name>B_0x0</name>
-                    <description>disabled</description>
-                    <value>0x0</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x1</name>
-                    <description>enabled</description>
-                    <value>0x1</value>
-                  </enumeratedValue>
-                </enumeratedValues>
-              </field>
-              <field>
-                <name>PINC</name>
-                <description>peripheral increment mode
-Defines the increment mode for each DMA transfer to the identified peripheral.
-n memory-to-memory mode, this field identifies the memory destination if DIR=1 and the memory source if DIR=0.
-In peripheral-to-peripheral mode, this field identifies the peripheral destination if DIR=1 and the peripheral source if DIR=0.
-Note: this bit is set and cleared by software.
-It must not be written when the channel is enabled (EN = 1).
-It is read-only when the channel is enabled (EN=1).</description>
-                <bitOffset>6</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>read-write</access>
-                <enumeratedValues>
-                  <enumeratedValue>
-                    <name>B_0x0</name>
-                    <description>disabled</description>
-                    <value>0x0</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x1</name>
-                    <description>enabled</description>
-                    <value>0x1</value>
-                  </enumeratedValue>
-                </enumeratedValues>
-              </field>
-              <field>
-                <name>MINC</name>
-                <description>memory increment mode
-Defines the increment mode for each DMA transfer to the identified memory.
-In memory-to-memory mode, this field identifies the memory source if DIR=1 and the memory destination if DIR=0.
-In peripheral-to-peripheral mode, this field identifies the peripheral source if DIR=1 and the peripheral destination if DIR=0.
-Note: this bit is set and cleared by software.
-It must not be written when the channel is enabled (EN = 1).
-It is read-only when the channel is enabled (EN=1).</description>
-                <bitOffset>7</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>read-write</access>
-                <enumeratedValues>
-                  <enumeratedValue>
-                    <name>B_0x0</name>
-                    <description>disabled</description>
-                    <value>0x0</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x1</name>
-                    <description>enabled</description>
-                    <value>0x1</value>
-                  </enumeratedValue>
-                </enumeratedValues>
-              </field>
-              <field>
-                <name>PSIZE</name>
-                <description>peripheral size
-Defines the data size of each DMA transfer to the identified peripheral.
-In memory-to-memory mode, this field identifies the memory destination if DIR=1 and the memory source if DIR=0.
-In peripheral-to-peripheral mode, this field identifies the peripheral destination if DIR=1 and the peripheral source if DIR=0.
-Note: this field is set and cleared by software.
-It must not be written when the channel is enabled (EN = 1).
-It is read-only when the channel is enabled (EN=1).</description>
-                <bitOffset>8</bitOffset>
-                <bitWidth>2</bitWidth>
-                <access>read-write</access>
-                <enumeratedValues>
-                  <enumeratedValue>
-                    <name>B_0x0</name>
-                    <description>8 bits</description>
-                    <value>0x0</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x1</name>
-                    <description>16 bits</description>
-                    <value>0x1</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x2</name>
-                    <description>32 bits</description>
-                    <value>0x2</value>
-                  </enumeratedValue>
-                </enumeratedValues>
-              </field>
-              <field>
-                <name>MSIZE</name>
-                <description>memory size
-Defines the data size of each DMA transfer to the identified memory.
-In memory-to-memory mode, this field identifies the memory source if DIR=1 and the memory destination if DIR=0.
-In peripheral-to-peripheral mode, this field identifies the peripheral source if DIR=1 and the peripheral destination if DIR=0.
-Note: this field is set and cleared by software.
-It must not be written when the channel is enabled (EN = 1).
-It is read-only when the channel is enabled (EN=1).</description>
-                <bitOffset>10</bitOffset>
-                <bitWidth>2</bitWidth>
-                <access>read-write</access>
-                <enumeratedValues>
-                  <enumeratedValue>
-                    <name>B_0x0</name>
-                    <description>8 bits</description>
-                    <value>0x0</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x1</name>
-                    <description>16 bits</description>
-                    <value>0x1</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x2</name>
-                    <description>32 bits</description>
-                    <value>0x2</value>
-                  </enumeratedValue>
-                </enumeratedValues>
-              </field>
-              <field>
-                <name>PL</name>
-                <description>priority level
-Note: this field is set and cleared by software.
-It must not be written when the channel is enabled (EN = 1).
-It is read-only when the channel is enabled (EN=1).</description>
-                <bitOffset>12</bitOffset>
-                <bitWidth>2</bitWidth>
-                <access>read-write</access>
-                <enumeratedValues>
-                  <enumeratedValue>
-                    <name>B_0x0</name>
-                    <description>low</description>
-                    <value>0x0</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x1</name>
-                    <description>medium</description>
-                    <value>0x1</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x2</name>
-                    <description>high</description>
-                    <value>0x2</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x3</name>
-                    <description>very high</description>
-                    <value>0x3</value>
-                  </enumeratedValue>
-                </enumeratedValues>
-              </field>
-              <field>
-                <name>MEM2MEM</name>
-                <description>memory-to-memory mode
-Note: this bit is set and cleared by software.
-It must not be written when the channel is enabled (EN = 1).
-It is read-only when the channel is enabled (EN=1).</description>
-                <bitOffset>14</bitOffset>
-                <bitWidth>1</bitWidth>
-                <access>read-write</access>
-                <enumeratedValues>
-                  <enumeratedValue>
-                    <name>B_0x0</name>
-                    <description>disabled</description>
-                    <value>0x0</value>
-                  </enumeratedValue>
-                  <enumeratedValue>
-                    <name>B_0x1</name>
-                    <description>enabled</description>
-                    <value>0x1</value>
-                  </enumeratedValue>
-                </enumeratedValues>
-              </field>
-            </fields>
-          </register>
-          <register>
-            <name>DMA_CNDTR7</name>
-            <displayName>DMA_CNDTR7</displayName>
-			<description>DMA channel x configuration register</description>
-            <addressOffset>0x84</addressOffset>
-            <size>0x20</size>
-            <resetValue>0x00000000</resetValue>
-            <resetMask>0xFFFFFFFF</resetMask>
-            <fields>
-              <field>
-                <name>NDT</name>
-                <description>number of data to transfer (0 to 216-1)
-This field is updated by hardware when the channel is enabled:
-It is decremented after each single DMA 'read followed by writeâ transfer, indicating the remaining amount of data items to transfer.
-It is kept at zero when the programmed amount of data to transfer is reached, if the channel is not in circular mode (CIRC=0 in the DMA_CCRx register).
-It is reloaded automatically by the previously programmed value, when the transfer is complete, if the channel is in circular mode (CIRC=1).
-If this field is zero, no transfer can be served whatever the channel status (enabled or not).
-Note: this field is set and cleared by software.
-It must not be written when the channel is enabled (EN = 1).
-It is read-only when the channel is enabled (EN=1).</description>
-                <bitOffset>0</bitOffset>
-                <bitWidth>16</bitWidth>
-                <access>read-write</access>
-              </field>
-            </fields>
-          </register>
-          <register>
-            <name>DMA_CPAR7</name>
-            <displayName>DMA_CPAR7</displayName>
-			<description>DMA channel x peripheral address register</description>
-            <addressOffset>0x88</addressOffset>
-            <size>0x20</size>
-            <resetValue>0x00000000</resetValue>
-            <resetMask>0xFFFFFFFF</resetMask>
-            <fields>
-              <field>
-                <name>PA</name>
-                <description>peripheral address
-It contains the base address of the peripheral data register from/to which the data will be read/written.
-When PSIZE[1:0]=01 (16 bits), bit 0 of PA[31:0] is ignored. Access is automatically aligned to a half-word address.
-When PSIZE=10 (32 bits), bits 1 and 0 of PA[31:0] are ignored. Access is automatically aligned to a word address.
-In memory-to-memory mode, this register identifies the memory destination address if DIR=1 and the memory source address if DIR=0.
-In peripheral-to-peripheral mode, this register identifies the peripheral destination address DIR=1 and the peripheral source address if DIR=0.
-Note: this register is set and cleared by software.
-It must not be written when the channel is enabled (EN = 1).
-It is not read-only when the channel is enabled (EN=1).</description>
-                <bitOffset>0</bitOffset>
-                <bitWidth>32</bitWidth>
-                <access>read-write</access>
-              </field>
-            </fields>
-          </register>
-          <register>
-            <name>DMA_CMAR7</name>
-            <displayName>DMA_CMAR7</displayName>
-			<description>DMA channel x memory address register</description>
-            <addressOffset>0x8c</addressOffset>
             <size>0x20</size>
             <resetValue>0x00000000</resetValue>
             <resetMask>0xFFFFFFFF</resetMask>
@@ -10697,8 +9404,8 @@ It is not read-only when the channel is enabled (EN=1).</description>
         <usage>registers</usage>
       </addressBlock>
       <interrupt>
-        <name>DMA_Channel4_5_6_7</name>
-        <description>DMA channel 4, 5, 6 &amp; 7 and DMAMUX</description>
+        <name>DMA_Channel4_5</name>
+        <description>DMA channel 4, 5 and DMAMUX</description>
         <value>11</value>
       </interrupt>
       <registers>
@@ -15573,7 +14280,7 @@ It is not read-only when the channel is enabled (EN=1).</description>
               <bitWidth>1</bitWidth>
             </field>
             <field>
-              <name>TAINV</name>
+              <name>DATAINV</name>
               <description>Binary data inversion</description>
               <bitOffset>18</bitOffset>
               <bitWidth>1</bitWidth>
@@ -15940,13 +14647,13 @@ It is not read-only when the channel is enabled (EN=1).</description>
           <fields>
             <field>
               <name>TXFT</name>
-              <description>TXFIFO threshold flag</description>
+              <description>TX FIFO threshold flag</description>
               <bitOffset>27</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
               <name>RXFT</name>
-              <description>RXFIFO threshold flag</description>
+              <description>RX FIFO threshold flag</description>
               <bitOffset>26</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
@@ -15958,67 +14665,67 @@ It is not read-only when the channel is enabled (EN=1).</description>
             </field>
             <field>
               <name>RXFF</name>
-              <description>RXFIFO Full</description>
+              <description>RX FIFO Full</description>
               <bitOffset>24</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
               <name>TXFE</name>
-              <description>TXFIFO Empty</description>
+              <description>TX FIFO Empty</description>
               <bitOffset>23</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
               <name>REACK</name>
-              <description>REACK</description>
+              <description>Receive enable acknowledge flag</description>
               <bitOffset>22</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
               <name>TEACK</name>
-              <description>TEACK</description>
+              <description>Transmit enable acknowledge flag</description>
               <bitOffset>21</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
               <name>WUF</name>
-              <description>WUF</description>
+              <description>Wakeup from low-power mode flag</description>
               <bitOffset>20</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
               <name>RWU</name>
-              <description>RWU</description>
+              <description>Receiver wakeup from Mute mode</description>
               <bitOffset>19</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
               <name>SBKF</name>
-              <description>SBKF</description>
+              <description>Send break flag</description>
               <bitOffset>18</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
               <name>CMF</name>
-              <description>CMF</description>
+              <description>Character match flag</description>
               <bitOffset>17</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
               <name>BUSY</name>
-              <description>BUSY</description>
+              <description>Reception in progress flag</description>
               <bitOffset>16</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
               <name>ABRF</name>
-              <description>ABRF</description>
+              <description>Auto baud rate complete flag</description>
               <bitOffset>15</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
               <name>ABRE</name>
-              <description>ABRE</description>
+              <description>Auto baud rate error</description>
               <bitOffset>14</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
@@ -16030,49 +14737,49 @@ It is not read-only when the channel is enabled (EN=1).</description>
             </field>
             <field>
               <name>EOBF</name>
-              <description>EOBF</description>
+              <description>End of block flag</description>
               <bitOffset>12</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
               <name>RTOF</name>
-              <description>RTOF</description>
+              <description>Receiver timeout flag</description>
               <bitOffset>11</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
               <name>CTS</name>
-              <description>CTS</description>
+              <description>CTS (read only)</description>
               <bitOffset>10</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
               <name>CTSIF</name>
-              <description>CTSIF</description>
+              <description>CTS interrupt flag</description>
               <bitOffset>9</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
               <name>LBDF</name>
-              <description>LBDF</description>
+              <description>LIN break detection flag</description>
               <bitOffset>8</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
-              <name>TXE</name>
-              <description>TXE</description>
+              <name>TXE_TXFNF</name>
+              <description>TX Empty / FIFO Not Full</description>
               <bitOffset>7</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
               <name>TC</name>
-              <description>TC</description>
+              <description>Transmission Complete</description>
               <bitOffset>6</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
-              <name>RXNE</name>
-              <description>RXNE</description>
+              <name>RXNE_RXFNE</name>
+              <description>RX Not Empty / FIFO Not Empty</description>
               <bitOffset>5</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
@@ -16084,25 +14791,25 @@ It is not read-only when the channel is enabled (EN=1).</description>
             </field>
             <field>
               <name>ORE</name>
-              <description>ORE</description>
+              <description>Overrun Error</description>
               <bitOffset>3</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
-              <name>NF</name>
-              <description>NF</description>
+              <name>NE</name>
+              <description>Noise Error</description>
               <bitOffset>2</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
               <name>FE</name>
-              <description>FE</description>
+              <description>Framing Error</description>
               <bitOffset>1</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
               <name>PE</name>
-              <description>PE</description>
+              <description>Parity Error</description>
               <bitOffset>0</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
@@ -16253,7 +14960,7 @@ It is not read-only when the channel is enabled (EN=1).</description>
           <resetValue>0x0000</resetValue>
           <fields>
             <field>
-              <name>PRESCALER</name>
+              <name>PRESC</name>
               <description>Clock prescaler</description>
               <bitOffset>0</bitOffset>
               <bitWidth>4</bitWidth>
@@ -18278,12 +16985,6 @@ It is not read-only when the channel is enabled (EN=1).</description>
           <access>read-write</access>
           <resetValue>0x00000000</resetValue>
           <fields>
-		        <field>
-              <name>I2C3_FMP</name>
-              <description>I2C3_FMP</description>
-              <bitOffset>24</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
 			      <field>
               <name>I2C_PA10_FMP</name>
               <description>Fast Mode Plus (FM+) driving capability activation bits</description>
@@ -18330,18 +17031,6 @@ It is not read-only when the channel is enabled (EN=1).</description>
               <name>I2C_PB6_FMP</name>
               <description>Fast Mode Plus (FM+) enable for PB6</description>
               <bitOffset>16</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-            <field>
-              <name>UCPD2_STROBE</name>
-              <description>Strobe signal bit for UCPD2</description>
-              <bitOffset>10</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-            <field>
-              <name>UCPD1_STROBE</name>
-              <description>Strobe signal bit for UCPD1</description>
-              <bitOffset>9</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
             <field>
@@ -18627,23 +17316,6 @@ It is not read-only when the channel is enabled (EN=1).</description>
           </fields>
         </register>
         <register>
-          <name>ITLINE8</name>
-          <displayName>ITLINE8</displayName>
-          <description>interrupt line 8 status register</description>
-          <addressOffset>0xA0</addressOffset>
-          <size>0x20</size>
-          <access>read-only</access>
-          <resetValue>0x00000000</resetValue>
-          <fields>
-            <field>
-              <name>USB</name>
-              <description>USB</description>
-              <bitOffset>2</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-          </fields>
-        </register>
-        <register>
           <name>ITLINE9</name>
           <displayName>ITLINE9</displayName>
           <description>interrupt line 9 status register</description>
@@ -18721,37 +17393,7 @@ It is not read-only when the channel is enabled (EN=1).</description>
               <description>DMA1_CH7</description>
               <bitOffset>4</bitOffset>
               <bitWidth>1</bitWidth>
-            </field>						
-			<field>
-              <name>DMA2_CH1</name>
-              <description>DMA2_CH1</description>
-              <bitOffset>5</bitOffset>
-              <bitWidth>1</bitWidth>
             </field>
-			<field>
-              <name>DMA2_CH2</name>
-              <description>DMA2_CH2</description>
-              <bitOffset>6</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-			<field>
-              <name>DMA2_CH3</name>
-              <description>DMA2_CH3</description>
-              <bitOffset>7</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-			<field>
-              <name>DMA2_CH4</name>
-              <description>DMA2_CH4</description>
-              <bitOffset>8</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-			<field>
-              <name>DMA2_CH5</name>
-              <description>DMA2_CH5</description>
-              <bitOffset>9</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>			
           </fields>
         </register>
         <register>
@@ -18838,46 +17480,6 @@ It is not read-only when the channel is enabled (EN=1).</description>
               <bitOffset>0</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
-			<field>
-              <name>TIM4</name>
-              <description>TIM4</description>
-              <bitOffset>1</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-          </fields>
-        </register>
-        <register>
-          <name>ITLINE17</name>
-          <displayName>ITLINE17</displayName>
-          <description>interrupt line 17 status register</description>
-          <addressOffset>0xC4</addressOffset>
-          <size>0x20</size>
-          <access>read-only</access>
-          <resetValue>0x00000000</resetValue>
-          <fields>
-            <field>
-              <name>TIM6</name>
-              <description>TIM6</description>
-              <bitOffset>0</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-          </fields>
-        </register>
-        <register>
-          <name>ITLINE18</name>
-          <displayName>ITLINE18</displayName>
-          <description>interrupt line 18 status register</description>
-          <addressOffset>0xC8</addressOffset>
-          <size>0x20</size>
-          <access>read-only</access>
-          <resetValue>0x00000000</resetValue>
-          <fields>
-            <field>
-              <name>TIM7</name>
-              <description>TIM7</description>
-              <bitOffset>0</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
           </fields>
         </register>
         <register>
@@ -18892,23 +17494,6 @@ It is not read-only when the channel is enabled (EN=1).</description>
             <field>
               <name>TIM14</name>
               <description>TIM14</description>
-              <bitOffset>0</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-          </fields>
-        </register>
-        <register>
-          <name>ITLINE20</name>
-          <displayName>ITLINE20</displayName>
-          <description>interrupt line 20 status register</description>
-          <addressOffset>0xD0</addressOffset>
-          <size>0x20</size>
-          <access>read-only</access>
-          <resetValue>0x00000000</resetValue>
-          <fields>
-            <field>
-              <name>TIM15</name>
-              <description>TIM15</description>
               <bitOffset>0</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
@@ -18980,12 +17565,6 @@ It is not read-only when the channel is enabled (EN=1).</description>
               <bitOffset>0</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
-			<field>
-              <name>I2C3</name>
-              <description>I2C3</description>
-              <bitOffset>1</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
           </fields>
         </register>
         <register>
@@ -19018,12 +17597,6 @@ It is not read-only when the channel is enabled (EN=1).</description>
               <name>SPI2</name>
               <description>SPI2</description>
               <bitOffset>0</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-			<field>
-              <name>SPI3</name>
-              <description>SPI3</description>
-              <bitOffset>14</bitOffset>
               <bitWidth>1</bitWidth>
             </field>
           </fields>
@@ -19062,41 +17635,6 @@ It is not read-only when the channel is enabled (EN=1).</description>
             </field>
           </fields>
         </register>
-        <register>
-          <name>ITLINE29</name>
-          <displayName>ITLINE29</displayName>
-          <description>interrupt line 29 status register</description>
-          <addressOffset>0xF4</addressOffset>
-          <size>0x20</size>
-          <access>read-only</access>
-          <resetValue>0x00000000</resetValue>
-          <fields>
-            <field>
-              <name>USART3</name>
-              <description>USART3</description>
-              <bitOffset>0</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-            <field>
-              <name>USART4</name>
-              <description>USART4</description>
-              <bitOffset>1</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-            <field>
-              <name>USART5</name>
-              <description>USART5</description>
-              <bitOffset>3</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>
-			 <field>
-              <name>USART6</name>
-              <description>USART6</description>
-              <bitOffset>4</bitOffset>
-              <bitWidth>1</bitWidth>
-            </field>			
-          </fields>
-        </register>    
       </registers>
     </peripheral>
     <peripheral>

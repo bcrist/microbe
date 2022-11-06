@@ -1,7 +1,5 @@
-//! This is the entry point and root file of microzig.
-//! If you do a @import("microzig"), you'll *basically* get this file.
-//!
-//! But microzig employs a proxy tactic
+// This is the entry point and root file of microbe.
+// If you do a @import("microbe"), you'll *basically* get this file.
 
 const std = @import("std");
 const root = @import("root");
@@ -11,34 +9,20 @@ const init = @import("init");
 /// The package that defines the main() function to be called after reset.
 pub const main = @import("main");
 
-/// Contains build-time generated configuration options.
-/// Currently just core and chip names.
 pub const config = @import("microbe-config");
-
-/// Provides low-level access to the current microcontroller.
 pub const chip = @import("chip");
-
-/// Provides low-level access to the current microcontroller's core/CPU.
 pub const core = @import("core");
 
 pub const interrupts = @import("interrupts.zig");
-// pub const clock = @import("clock.zig");
+pub const pads = @import("pads.zig");
+pub const dma = if (@hasDecl(chip, "dma")) @import("dma.zig") else struct{};
 
-// pub const gpio = @import("gpio.zig");
-// pub const Gpio = gpio.Gpio;
+pub const bus = @import("bus.zig");
+pub const Bus = bus.Bus;
 
-// pub const pin = @import("pin.zig");
-// pub const Pin = pin.Pin;
+pub const uart = @import("uart.zig");
+pub const Uart = uart.Uart;
 
-// pub const uart = @import("uart.zig");
-// pub const Uart = uart.Uart;
-
-// pub const i2c = @import("i2c.zig");
-// pub const I2CController = i2c.I2CController;
-
-// pub const debug = @import("debug.zig");
-
-// pub const mmio = @import("mmio.zig");
 
 // log is a no-op by default. Parts of microbe use the stdlib logging
 // facility and compilations will fail on freestanding systems that
@@ -103,28 +87,10 @@ pub fn hang() noreturn {
     }
 }
 
-comptime {
-    // Export the vector table if we have any.
-    // For a lot of systems, the vector table provides a reset vector
-    // that is either called (Cortex-M) or executed (AVR) when initalized.
-    // Allow chip to override the vector table.
-    const export_opts = .{
-        .name = "vt",
-        .section = ".vector_table",
-        .linkage = .Strong,
-    };
-
-    if (@hasDecl(chip, "vector_table"))
-        @export(chip.vector_table, export_opts)
-    else if (@hasDecl(core, "vector_table"))
-        @export(core.vector_table, export_opts)
-    else if (@hasDecl(main, "interrupts"))
-        @compileError("interrupts not configured");
-}
-
 /// This is the logical entry point for microbe.
 /// It will invoke the main function from the root source file and provide error return handling
-export fn microbe_main() noreturn {
+/// align(4) shouldn't be necessary here, but sometimes zig ends up using align(2) on arm for some reason...
+export fn microbe_main() align(4) noreturn {
     if (!@hasDecl(main, "main"))
         @compileError("The root source file must provide a public function main!");
 
@@ -142,7 +108,11 @@ export fn microbe_main() noreturn {
         @compileError("TODO: Embedded event loop not supported yet. Please try again later.");
     }
 
-    // initialize static memory
+    // There usually isn't any core-specific setup needed, but this prevents an issue where the
+    // vector table isn't actually exported if nothing in the program uses anything from `core`.
+    core.init();
+
+    // initialize .bss and .data sections
     init.init();
 
     if (@hasDecl(main, "init")) {

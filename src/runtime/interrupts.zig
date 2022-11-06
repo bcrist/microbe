@@ -7,13 +7,13 @@ pub fn isEnabled(comptime interrupt: anytype) bool {
     return chip.interrupts.isEnabled(std.enums.nameCast(InterruptType, interrupt));
 }
 
-pub fn setEnabled(comptime interrupt: anytype, enabled: bool) void {
+pub fn setEnabled(comptime interrupt: anytype, comptime enabled: bool) void {
     chip.interrupts.setEnabled(std.enums.nameCast(InterruptType, interrupt), enabled);
 }
 
 pub fn configureEnables(comptime config: anytype) void {
     if (@hasDecl(chip.interrupts, "configureEnables")) {
-        chip.interrupts.configureEnabled(config);
+        chip.interrupts.configureEnables(config);
     } else {
         const info = @typeInfo(@TypeOf(config));
         switch (info) {
@@ -79,6 +79,36 @@ pub usingnamespace if (@hasDecl(chip.interrupts, "setPriority") and @hasDecl(chi
 
         pub fn setPriority(comptime interrupt: anytype, priority: u8) void {
             chip.interrupts.setPriority(std.enums.nameCast(InterruptType, interrupt), priority);
+        }
+
+        pub fn configurePriorities(comptime config: anytype) void {
+            if (@hasDecl(chip.interrupts, "configurePriorities")) {
+                chip.interrupts.configurePriorities(config);
+            } else {
+                const info = @typeInfo(@TypeOf(config));
+                switch (info) {
+                    .Struct => |struct_info| {
+                        for (struct_info.fields) |field| {
+                            setPriority(field.name, @field(config, field.name));
+                        }
+                    },
+                    else => {
+                        @compileError("Expected a struct literal containing interrupts and priorities!");
+                    },
+                }
+            }
+        }
+    }
+else struct {};
+
+pub usingnamespace if (@hasDecl(chip.interrupts, "setPending") and @hasDecl(chip.interrupts, "isPending"))
+    struct {
+        pub fn isPending(comptime interrupt: anytype) bool {
+            return chip.interrupts.isPending(std.enums.nameCast(InterruptType, interrupt));
+        }
+
+        pub fn setPending(comptime interrupt: anytype, comptime pending: bool) void {
+            chip.interrupts.setPending(std.enums.nameCast(InterruptType, interrupt), pending);
         }
     }
 else struct {};

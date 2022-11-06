@@ -1,36 +1,44 @@
+const std = @import("std");
 
-// TODO have regz generate this
-pub const InterruptType = enum {
-    WWDG = 0,
-    RTC_TAMP_EXTI_19_21 = 2,
-    FLASH = 3,
-    RCC = 4,
-    EXTI_0_1 = 5,
-    EXTI_2_3 = 6,
-    EXTI_4_5_6_7_8_9_10_11_12_13_14_15 = 7,
-    DMA_Channel_1 = 9,
-    DMA_Channel_2_3 = 10,
-    DMA_Channel_4_5_DMAMUX = 11,
-    ADC_EXTI_17_18 = 12,
-    TIM1_BRK_UP_TRG_COM = 13,
-    TIM1_CC = 14,
-    TIM3_TIM4 = 16,
-    TIM6 = 17,
-    TIM7 = 18,
-    TIM14 = 19,
-    TIM15 = 20,
-    TIM16 = 21,
-    TIM17 = 22,
-    I2C1 = 23,
-    I2C2_I2C3 = 24,
-    SPI1 = 25,
-    SPI2_SPI3 = 26,
-    USART1_EXTI_25 = 27,
-    USART2_EXTI_26 = 28,
-    USART3_USART4_USART5_USART6_EXTI28 = 29,
+pub const InterruptEnable = enum(u1) {
+    interrupt_disabled = 0,
+    interrupt_enabled = 1,
+};
+
+pub const InterruptFlag = enum(u1) {
+    interrupt_not_active = 0,
+    interrupt_pending = 1,
+};
+
+pub const InterruptClearFlag = enum(u1) {
+    no_action = 0,
+    clear_interrupt = 1,
+};
+
+pub const ErrorFlag = enum(u1) {
+    no_error = 0,
+    error_detected = 1,
+};
+
+pub const ErrorClearFlag = enum(u1) {
+    no_action = 0,
+    clear_error = 1,
+};
+
+pub const PeripheralReset = enum(u1) {
+    no_action = 0,
+    reset_peripheral = 1,
 };
 
 pub const gpio = struct {
+
+    pub const IOPort = enum {
+        A,
+        B,
+        C,
+        D,
+        F,
+    };
 
     pub const IOMode = enum(u2) {
         input = 0,
@@ -87,6 +95,8 @@ pub const gpio = struct {
     pub const DriveMode = enum(u1) {
         push_pull = 0,
         open_drain = 1,
+
+        pub const default = DriveMode.push_pull;
     };
 
     pub const OTYPER = packed struct {
@@ -106,6 +116,22 @@ pub const gpio = struct {
         OT13: DriveMode = .push_pull,
         OT14: DriveMode = .push_pull,
         OT15: DriveMode = .push_pull,
+        _reserved16: u1 = 0,
+        _reserved17: u1 = 0,
+        _reserved18: u1 = 0,
+        _reserved19: u1 = 0,
+        _reserved20: u1 = 0,
+        _reserved21: u1 = 0,
+        _reserved22: u1 = 0,
+        _reserved23: u1 = 0,
+        _reserved24: u1 = 0,
+        _reserved25: u1 = 0,
+        _reserved26: u1 = 0,
+        _reserved27: u1 = 0,
+        _reserved28: u1 = 0,
+        _reserved29: u1 = 0,
+        _reserved30: u1 = 0,
+        _reserved31: u1 = 0,
 
         pub fn init(all: DriveMode) OTYPER {
             return .{
@@ -130,10 +156,12 @@ pub const gpio = struct {
     };
 
     pub const SlewRate = enum(u2) {
-        very_slow = 0,
-        slow = 1,
-        fast = 2,
-        very_fast = 3,
+        very_slow = 0,  // max 2-3 MHz @ 3.3V
+        slow = 1,       // max 10-15 MHz @ 3.3V
+        fast = 2,       // max 30-60 MHz @ 3.3V
+        very_fast = 3,  // max 60-80 MHz @ 3.3V
+
+        pub const default = SlewRate.very_slow;
     };
 
     pub const OSPEEDR = packed struct {
@@ -180,31 +208,34 @@ pub const gpio = struct {
         .OSPEEDR13 = .very_high_speed,
     };
 
-    pub const LineMaintenance = enum(u2) {
+    pub const TerminationMode = enum(u2) {
         float = 0,
         pull_up = 1,
         pull_down = 2,
         _,
+
+        pub const default = TerminationMode.pull_down;
     };
 
     pub const PUPDR = packed struct {
-        PUPD0: LineMaintenance = .float,
-        PUPD1: LineMaintenance = .float,
-        PUPD2: LineMaintenance = .float,
-        PUPD4: LineMaintenance = .float,
-        PUPD5: LineMaintenance = .float,
-        PUPD6: LineMaintenance = .float,
-        PUPD7: LineMaintenance = .float,
-        PUPD8: LineMaintenance = .float,
-        PUPD9: LineMaintenance = .float,
-        PUPD10: LineMaintenance = .float,
-        PUPD11: LineMaintenance = .float,
-        PUPD12: LineMaintenance = .float,
-        PUPD13: LineMaintenance = .float,
-        PUPD14: LineMaintenance = .float,
-        PUPD15: LineMaintenance = .float,
+        PUPD0: TerminationMode = .float,
+        PUPD1: TerminationMode = .float,
+        PUPD2: TerminationMode = .float,
+        PUPD3: TerminationMode = .float,
+        PUPD4: TerminationMode = .float,
+        PUPD5: TerminationMode = .float,
+        PUPD6: TerminationMode = .float,
+        PUPD7: TerminationMode = .float,
+        PUPD8: TerminationMode = .float,
+        PUPD9: TerminationMode = .float,
+        PUPD10: TerminationMode = .float,
+        PUPD11: TerminationMode = .float,
+        PUPD12: TerminationMode = .float,
+        PUPD13: TerminationMode = .float,
+        PUPD14: TerminationMode = .float,
+        PUPD15: TerminationMode = .float,
 
-        pub fn init(all: LineMaintenance) PUPDR {
+        pub fn init(all: TerminationMode) PUPDR {
             return .{
                 .PUPD0 = all,
                 .PUPD1 = all,
@@ -247,22 +278,22 @@ pub const gpio = struct {
         D13: u1 = 0,
         D14: u1 = 0,
         D15: u1 = 0,
-        _reserved16: u1 = undefined,
-        _reserved17: u1 = undefined,
-        _reserved18: u1 = undefined,
-        _reserved19: u1 = undefined,
-        _reserved20: u1 = undefined,
-        _reserved21: u1 = undefined,
-        _reserved22: u1 = undefined,
-        _reserved23: u1 = undefined,
-        _reserved24: u1 = undefined,
-        _reserved25: u1 = undefined,
-        _reserved26: u1 = undefined,
-        _reserved27: u1 = undefined,
-        _reserved28: u1 = undefined,
-        _reserved29: u1 = undefined,
-        _reserved30: u1 = undefined,
-        _reserved31: u1 = undefined,
+        _reserved16: u1 = 0,
+        _reserved17: u1 = 0,
+        _reserved18: u1 = 0,
+        _reserved19: u1 = 0,
+        _reserved20: u1 = 0,
+        _reserved21: u1 = 0,
+        _reserved22: u1 = 0,
+        _reserved23: u1 = 0,
+        _reserved24: u1 = 0,
+        _reserved25: u1 = 0,
+        _reserved26: u1 = 0,
+        _reserved27: u1 = 0,
+        _reserved28: u1 = 0,
+        _reserved29: u1 = 0,
+        _reserved30: u1 = 0,
+        _reserved31: u1 = 0,
 
         pub fn init(all: u1) DR {
             return .{
@@ -356,22 +387,22 @@ pub const gpio = struct {
         BR13: BitResetFlag = .no_action,
         BR14: BitResetFlag = .no_action,
         BR15: BitResetFlag = .no_action,
-        _reserved16: u1 = undefined,
-        _reserved17: u1 = undefined,
-        _reserved18: u1 = undefined,
-        _reserved19: u1 = undefined,
-        _reserved20: u1 = undefined,
-        _reserved21: u1 = undefined,
-        _reserved22: u1 = undefined,
-        _reserved23: u1 = undefined,
-        _reserved24: u1 = undefined,
-        _reserved25: u1 = undefined,
-        _reserved26: u1 = undefined,
-        _reserved27: u1 = undefined,
-        _reserved28: u1 = undefined,
-        _reserved29: u1 = undefined,
-        _reserved30: u1 = undefined,
-        _reserved31: u1 = undefined,
+        _reserved16: u1 = 0,
+        _reserved17: u1 = 0,
+        _reserved18: u1 = 0,
+        _reserved19: u1 = 0,
+        _reserved20: u1 = 0,
+        _reserved21: u1 = 0,
+        _reserved22: u1 = 0,
+        _reserved23: u1 = 0,
+        _reserved24: u1 = 0,
+        _reserved25: u1 = 0,
+        _reserved26: u1 = 0,
+        _reserved27: u1 = 0,
+        _reserved28: u1 = 0,
+        _reserved29: u1 = 0,
+        _reserved30: u1 = 0,
+        _reserved31: u1 = 0,
 
         pub fn reset(bits: u16) BRR {
             const temp = @as(u32, bits);
@@ -405,21 +436,21 @@ pub const gpio = struct {
             meta_unlocked = 0,
             meta_locked = 1,
         } = .meta_unlocked,
-        _reserved17: u1 = undefined,
-        _reserved18: u1 = undefined,
-        _reserved19: u1 = undefined,
-        _reserved20: u1 = undefined,
-        _reserved21: u1 = undefined,
-        _reserved22: u1 = undefined,
-        _reserved23: u1 = undefined,
-        _reserved24: u1 = undefined,
-        _reserved25: u1 = undefined,
-        _reserved26: u1 = undefined,
-        _reserved27: u1 = undefined,
-        _reserved28: u1 = undefined,
-        _reserved29: u1 = undefined,
-        _reserved30: u1 = undefined,
-        _reserved31: u1 = undefined,
+        _reserved17: u1 = 0,
+        _reserved18: u1 = 0,
+        _reserved19: u1 = 0,
+        _reserved20: u1 = 0,
+        _reserved21: u1 = 0,
+        _reserved22: u1 = 0,
+        _reserved23: u1 = 0,
+        _reserved24: u1 = 0,
+        _reserved25: u1 = 0,
+        _reserved26: u1 = 0,
+        _reserved27: u1 = 0,
+        _reserved28: u1 = 0,
+        _reserved29: u1 = 0,
+        _reserved30: u1 = 0,
+        _reserved31: u1 = 0,
 
         pub fn init(all: PortConfigLockMode) LCKR {
             return .{
@@ -727,21 +758,21 @@ pub const gpio = struct {
     };
 
     pub const GPIOC_AFRL = packed struct {
-        _reserved0: u4 = undefined,
-        _reserved1: u4 = undefined,
-        _reserved2: u4 = undefined,
-        _reserved3: u4 = undefined,
-        _reserved4: u4 = undefined,
-        _reserved5: u4 = undefined,
+        _reserved0: u4 = 0,
+        _reserved1: u4 = 0,
+        _reserved2: u4 = 0,
+        _reserved3: u4 = 0,
+        _reserved4: u4 = 0,
+        _reserved5: u4 = 0,
         AFRL6: PC6_AF = @intToEnum(PC6_AF, 0),
         AFRL7: PC7_AF = @intToEnum(PC7_AF, 0),
     };
     pub const GPIOC_AFRH = packed struct {
-        _reserved8: u4 = undefined,
-        _reserved9: u4 = undefined,
-        _reserved10: u4 = undefined,
-        _reserved11: u4 = undefined,
-        _reserved12: u4 = undefined,
+        _reserved8: u4 = 0,
+        _reserved9: u4 = 0,
+        _reserved10: u4 = 0,
+        _reserved11: u4 = 0,
+        _reserved12: u4 = 0,
         AFRH13: PC13_AF = @intToEnum(PC13_AF, 0),
         AFRH14: PC14_AF = @intToEnum(PC14_AF, 0),
         AFRH15: PC15_AF = .OSC32_EN,
@@ -776,10 +807,10 @@ pub const gpio = struct {
         AFRL1: PD1_AF = .EVENTOUT,
         AFRL2: PD2_AF = @intToEnum(PD2_AF, 0),
         AFRL3: PD3_AF = .USART2_CTS,
-        _reserved4: u4 = undefined,
-        _reserved5: u4 = undefined,
-        _reserved6: u4 = undefined,
-        _reserved7: u4 = undefined,
+        _reserved4: u4 = 0,
+        _reserved5: u4 = 0,
+        _reserved6: u4 = 0,
+        _reserved7: u4 = 0,
     };
     pub const GPIOD_AFRH = Unused_AFRH;
 
@@ -795,28 +826,27 @@ pub const gpio = struct {
     pub const GPIOF_AFRL = packed struct {
         AFRL0: PF0_AF = @intToEnum(PF0_AF, 0),
         AFRL1: PF1_AF = .OSC_EN,
-        _reserved2: u4 = undefined,
-        _reserved3: u4 = undefined,
-        _reserved4: u4 = undefined,
-        _reserved5: u4 = undefined,
-        _reserved6: u4 = undefined,
-        _reserved7: u4 = undefined,
+        _reserved2: u4 = 0,
+        _reserved3: u4 = 0,
+        _reserved4: u4 = 0,
+        _reserved5: u4 = 0,
+        _reserved6: u4 = 0,
+        _reserved7: u4 = 0,
     };
     pub const GPIOF_AFRH = Unused_AFRH;
 
     pub const Unused_AFRH = packed struct {
-        _reserved8: u4 = undefined,
-        _reserved9: u4 = undefined,
-        _reserved10: u4 = undefined,
-        _reserved11: u4 = undefined,
-        _reserved12: u4 = undefined,
-        _reserved13: u4 = undefined,
-        _reserved14: u4 = undefined,
-        _reserved15: u4 = undefined,
+        _reserved8: u4 = 0,
+        _reserved9: u4 = 0,
+        _reserved10: u4 = 0,
+        _reserved11: u4 = 0,
+        _reserved12: u4 = 0,
+        _reserved13: u4 = 0,
+        _reserved14: u4 = 0,
+        _reserved15: u4 = 0,
     };
 
 };
-
 
 pub const dma = struct {
 
@@ -846,26 +876,17 @@ pub const dma = struct {
         /// Note: this bit is set and cleared by software.
         /// It must not be written when the channel is enabled (EN = 1).
         /// It is not read-only when the channel is enabled (EN=1).
-        TCIE: enum(u1) {
-            transfer_complete_interrupt_disabled = 0,
-            transfer_complete_interrupt_enabled = 1,
-        } = .transfer_complete_interrupt_disabled,
+        TCIE: InterruptEnable = .interrupt_disabled,
         /// half transfer interrupt enable
         /// Note: this bit is set and cleared by software.
         /// It must not be written when the channel is enabled (EN = 1).
         /// It is not read-only when the channel is enabled (EN=1).
-        HTIE: enum(u1) {
-            half_transfer_interrupt_disabled = 0,
-            half_transfer_interrupt_enabled = 1,
-        } = .half_transfer_interrupt_disabled,
+        HTIE: InterruptEnable = .interrupt_disabled,
         /// transfer error interrupt enable
         /// Note: this bit is set and cleared by software.
         /// It must not be written when the channel is enabled (EN = 1).
         /// It is not read-only when the channel is enabled (EN=1).
-        TEIE: enum(u1) {
-            transfer_error_interrupt_disabled = 0,
-            transfer_error_interrupt_enabled = 1,
-        } = transfer_error_interrupt_disabled,
+        TEIE: InterruptEnable = .interrupt_disabled,
         /// data transfer direction
         /// This bit must be set only in memory-to-peripheral and peripheral-to-memory
         /// modes.
@@ -950,23 +971,23 @@ pub const dma = struct {
             uses_peripheral = 0,
             memory_only = 1,
         } = .uses_peripheral,
-        _reserved15: u1 = undefined,
-        _reserved16: u1 = undefined,
-        _reserved17: u1 = undefined,
-        _reserved18: u1 = undefined,
-        _reserved19: u1 = undefined,
-        _reserved20: u1 = undefined,
-        _reserved21: u1 = undefined,
-        _reserved22: u1 = undefined,
-        _reserved23: u1 = undefined,
-        _reserved24: u1 = undefined,
-        _reserved25: u1 = undefined,
-        _reserved26: u1 = undefined,
-        _reserved27: u1 = undefined,
-        _reserved28: u1 = undefined,
-        _reserved29: u1 = undefined,
-        _reserved30: u1 = undefined,
-        _reserved31: u1 = undefined,
+        _reserved15: u1 = 0,
+        _reserved16: u1 = 0,
+        _reserved17: u1 = 0,
+        _reserved18: u1 = 0,
+        _reserved19: u1 = 0,
+        _reserved20: u1 = 0,
+        _reserved21: u1 = 0,
+        _reserved22: u1 = 0,
+        _reserved23: u1 = 0,
+        _reserved24: u1 = 0,
+        _reserved25: u1 = 0,
+        _reserved26: u1 = 0,
+        _reserved27: u1 = 0,
+        _reserved28: u1 = 0,
+        _reserved29: u1 = 0,
+        _reserved30: u1 = 0,
+        _reserved31: u1 = 0,
     };
 
     pub const CNDTR = packed struct {
@@ -984,22 +1005,22 @@ pub const dma = struct {
         /// It must not be written when the channel is enabled (EN = 1).
         /// It is read-only when the channel is enabled (EN=1).
         NDT: u16 = 0,
-        _reserved16: u1 = undefined,
-        _reserved17: u1 = undefined,
-        _reserved18: u1 = undefined,
-        _reserved19: u1 = undefined,
-        _reserved20: u1 = undefined,
-        _reserved21: u1 = undefined,
-        _reserved22: u1 = undefined,
-        _reserved23: u1 = undefined,
-        _reserved24: u1 = undefined,
-        _reserved25: u1 = undefined,
-        _reserved26: u1 = undefined,
-        _reserved27: u1 = undefined,
-        _reserved28: u1 = undefined,
-        _reserved29: u1 = undefined,
-        _reserved30: u1 = undefined,
-        _reserved31: u1 = undefined,
+        _reserved16: u1 = 0,
+        _reserved17: u1 = 0,
+        _reserved18: u1 = 0,
+        _reserved19: u1 = 0,
+        _reserved20: u1 = 0,
+        _reserved21: u1 = 0,
+        _reserved22: u1 = 0,
+        _reserved23: u1 = 0,
+        _reserved24: u1 = 0,
+        _reserved25: u1 = 0,
+        _reserved26: u1 = 0,
+        _reserved27: u1 = 0,
+        _reserved28: u1 = 0,
+        _reserved29: u1 = 0,
+        _reserved30: u1 = 0,
+        _reserved31: u1 = 0,
     };
 
     /// peripheral address
@@ -1038,262 +1059,1231 @@ pub const dma = struct {
         MA: u32 = 0,
     };
 
-    pub const MuxID = enum(u8) {
-        channel_disabled = 0,
-        dmamux_req_gen0 = 1,
-        dmamux_req_gen1 = 2,
-        dmamux_req_gen2 = 3,
-        dmamux_req_gen3 = 4,
-        ADC = 5,
-        I2C1_RX = 10,
-        I2C1_TX = 11,
-        I2C2_RX = 12,
-        I2C2_TX = 13,
-        SPI1_RX = 16,
-        SPI1_TX = 17,
-        SPI2_RX = 18,
-        SPI2_TX = 19,
-        TIM1_CH1 = 20,
-        TIM1_CH2 = 21,
-        TIM1_CH3 = 22,
-        TIM1_CH4 = 23,
-        TIM1_TRIG_COM = 24,
-        TIM1_UP = 25,
-        TIM3_CH1 = 32,
-        TIM3_CH2 = 33,
-        TIM3_CH3 = 34,
-        TIM3_CH4 = 35,
-        TIM3_TRIG = 36,
-        TIM3_UP = 37,
-        TIM6_UP = 38,
-        TIM7_UP = 39,
-        TIM15_CH1 = 40,
-        TIM15_CH2 = 41,
-        TIM15_TRIG_COM = 42,
-        TIM15_UP = 43,
-        TIM16_CH1 = 44,
-        TIM16_COM = 45,
-        TIM16_UP = 46,
-        TIM17_CH1 = 47,
-        TIM17_COM = 48,
-        TIM17_UP = 49,
-        USART1_RX = 50,
-        USART1_TX = 51,
-        USART2_RX = 52,
-        USART2_TX = 53,
-        USART3_RX = 54,
-        USART3_TX = 55,
-        USART4_RX = 56,
-        USART4_TX = 57,
-        I2C3_RX = 62,
-        I2C3_TX = 63,
-        SPI3_RX = 66,
-        SPI3_TX = 67,
-        TIM4_CH1 = 68,
-        TIM4_CH2 = 69,
-        TIM4_CH3 = 70,
-        TIM4_CH4 = 71,
-        TIM4_TRIG = 72,
-        TIM4_UP = 73,
-        USART5_RX = 74,
-        USART5_TX = 75,
-        USART6_RX = 76,
-        USART6_TX = 77,
+    pub const mux = struct {
+        pub const MuxID = enum(u8) {
+            channel_disabled = 0,
+            dmamux_req_gen0 = 1,
+            dmamux_req_gen1 = 2,
+            dmamux_req_gen2 = 3,
+            dmamux_req_gen3 = 4,
+            ADC = 5,
+            I2C1_RX = 10,
+            I2C1_TX = 11,
+            I2C2_RX = 12,
+            I2C2_TX = 13,
+            SPI1_RX = 16,
+            SPI1_TX = 17,
+            SPI2_RX = 18,
+            SPI2_TX = 19,
+            TIM1_CH1 = 20,
+            TIM1_CH2 = 21,
+            TIM1_CH3 = 22,
+            TIM1_CH4 = 23,
+            TIM1_TRIG_COM = 24,
+            TIM1_UP = 25,
+            TIM3_CH1 = 32,
+            TIM3_CH2 = 33,
+            TIM3_CH3 = 34,
+            TIM3_CH4 = 35,
+            TIM3_TRIG = 36,
+            TIM3_UP = 37,
+            TIM16_CH1 = 44,
+            TIM16_COM = 45,
+            TIM16_UP = 46,
+            TIM17_CH1 = 47,
+            TIM17_COM = 48,
+            TIM17_UP = 49,
+            USART1_RX = 50,
+            USART1_TX = 51,
+            USART2_RX = 52,
+            USART2_TX = 53,
+            _,
+        };
+
+        pub const TriggerSyncID = enum(u5) {
+            EXTI_LINE0 = 0,
+            EXTI_LINE1 = 1,
+            EXTI_LINE2 = 2,
+            EXTI_LINE3 = 3,
+            EXTI_LINE4 = 4,
+            EXTI_LINE5 = 5,
+            EXTI_LINE6 = 6,
+            EXTI_LINE7 = 7,
+            EXTI_LINE8 = 8,
+            EXTI_LINE9 = 9,
+            EXTI_LINE10 = 10,
+            EXTI_LINE11 = 11,
+            EXTI_LINE12 = 12,
+            EXTI_LINE13 = 13,
+            EXTI_LINE14 = 14,
+            EXTI_LINE15 = 15,
+            dmamux_evt0 = 16,
+            dmamux_evt1 = 17,
+            dmamux_evt2 = 18,
+            dmamux_evt3 = 19,
+            TIM14_OC = 22,
+            _,
+        };
+
+        pub const TriggerSyncPolarity = enum(u2) {
+            no_event = 0,
+            rising_edge = 1,
+            falling_edge = 2,
+            both_edges = 3,
+        };
+
+        pub const DMAMUX_CCR = packed struct {
+            /// Input DMA request line selected
+            DMAREQ_ID: MuxID = .channel_disabled,
+            /// Interrupt enable at synchronization event overrun
+            SOIE: InterruptEnable = .interrupt_disabled,
+            /// Event generation enable/disable
+            EGE: enum(u1) {
+                event_generation_disabled = 0,
+                event_generation_enabled = 1,
+            } = .event_generation_disabled,
+            _reserved10: u1 = 0,
+            _reserved11: u1 = 0,
+            _reserved12: u1 = 0,
+            _reserved13: u1 = 0,
+            _reserved14: u1 = 0,
+            _reserved15: u1 = 0,
+            /// Synchronous operating mode enable/disable
+            SE: enum(u1) {
+                sync_disabled = 0,
+                sync_enabled = 1,
+            } = .sync_disabled,
+            /// Synchronization event type selector
+            /// Defines the synchronization event on the selected synchronization input:
+            SPOL: TriggerSyncPolarity = .no_event,
+            /// Number of DMA requests to forward
+            /// Defines the number of DMA requests forwarded before output event is generated.
+            /// In synchronous mode, it also defines the number of DMA requests to forward after
+            /// a synchronization event, then stop forwarding.
+            /// The actual number of DMA requests forwarded is NBREQ+1. Note: This field can
+            /// only be written when both SE and EGE bits are reset.
+            NBREQ: u5 = 0,
+            /// Synchronization input selected
+            SYNC_ID: TriggerSyncID = .EXTI_LINE0,
+            _reserved29: u1 = 0,
+            _reserved30: u1 = 0,
+            _reserved31: u1 = 0,
+        };
+
+        pub const DMAMUX_RGCR = packed struct {
+            /// DMA request trigger input selected
+            SIG_ID: TriggerSyncID = .EXTI_LINE0,
+            _reserved5: u1 = 0,
+            _reserved6: u1 = 0,
+            _reserved7: u1 = 0,
+            /// Interrupt enable at trigger event overrun
+            OIE: InterruptEnable = .interrupt_disabled,
+            _reserved9: u1 = 0,
+            _reserved10: u1 = 0,
+            _reserved11: u1 = 0,
+            _reserved12: u1 = 0,
+            _reserved13: u1 = 0,
+            _reserved14: u1 = 0,
+            _reserved15: u1 = 0,
+            /// DMA request generator channel enable/disable
+            GE: enum(u1) {
+                generator_disabled = 0,
+                generator_enabled = 1,
+            } = .generator_disabled,
+            /// DMA request generator trigger event type
+            /// selection Defines the trigger event on the selected DMA request trigger input
+            GPOL: TriggerSyncPolarity = .no_event,
+            /// Number of DMA requests to generate
+            /// Defines the number of DMA requests generated after a trigger event, then stop
+            /// generating. The actual number of generated DMA requests is GNBREQ+1. Note:
+            /// This field can only be written when GE bit is reset.
+            GNBREQ: u5 = 0,
+            _reserved24: u1 = 0,
+            _reserved25: u1 = 0,
+            _reserved26: u1 = 0,
+            _reserved27: u1 = 0,
+            _reserved28: u1 = 0,
+            _reserved29: u1 = 0,
+            _reserved30: u1 = 0,
+            _reserved31: u1 = 0,
+        };
+
+        pub const RGSR = packed struct {
+            OF0: InterruptFlag = .interrupt_not_active,
+            OF1: InterruptFlag = .interrupt_not_active,
+            OF2: InterruptFlag = .interrupt_not_active,
+            OF3: InterruptFlag = .interrupt_not_active,
+            _reserved4: u1 = 0,
+            _reserved5: u1 = 0,
+            _reserved6: u1 = 0,
+            _reserved7: u1 = 0,
+            _reserved8: u1 = 0,
+            _reserved9: u1 = 0,
+            _reserved10: u1 = 0,
+            _reserved11: u1 = 0,
+            _reserved12: u1 = 0,
+            _reserved13: u1 = 0,
+            _reserved14: u1 = 0,
+            _reserved15: u1 = 0,
+            _reserved16: u1 = 0,
+            _reserved17: u1 = 0,
+            _reserved18: u1 = 0,
+            _reserved19: u1 = 0,
+            _reserved20: u1 = 0,
+            _reserved21: u1 = 0,
+            _reserved22: u1 = 0,
+            _reserved23: u1 = 0,
+            _reserved24: u1 = 0,
+            _reserved25: u1 = 0,
+            _reserved26: u1 = 0,
+            _reserved27: u1 = 0,
+            _reserved28: u1 = 0,
+            _reserved29: u1 = 0,
+            _reserved30: u1 = 0,
+            _reserved31: u1 = 0,
+        };
+
+        pub const RGCFR = packed struct {
+            COF0: InterruptClearFlag = .no_action,
+            COF1: InterruptClearFlag = .no_action,
+            COF2: InterruptClearFlag = .no_action,
+            COF3: InterruptClearFlag = .no_action,
+            _reserved4: u1 = 0,
+            _reserved5: u1 = 0,
+            _reserved6: u1 = 0,
+            _reserved7: u1 = 0,
+            _reserved8: u1 = 0,
+            _reserved9: u1 = 0,
+            _reserved10: u1 = 0,
+            _reserved11: u1 = 0,
+            _reserved12: u1 = 0,
+            _reserved13: u1 = 0,
+            _reserved14: u1 = 0,
+            _reserved15: u1 = 0,
+            _reserved16: u1 = 0,
+            _reserved17: u1 = 0,
+            _reserved18: u1 = 0,
+            _reserved19: u1 = 0,
+            _reserved20: u1 = 0,
+            _reserved21: u1 = 0,
+            _reserved22: u1 = 0,
+            _reserved23: u1 = 0,
+            _reserved24: u1 = 0,
+            _reserved25: u1 = 0,
+            _reserved26: u1 = 0,
+            _reserved27: u1 = 0,
+            _reserved28: u1 = 0,
+            _reserved29: u1 = 0,
+            _reserved30: u1 = 0,
+            _reserved31: u1 = 0,
+        };
+    };
+};
+
+pub const rcc = struct {
+
+    pub const OscillatorEnable = enum(u1) {
+        oscillator_disabled = 0,
+        oscillator_enabled = 1,
+    };
+
+    pub const OscillatorEnableWhenStopped = enum(u1) {
+        oscillator_disabled_when_stopped = 0,
+        oscillator_enabled_when_stopped = 1,
+    };
+
+    pub const OscillatorReadyFlag = enum(u1) {
+        oscillator_unstable = 0,
+        oscillator_stable = 1,
+    };
+
+    pub const ClockEnable = enum(u1) {
+        clock_disabled = 0,
+        clock_enabled = 1,
+    };
+
+    pub const ClockEnableWhenSleeping = enum(u1) {
+        clock_disabled_when_sleeping = 0,
+        clock_enabled_when_sleeping = 1,
+    };
+
+    pub const OscillatorBypass = enum(u1) {
+        crystal = 0,
+        cmos_clock = 1,
+    };
+
+    pub const HSIDIV = enum(u3) {
+        div1 = 0,
+        div2 = 1,
+        div4 = 2,
+        div8 = 3,
+        div16 = 4,
+        div32 = 5,
+        div64 = 6,
+        div128 = 7,
+
+        pub fn fromDivisor(comptime div: comptime_int) HSIDIV {
+            return switch (div) {
+                1 => .div1,
+                2 => .div2,
+                4 => .div4,
+                8 => .div8,
+                16 => .div16,
+                32 => .div32,
+                64 => .div64,
+                128 => .div128,
+                else => @compileError("Invalid divisor"),
+            };
+        }
+
+        pub fn divisor(self: HSIDIV) u8 {
+            return @as(u8, 1) << @enumToInt(self);
+        }
+    };
+
+    pub const CssEnable = enum(u1) {
+        clock_failover_disabled = 0,
+        clock_failover_enabled_when_stable = 1,
+    };
+
+    pub const SystemClockSource = enum(u3) {
+        HSISYS = 0,
+        HSE = 1,
+        PLLRCLK = 2,
+        LSI = 3,
+        LSE = 4,
         _,
     };
 
-    pub const TriggerSyncID = enum(u5) {
-        EXTI_LINE0 = 0,
-        EXTI_LINE1 = 1,
-        EXTI_LINE2 = 2,
-        EXTI_LINE3 = 3,
-        EXTI_LINE4 = 4,
-        EXTI_LINE5 = 5,
-        EXTI_LINE6 = 6,
-        EXTI_LINE7 = 7,
-        EXTI_LINE8 = 8,
-        EXTI_LINE9 = 9,
-        EXTI_LINE10 = 10,
-        EXTI_LINE11 = 11,
-        EXTI_LINE12 = 12,
-        EXTI_LINE13 = 13,
-        EXTI_LINE14 = 14,
-        EXTI_LINE15 = 15,
-        dmamux_evt0 = 16,
-        dmamux_evt1 = 17,
-        dmamux_evt2 = 18,
-        dmamux_evt3 = 19,
-        TIM14_OC = 22,
+    pub const AHBPrescale = packed struct {
+        divisor: Divisor,
+        enabled: bool,
+
+        const Divisor = enum(u3) {
+            div2 = 0,
+            div4 = 1,
+            div8 = 2,
+            div16 = 3,
+            div64 = 4,
+            div128 = 5,
+            div256 = 6,
+            div512 = 7,
+
+            pub fn fromDivisor(comptime div: comptime_int) Divisor {
+                return switch (div) {
+                    2 => .div2,
+                    4 => .div4,
+                    8 => .div8,
+                    16 => .div16,
+                    64 => .div64,
+                    128 => .div128,
+                    256 => .div256,
+                    512 => .div512,
+                    else => @compileError("Invalid divisor"),
+                };
+            }
+
+            pub fn divisor(self: Divisor) u10 {
+                return switch (self) {
+                    .div2 => 2,
+                    .div4 => 4,
+                    .div8 => 8,
+                    .div16 => 16,
+                    .div64 => 64,
+                    .div128 => 128,
+                    .div256 => 256,
+                    .div512 => 512,
+                };
+            }
+        };
+    };
+
+    pub const APBPrescale = packed struct {
+        divisor: Divisor,
+        enabled: bool,
+
+        const Divisor = enum(u2) {
+            div2 = 0,
+            div4 = 1,
+            div8 = 2,
+            div16 = 3,
+
+            pub fn fromDivisor(comptime div: comptime_int) Divisor {
+                return switch (div) {
+                    2 => .div2,
+                    4 => .div4,
+                    8 => .div8,
+                    16 => .div16,
+                    else => @compileError("Invalid divisor"),
+                };
+            }
+
+            pub fn divisor(self: Divisor) u10 {
+                return @as(u5, 2) << @enumToInt(self);
+            }
+        };
+    };
+
+    pub const MCOSource = enum(u4) {
+        disabled = 0,
+        SYSCLK = 1,
+        HSI16 = 3,
+        HSE = 4,
+        PLLRCLK = 5,
+        LSI = 6,
+        LSE = 7,
         _,
     };
 
-    pub const TriggerSyncPolarity = enum(u2) {
-        no_event = 0,
-        rising_edge = 1,
-        falling_edge = 2,
-        both_edges = 3,
+    pub const MCOPrescale = enum(u4) {
+        div1 = 0,
+        div2 = 1,
+        div4 = 2,
+        div8 = 3,
+        div16 = 4,
+        div32 = 5,
+        div64 = 6,
+        div128 = 7,
+        div256 = 8,
+        div512 = 9,
+        div1024 = 10,
+        _,
+
+        pub fn fromDivisor(comptime div: comptime_int) MCOPrescale {
+            return switch (div) {
+                1 => .div1,
+                2 => .div2,
+                4 => .div4,
+                8 => .div8,
+                16 => .div16,
+                32 => .div32,
+                64 => .div64,
+                128 => .div128,
+                256 => .div256,
+                512 => .div512,
+                1024 => .div1024,
+                else => @compileError("Invalid divisor"),
+            };
+        }
+
+        pub fn divisor(self: MCOPrescale) u11 {
+            return @as(u11, 1) << @enumToInt(self);
+        }
     };
 
-    pub const DMAMUX_CCR = packed struct {
-        /// Input DMA request line selected
-        DMAREQ_ID: MuxID = .channel_disabled,
-        /// Interrupt enable at synchronization event overrun
-        SOIE: enum(u1) {
-            sync_overrun_interrupt_disabled = 0,
-            sync_overrun_interrupt_enabled = 1,
-        } = .sync_overrun_interrupt_disabled,
-        /// Event generation enable/disable
-        EGE: enum(u1) {
-            event_generation_disabled = 0,
-            event_generation_enabled = 1,
-        } = .event_generation_disabled,
-        _reserved10: u1 = undefined,
-        _reserved11: u1 = undefined,
-        _reserved12: u1 = undefined,
-        _reserved13: u1 = undefined,
-        _reserved14: u1 = undefined,
-        _reserved15: u1 = undefined,
-        /// Synchronous operating mode enable/disable
-        SE: enum(u1) {
-            sync_disabled = 0,
-            sync_enabled = 1,
-        } = .sync_disabled,
-        /// Synchronization event type selector
-        /// Defines the synchronization event on the selected synchronization input:
-        SPOL: TriggerSyncPolarity = .no_event,
-        /// Number of DMA requests to forward
-        /// Defines the number of DMA requests forwarded before output event is generated.
-        /// In synchronous mode, it also defines the number of DMA requests to forward after
-        /// a synchronization event, then stop forwarding.
-        /// The actual number of DMA requests forwarded is NBREQ+1. Note: This field can
-        /// only be written when both SE and EGE bits are reset.
-        NBREQ: u5 = 0,
-        /// Synchronization input selected
-        SYNC_ID: TriggerSyncID = EXTI_LINE0,
-        _reserved29: u1 = undefined,
-        _reserved30: u1 = undefined,
-        _reserved31: u1 = undefined,
+    pub const PLLSource = enum(u2) {
+        none = 0,
+        HSI16 = 2,
+        HSE = 3,
+        _,
     };
 
-    pub const DMAMUX_RGCR = packed struct {
-        /// DMA request trigger input selected
-        SIG_ID: TriggerSyncID = EXTI_LINE0,
-        _reserved5: u1 = undefined,
-        _reserved6: u1 = undefined,
-        _reserved7: u1 = undefined,
-        /// Interrupt enable at trigger event overrun
-        OIE: enum(u1) {
-            trigger_overrun_interrupt_disabled = 0,
-            trigger_overrun_interrupt_enabled = 1,
-        } = .trigger_overrun_interrupt_disabled,
-        _reserved9: u1 = undefined,
-        _reserved10: u1 = undefined,
-        _reserved11: u1 = undefined,
-        _reserved12: u1 = undefined,
-        _reserved13: u1 = undefined,
-        _reserved14: u1 = undefined,
-        _reserved15: u1 = undefined,
-        /// DMA request generator channel enable/disable
-        GE: enum(u1) {
-            generator_disabled = 0,
-            generator_enabled = 1,
-        } = .generator_disabled,
-        /// DMA request generator trigger event type
-        /// selection Defines the trigger event on the selected DMA request trigger input
-        GPOL: TriggerSyncPolarity = .no_event,
-        /// Number of DMA requests to generate
-        /// Defines the number of DMA requests generated after a trigger event, then stop
-        /// generating. The actual number of generated DMA requests is GNBREQ+1. Note:
-        /// This field can only be written when GE bit is reset.
-        GNBREQ: u5 = 0,
-        _reserved24: u1 = undefined,
-        _reserved25: u1 = undefined,
-        _reserved26: u1 = undefined,
-        _reserved27: u1 = undefined,
-        _reserved28: u1 = undefined,
-        _reserved29: u1 = undefined,
-        _reserved30: u1 = undefined,
-        _reserved31: u1 = undefined,
+    pub const PLLMDivisor = enum(u3) {
+        div1 = 0,
+        div2 = 1,
+        div3 = 2,
+        div4 = 3,
+        div5 = 4,
+        div6 = 5,
+        div7 = 6,
+        div8 = 7,
+
+        pub const min = .div1;
+        pub const max = .div8;
+
+        pub fn fromDivisor(comptime div: comptime_int) PLLMDivisor {
+            return @intToEnum(PLLMDivisor, div - 1);
+        }
+
+        pub fn divisor(self: PLLMDivisor) u4 {
+            return @enumToInt(self) + 1;
+        }
     };
 
-    pub const RequestGeneratorOverrunFlag = enum {
-        no_event = 0,
-        trigger_event_overran = 1,
+    pub const PLLNMultiplier = enum(u7) {
+        x8 = 8,
+        x9 = 9,
+
+        x10 = 10,
+        x11 = 11,
+        x12 = 12,
+        x13 = 13,
+        x14 = 14,
+        x15 = 15,
+        x16 = 16,
+        x17 = 17,
+        x18 = 18,
+        x19 = 19,
+
+        x20 = 20,
+        x21 = 21,
+        x22 = 22,
+        x23 = 23,
+        x24 = 24,
+        x25 = 25,
+        x26 = 26,
+        x27 = 27,
+        x28 = 28,
+        x29 = 29,
+
+        x30 = 30,
+        x31 = 31,
+        x32 = 32,
+        x33 = 33,
+        x34 = 34,
+        x35 = 35,
+        x36 = 36,
+        x37 = 37,
+        x38 = 38,
+        x39 = 39,
+
+        x40 = 40,
+        x41 = 41,
+        x42 = 42,
+        x43 = 43,
+        x44 = 44,
+        x45 = 45,
+        x46 = 46,
+        x47 = 47,
+        x48 = 48,
+        x49 = 49,
+
+        x50 = 50,
+        x51 = 51,
+        x52 = 52,
+        x53 = 53,
+        x54 = 54,
+        x55 = 55,
+        x56 = 56,
+        x57 = 57,
+        x58 = 58,
+        x59 = 59,
+
+        x60 = 60,
+        x61 = 61,
+        x62 = 62,
+        x63 = 63,
+        x64 = 64,
+        x65 = 65,
+        x66 = 66,
+        x67 = 67,
+        x68 = 68,
+        x69 = 69,
+
+        x70 = 70,
+        x71 = 71,
+        x72 = 72,
+        x73 = 73,
+        x74 = 74,
+        x75 = 75,
+        x76 = 76,
+        x77 = 77,
+        x78 = 78,
+        x79 = 79,
+
+        x80 = 80,
+        x81 = 81,
+        x82 = 82,
+        x83 = 83,
+        x84 = 84,
+        x85 = 85,
+        x86 = 86,
+        _,
+
+        pub const min = .x8;
+        pub const max = .x86;
     };
 
-    pub const RequestGeneratorClearOverrunFlag = enum {
+    pub const PLLPDivisor = enum(u5) {
+        div2 = 1,
+        div3 = 2,
+        div4 = 3,
+        div5 = 4,
+        div6 = 5,
+        div7 = 6,
+        div8 = 7,
+        div9 = 8,
+        div10 = 9,
+        div11 = 10,
+        div12 = 11,
+        div13 = 12,
+        div14 = 13,
+        div15 = 14,
+        div16 = 15,
+        div17 = 16,
+        div18 = 17,
+        div19 = 18,
+        div20 = 19,
+        div21 = 20,
+        div22 = 21,
+        div23 = 22,
+        div24 = 23,
+        div25 = 24,
+        div26 = 25,
+        div27 = 26,
+        div28 = 27,
+        div29 = 28,
+        div30 = 29,
+        div31 = 30,
+        div32 = 31,
+        _,
+
+        pub const min = .div2;
+        pub const max = .div32;
+
+        pub fn fromDivisor(comptime div: comptime_int) PLLPDivisor {
+            return @intToEnum(PLLPDivisor, div - 1);
+        }
+
+        pub fn divisor(self: PLLPDivisor) u4 {
+            return @enumToInt(self) + 1;
+        }
+    };
+
+    pub const PLLRDivisor = enum(u3) {
+        div1 = 0,
+        div2 = 1,
+        div3 = 2,
+        div4 = 3,
+        div5 = 4,
+        div6 = 5,
+        div7 = 6,
+        div8 = 7,
+
+        pub const min = .div1;
+        pub const max = .div8;
+
+        pub fn fromDivisor(comptime div: comptime_int) PLLRDivisor {
+            return @intToEnum(PLLRDivisor, div - 1);
+        }
+
+        pub fn divisor(self: PLLRDivisor) u4 {
+            return @enumToInt(self) + 1;
+        }
+    };
+
+    pub const UsartClockSource = enum(u2) {
+        PCLK = 0,
+        SYSCLK = 1,
+        HSI16 = 2,
+        LSE = 3,
+    };
+
+    pub const I2CClockSource = enum(u2) {
+        PCLK = 0,
+        SYSCLK = 1,
+        HSI16 = 2,
+        _,
+    };
+
+    pub const I2SClockSource = enum(u2) {
+        SYSCLK = 0,
+        PLLPCLK = 1,
+        HSI16 = 2,
+        I2S_CKIN = 3,
+    };
+
+    pub const AdcClockSource = enum(u2) {
+        SYSCLK = 0,
+        PLLPCLK = 1,
+        HSI16 = 2,
+        _,
+    };
+
+    pub const LSEDRV = enum(u2) {
+        low = 0,
+        medium_low = 1,
+        medium_high = 2,
+        high = 3,
+    };
+
+    pub const LSECSSD = enum(u1) {
+        no_error = 0,
+        LSE_failure_detected = 1,
+    };
+
+    pub const RtcClockSource = enum(u2) {
+        none = 0,
+        LSE = 1,
+        LSI = 2,
+        HSE_div32 = 3,
+    };
+
+    pub const LSCOSource = enum(u1) {
+        LSI = 0,
+        LSE = 1,
+    };
+
+    pub const RMVF = enum(u1) {
         no_action = 0,
-        clear_trigger_event_overrun = 1,
+        clear_reset_flags = 1,
     };
 
-    pub const RGSR = packed struct {
-        OF0: RequestGeneratorOverrunFlag = .no_event,
-        OF1: RequestGeneratorOverrunFlag = .no_event,
-        OF2: RequestGeneratorOverrunFlag = .no_event,
-        OF3: RequestGeneratorOverrunFlag = .no_event,
-        _reserved4: u1 = undefined,
-        _reserved5: u1 = undefined,
-        _reserved6: u1 = undefined,
-        _reserved7: u1 = undefined,
-        _reserved8: u1 = undefined,
-        _reserved9: u1 = undefined,
-        _reserved10: u1 = undefined,
-        _reserved11: u1 = undefined,
-        _reserved12: u1 = undefined,
-        _reserved13: u1 = undefined,
-        _reserved14: u1 = undefined,
-        _reserved15: u1 = undefined,
-        _reserved16: u1 = undefined,
-        _reserved17: u1 = undefined,
-        _reserved18: u1 = undefined,
-        _reserved19: u1 = undefined,
-        _reserved20: u1 = undefined,
-        _reserved21: u1 = undefined,
-        _reserved22: u1 = undefined,
-        _reserved23: u1 = undefined,
-        _reserved24: u1 = undefined,
-        _reserved25: u1 = undefined,
-        _reserved26: u1 = undefined,
-        _reserved27: u1 = undefined,
-        _reserved28: u1 = undefined,
-        _reserved29: u1 = undefined,
-        _reserved30: u1 = undefined,
-        _reserved31: u1 = undefined,
+    pub const ResetFlag = enum(u1) {
+        no_reset = 0,
+        reset_detected = 1,
     };
 
-    pub const RGCFR = packed struct {
-        COF0: RequestGeneratorClearOverrunFlag = .no_action,
-        COF1: RequestGeneratorClearOverrunFlag = .no_action,
-        COF2: RequestGeneratorClearOverrunFlag = .no_action,
-        COF3: RequestGeneratorClearOverrunFlag = .no_action,
-        _reserved4: u1 = undefined,
-        _reserved5: u1 = undefined,
-        _reserved6: u1 = undefined,
-        _reserved7: u1 = undefined,
-        _reserved8: u1 = undefined,
-        _reserved9: u1 = undefined,
-        _reserved10: u1 = undefined,
-        _reserved11: u1 = undefined,
-        _reserved12: u1 = undefined,
-        _reserved13: u1 = undefined,
-        _reserved14: u1 = undefined,
-        _reserved15: u1 = undefined,
-        _reserved16: u1 = undefined,
-        _reserved17: u1 = undefined,
-        _reserved18: u1 = undefined,
-        _reserved19: u1 = undefined,
-        _reserved20: u1 = undefined,
-        _reserved21: u1 = undefined,
-        _reserved22: u1 = undefined,
-        _reserved23: u1 = undefined,
-        _reserved24: u1 = undefined,
-        _reserved25: u1 = undefined,
-        _reserved26: u1 = undefined,
-        _reserved27: u1 = undefined,
-        _reserved28: u1 = undefined,
-        _reserved29: u1 = undefined,
-        _reserved30: u1 = undefined,
-        _reserved31: u1 = undefined,
+};
+
+pub const usart = struct {
+
+    pub const Parity = enum(u1) {
+        even = 0,
+        odd = 1,
+    };
+
+    pub const StopBits = enum(u2) {
+        one = 0,
+        half = 1,
+        two = 2,
+        one_and_half = 3,
+    };
+
+    pub const CR1 = packed struct {
+        UE: enum(u1) {
+            usart_disabled = 0,
+            usart_enabled = 1,
+        } = .usart_disabled,
+        UESM: enum(u1) {
+            usart_disabled_when_stopped = 0,
+            usart_enabled_when_stopped = 1,
+        } = .usart_disabled_when_stopped,
+        RE: enum(u1) {
+            receiver_disabled = 0,
+            receiver_enabled = 1,
+        } = .receiver_disabled,
+        TE: enum(u1) {
+            transmitter_disabled = 0,
+            transmitter_enabled = 1,
+        } = .transmitter_disabled,
+        IDLEIE: InterruptEnable = .interrupt_disabled,
+        RXNEIE: InterruptEnable = .interrupt_disabled,
+        TCIE: InterruptEnable = .interrupt_disabled,
+        TXEIE: InterruptEnable = .interrupt_disabled,
+        PEIE: InterruptEnable = .interrupt_disabled,
+        PS: Parity = .even,
+        PCE: enum(u1) {
+            parity_disabled = 0,
+            parity_enabled = 1,
+        } = .parity_disabled,
+        WAKE: enum(u1) {
+            unmute_on_idle = 0,
+            unmute_on_address_mark = 1,
+        } = .unmute_on_idle,
+        M0: u1 = 0,
+        MME: enum(u1) {
+            mute_disabled = 0,
+            mute_enabled = 1,
+        } = .mute_disabled,
+        CMIE: InterruptEnable = .interrupt_disabled,
+        OVER8: enum(u1) {
+            oversample_x16 = 0,
+            oversample_x8 = 1,
+        } = .oversample_x16,
+        DEDT: u5 = 0,
+        DEAT: u5 = 0,
+        RTOIE: InterruptEnable = .interrupt_disabled,
+        EOBIE: InterruptEnable = .interrupt_disabled,
+        M1: u1 = 0,
+        FIFOEN: enum(u1) {
+            fifo_disabled = 0,
+            fifo_enabled = 1,
+        } = .fifo_disabled,
+        TXFEIE: InterruptEnable = .interrupt_disabled,
+        RXFFIE: InterruptEnable = .interrupt_disabled,
+    };
+
+    pub const CR2 = packed struct {
+        SLVEN: enum(u1) {
+            slave_mode_disabled = 0,
+            slave_mode_enabled = 1,
+        } = .slave_mode_disabled,
+        _reserved1: u1 = 0,
+        _reserved2: u1 = 0,
+        DIS_NSS: enum(u1) {
+            select_by_nss = 0,
+            always_selected = 1,
+        } = .select_by_nss,
+        ADDM7: enum(u1) {
+            check_four_bits = 0,
+            check_all_bits_except_one = 1,
+        } = .check_four_bits,
+        LBDL: enum(u1) {
+            lin_break_is_10_bits = 0,
+            lin_break_is_11_bits = 1,
+        } = .lin_break_is_10_bits,
+        LBDIE: InterruptEnable = .interrupt_disabled,
+        _reserved7: u1 = 0,
+        LBCL: enum(u1) {
+            last_bit_clock_pulse_disabled = 0,
+            last_bit_clock_pulse_enabled = 1,
+        } = .last_bit_clock_pulse_disabled,
+        CPHA: enum(u1) {
+            capture_on_first_edge = 0,
+            capture_on_second_edge = 1,
+        } = .capture_on_first_edge,
+        CPOL: enum(u1) {
+            low_when_idle = 0,
+            high_when_idle = 1,
+        } = .low_when_idle,
+        CLKEN: enum(u1) {
+            sync_clock_disabled = 0,
+            sync_clock_enabled = 1,
+        } = .sync_clock_disabled,
+        STOP: StopBits = .one,
+        LINEN: enum(u1) {
+            lin_mode_disabled = 0,
+            lin_mode_enabled = 1,
+        } = .lin_mode_disabled,
+        SWAP: enum(u1) {
+            normal = 0,
+            swap_tx_rx = 1,
+        } = .normal,
+        RXINV: enum(u1) {
+            normal = 0,
+            invert_rx = 1,
+        } = .normal,
+        TXINV: enum(u1) {
+            normal = 0,
+            invert_tx = 1,
+        } = .normal,
+        DATAINV: enum(u1) {
+            normal = 0,
+            invert_data_and_parity = 1,
+        } = .normal,
+        MSBFIRST: enum(u1) {
+            lsb_first = 0,
+            msb_first = 1,
+        } = .lsb_first,
+        ABREN: enum(u1) {
+            baud_rate_locked = 0,
+            autodetect_baud_rate = 1,
+        } = .baud_rate_locked,
+        ABRMOD: enum(u2) {
+            measure_start_bit = 0,
+            measure_start_bit_and_first_data_bit = 1,
+            measure_0x7F = 2,
+            measure_0x55 = 3,
+        } = .measure_start_bit,
+        RTOEN: enum(u1) {
+            receive_timeout_disabled = 0,
+            receive_timeout_enabled = 1,
+        } = .receive_timeout_disabled,
+        ADDR: u8 = 0,
+    };
+
+    pub const FifoThreshold = enum(u3) {
+        one_word_available = 0,
+        two_words_available = 1,
+        four_words_available = 2,
+        six_words_available = 3,
+        seven_words_available = 4,
+        eight_words_available = 5,
+        _,
+    };
+
+    pub const CR3 = packed struct {
+        EIE: InterruptEnable = .interrupt_disabled,
+        IREN: enum(u1) {
+            irda_mode_disabled = 0,
+            irda_mode_enabled = 1,
+        } = .irda_mode_disabled,
+        IRLP: enum(u1) {
+            normal = 0,
+            low_power_irda = 1,
+        } = .normal,
+        HDSEL: enum(u1) {
+            full_duplex_or_simplex = 0,
+            half_duplex = 1,
+        } = .full_duplex_or_simplex,
+        NACK: enum(u1) {
+            smartcard_NACK_not_sent_after_PE = 0,
+            smartcard_NACK_sent_after_PE = 1,
+        } = .smartcard_NACK_not_sent_after_PE,
+        SCEN: enum(u1) {
+            smartcard_mode_disabled = 0,
+            smartcard_mode_enabled = 1,
+        } = .smartcard_mode_disabled,
+        DMAR: enum(u1) {
+            RX_DMA_disabled = 0,
+            RX_DMA_enabled = 1,
+        } = .RX_DMA_disabled,
+        DMAT: enum(u1) {
+            TX_DMA_disabled = 0,
+            TX_DMA_enabled = 1,
+        } = .TX_DMA_disabled,
+        RTSE: enum(u1) {
+            RTS_disabled = 0,
+            RTS_enabled = 1,
+        } = .RTS_disabled,
+        CTSE: enum(u1) {
+            CTS_disabled = 0,
+            CTS_enabled = 1,
+        } = .CTS_disabled,
+        CTSIE: InterruptEnable = .interrupt_disabled,
+        ONEBIT: enum(u1) {
+            three_samples_per_bit = 0,
+            one_sample_per_bit = 1,
+        } = .three_samples_per_bit,
+        OVRDIS: enum(u1) {
+            normal = 0,
+            ignore_overrun_and_bypass_RX_fifo = 1,
+        } = .normal,
+        DDRE: enum(u1) {
+            DMA_remains_enabled_after_RX_error = 0,
+            DMA_is_disabled_after_RX_error = 1,
+        } = .DMA_remains_enabled_after_RX_error,
+        DEM: enum(u1) {
+            DE_disabled = 0,
+            DE_enabled = 1,
+        } = .DE_disabled,
+        DEP: enum(u1) {
+            active_high_DE = 0,
+            active_low_DE = 1,
+        } = .active_high_DE,
+        _reserved16: u1 = 0,
+        SCARCNT: u3 = 0,
+        WUS: enum(u2) {
+            WUF_on_addr_match = 0,
+            WUF_on_start_bit = 2,
+            WUF_on_rxne_or_rxfne = 3,
+            _,
+        } = .WUF_on_addr_match,
+        WUFIE: InterruptEnable = .interrupt_disabled,
+        TXFTIE: InterruptEnable = .interrupt_disabled,
+        TCBGTIE: InterruptEnable = .interrupt_disabled,
+        RXFTCFG: FifoThreshold = .one_word_available,
+        RXFTIE: InterruptEnable = .interrupt_disabled,
+        TXFTCFG: FifoThreshold = .one_word_available,
+    };
+
+    pub const BRR = packed struct {
+        BRR_0_3: u4 = 0,
+        BRR_4_15: u12 = 0,
+        _reserved16: u1 = 0,
+        _reserved17: u1 = 0,
+        _reserved18: u1 = 0,
+        _reserved19: u1 = 0,
+        _reserved20: u1 = 0,
+        _reserved21: u1 = 0,
+        _reserved22: u1 = 0,
+        _reserved23: u1 = 0,
+        _reserved24: u1 = 0,
+        _reserved25: u1 = 0,
+        _reserved26: u1 = 0,
+        _reserved27: u1 = 0,
+        _reserved28: u1 = 0,
+        _reserved29: u1 = 0,
+        _reserved30: u1 = 0,
+        _reserved31: u1 = 0,
+    };
+
+    pub const PrescaleDivisor = enum(u4) {
+        div1 = 0,
+        div2 = 1,
+        div4 = 2,
+        div6 = 3,
+        div8 = 4,
+        div10 = 5,
+        div12 = 6,
+        div16 = 7,
+        div32 = 8,
+        div64 = 9,
+        div128 = 10,
+        div256 = 11,
+        _,
+
+        pub const min = .div1;
+        pub const max = .div256;
+
+        pub fn fromDivisor(comptime div: comptime_int) PrescaleDivisor {
+            return std.enums.nameCast(PrescaleDivisor, std.fmt.comptimePrint("div{}", .{ div }));
+        }
+
+        pub fn divisor(self: PrescaleDivisor) u4 {
+            return switch (self) {
+                .div1 => 1, 
+                .div2 => 2,
+                .div4 => 4,
+                .div6 => 6,
+                .div8 => 8,
+                .div10 => 10,
+                .div12 => 12,
+                .div16 => 16,
+                .div32 => 32,
+                .div64 => 64,
+                .div128 => 128,
+                .div256 => 256,
+                else => unreachable,
+            };
+        }
+    };
+
+    pub const PRESC = packed struct {
+        PRESC: PrescaleDivisor = .div1,
+        _: u28 = 0,
+    };
+
+    pub const GTPR = packed struct {
+        /// Prescaler value
+        PSC: u8 = 0,
+        /// Guard time value
+        GT: u8 = 0,
+        _reserved16: u1 = 0,
+        _reserved17: u1 = 0,
+        _reserved18: u1 = 0,
+        _reserved19: u1 = 0,
+        _reserved20: u1 = 0,
+        _reserved21: u1 = 0,
+        _reserved22: u1 = 0,
+        _reserved23: u1 = 0,
+        _reserved24: u1 = 0,
+        _reserved25: u1 = 0,
+        _reserved26: u1 = 0,
+        _reserved27: u1 = 0,
+        _reserved28: u1 = 0,
+        _reserved29: u1 = 0,
+        _reserved30: u1 = 0,
+        _reserved31: u1 = 0,
+    };
+
+    pub const RTOR = packed struct {
+        /// Receiver timeout value
+        RTO: u24 = 0,
+        /// Block Length
+        BLEN: u8 = 0,
+    };
+
+    pub const RQR = packed struct {
+        ABRRQ: enum(u1) {
+            no_action = 0,
+            request_detect_baud_rate = 1,
+        } = .no_action,
+        SBKRQ: enum(u1) {
+            no_action = 0,
+            request_send_break = 1,
+        } = .no_action,
+        MMRQ: enum(u1) {
+            no_action = 0,
+            request_mute = 1,
+        } = .no_action,
+        RXFRQ: enum(u1) {
+            no_action = 0,
+            request_flush_RX_data = 1,
+        } = .no_action,
+        TXFRQ: enum(u1) {
+            no_action = 0,
+            request_flush_TX_data = 1,
+        } = .no_action,
+        _reserved5: u1 = 0,
+        _reserved6: u1 = 0,
+        _reserved7: u1 = 0,
+        _reserved8: u1 = 0,
+        _reserved9: u1 = 0,
+        _reserved10: u1 = 0,
+        _reserved11: u1 = 0,
+        _reserved12: u1 = 0,
+        _reserved13: u1 = 0,
+        _reserved14: u1 = 0,
+        _reserved15: u1 = 0,
+        _reserved16: u1 = 0,
+        _reserved17: u1 = 0,
+        _reserved18: u1 = 0,
+        _reserved19: u1 = 0,
+        _reserved20: u1 = 0,
+        _reserved21: u1 = 0,
+        _reserved22: u1 = 0,
+        _reserved23: u1 = 0,
+        _reserved24: u1 = 0,
+        _reserved25: u1 = 0,
+        _reserved26: u1 = 0,
+        _reserved27: u1 = 0,
+        _reserved28: u1 = 0,
+        _reserved29: u1 = 0,
+        _reserved30: u1 = 0,
+        _reserved31: u1 = 0,
+    };
+
+    pub const ISR = packed struct {
+        PE: enum(u1) {
+            no_error = 0,
+            parity_error_detected = 1,
+        } = .no_error,
+        FE: enum(u1) {
+            no_error = 0,
+            framing_error_detected = 1,
+        } = .no_error,
+        NF: enum(u1) {
+            no_error = 0,
+            noise_error_detected = 1,
+        } = .no_error,
+        ORE: enum(u1) {
+            no_error = 0,
+            rx_overrun_error_detected = 1,
+        } = .no_error,
+        IDLE: enum(u1) {
+            no_idle_detected = 0,
+            idle_detected = 1,
+        } = .no_idle_detected,
+        RXNE_RXFNE: enum(u1) {
+            RXD_empty = 0,
+            RXD_available = 1,
+        } = .RXD_empty,
+        TC: enum(u1) {
+            TX_in_progress = 0,
+            TX_complete = 1,
+        } = .TX_in_progress,
+        TXE_TXFNF: enum(u1) {
+            TXD_full = 0,
+            TXD_available = 1,
+        } = .TXD_full,
+        LBDF: enum(u1) {
+            lin_break_not_detected = 0,
+            lin_break_detected = 1,
+        } = .lin_break_not_detected,
+        CTSIF: InterruptFlag = .interrupt_not_active,
+        CTS: enum(u1) {
+            not_clear_to_send = 0,
+            clear_to_send = 1,
+        } = .not_clear_to_send,
+        RTOF: enum(u1) {
+            RX_timeout_not_reached = 0,
+            RX_timeout_detected = 1,
+        } = .RX_timeout_not_reached,
+        EOBF: enum(u1) {
+            end_of_block_not_reached = 0,
+            end_of_block_detected = 1,
+        } = .end_of_block_not_reached,
+        UDR: enum(u1) {
+            no_error = 0,
+            slave_underrun_error_detected = 1,
+        } = .no_error,
+        ABRE: enum(u1) {
+            no_error = 0,
+            auto_baud_rate_error_detected = 1,
+        } = .no_error,
+        ABRF: enum(u1) {
+            auto_baud_rate_not_complete = 0,
+            auto_baud_rate_complete = 1,
+        } = .auto_baud_rate_not_complete,
+        BUSY: enum(u1) {
+            RX_idle = 0,
+            RX_in_progress = 1,
+        } = .RX_idle,
+        CMF: enum(u1) {
+            character_match_not_detected = 0,
+            character_match_detected = 1,
+        } = .character_match_not_detected,
+        SBKF: enum(u1) {
+            break_not_requested = 0,
+            break_pending = 1,
+        } = .break_not_requested,
+        RWU: enum(u1) {
+            RX_active = 0,
+            RX_muted = 1,
+        } = .RX_active,
+        WUF: enum(u1) {
+            wakeup_event_not_detected = 0,
+            wakeup_event_detected = 1,
+        } = .wakeup_event_not_detected,
+        TEACK: enum(u1) {
+            transmitter_disabled = 0,
+            transmitter_enabled = 1,
+        } = .transmitter_disabled,
+        REACK: enum(u1) {
+            receiver_disabled = 0,
+            receiver_enabled = 1,
+        } = .receiver_disabled,
+        TXFE: enum(u1) {
+            TX_FIFO_not_empty = 0,
+            TX_FIFO_empty = 1,
+        } = .TX_FIFO_not_empty,
+        RXFF: enum(u1) {
+            RX_FIFO_not_full = 0,
+            RX_FIFO_full = 1,
+        } = .TX_FIFO_not_full,
+        TCBGT: enum(u1) {
+            transmission_incomplete_or_failed = 0,
+            transmission_complete = 1,
+        } = .transmission_incomplete_or_failed,
+        RXFT: enum(u1) {
+            RX_FIFO_under_threshold = 0,
+            RX_FIFO_over_threshold = 1,
+        } = .RX_FIFO_under_threshold,
+        TXFT: enum(u1) {
+            TX_FIFO_under_threshold = 0,
+            TX_FIFO_over_threshold = 1,
+        } = .TX_FIFO_under_threshold,
+        _reserved28: u1 = 0,
+        _reserved29: u1 = 0,
+        _reserved30: u1 = 0,
+        _reserved31: u1 = 0,
+    };
+
+    pub const ICR = packed struct {
+        PECF: ErrorClearFlag = .no_action,
+        FECF: ErrorClearFlag = .no_action,
+        NCF: ErrorClearFlag = .no_action,
+        ORECF: ErrorClearFlag = .no_action,
+        IDLECF: enum(u1) {
+            no_action = 0,
+            clear_idle = 1,
+        } = .no_action,
+        TXFECF: enum(u1) {
+            no_action = 0,
+            clear_TX_FIFO_empty = 1,
+        } = .no_action,
+        TCCF: enum(u1) {
+            no_action = 0,
+            clear_transmission_complete = 1,
+        } = .no_action,
+        TCBGTCF: enum(u1) {
+            no_action = 0,
+            clear_transmission_complete = 1,
+        } = .no_action,
+        LBDCF: enum(u1) {
+            no_action = 0,
+            clear_lin_break_flag = 1,
+        } = .no_action,
+        CTSCF: enum(u1) {
+            no_action = 0,
+            clear_CTS_flag = 1,
+        } = .no_action,
+        _reserved10: u1 = 0,
+        RTOCF: enum(u1) {
+            no_action = 0,
+            clear_receiver_timeout = 1,
+        } = .no_action,
+        EOBCF: enum(u1) {
+            no_action = 0,
+            clear_end_of_block_flag = 1,
+        } = .no_action,
+        UDRCF: ErrorClearFlag = .no_action,
+        _reserved14: u1 = 0,
+        _reserved15: u1 = 0,
+        _reserved16: u1 = 0,
+        CMCF: enum(u1) {
+            no_action = 0,
+            clear_character_match = 1,
+        } = .no_action,
+        _reserved18: u1 = 0,
+        _reserved19: u1 = 0,
+        WUCF: enum(u1) {
+            no_action = 0,
+            clear_wakeup_from_stop = 1,
+        } = .no_action,
+        _reserved21: u1 = 0,
+        _reserved22: u1 = 0,
+        _reserved23: u1 = 0,
+        _reserved24: u1 = 0,
+        _reserved25: u1 = 0,
+        _reserved26: u1 = 0,
+        _reserved27: u1 = 0,
+        _reserved28: u1 = 0,
+        _reserved29: u1 = 0,
+        _reserved30: u1 = 0,
+        _reserved31: u1 = 0,
     };
 
 };
