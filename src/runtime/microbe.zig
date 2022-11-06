@@ -54,7 +54,7 @@ else
     microbe_panic;
 
 /// The microbe default panic handler. Will disable interrupts and loop endlessly.
-pub fn microbe_panic(message: []const u8, _: ?*std.builtin.StackTrace) noreturn {
+pub fn microbe_panic(message: []const u8, _: ?*std.builtin.StackTrace, _: ?usize) noreturn {
     std.log.err("microbe PANIC: {s}", .{ message });
 
     if (builtin.cpu.arch != .avr) {
@@ -90,7 +90,7 @@ pub fn hang() noreturn {
 /// This is the logical entry point for microbe.
 /// It will invoke the main function from the root source file and provide error return handling
 /// align(4) shouldn't be necessary here, but sometimes zig ends up using align(2) on arm for some reason...
-export fn microbe_main() align(4) noreturn {
+export fn microbe_main() align(4) callconv(.C) noreturn {
     if (!@hasDecl(main, "main"))
         @compileError("The root source file must provide a public function main!");
 

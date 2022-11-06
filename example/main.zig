@@ -13,10 +13,10 @@ pub var uart1: microbe.Uart(.{
 }) = undefined;
 
 pub fn main() !void {
-    // const test_bus = microbe.bus.Bus("Test", .{ .PA2, .PA3, .PA4, .PB4, .PB6 }, .{ .mode = .output }).init();
-    // test_bus.modifyInline(7);
-    // test_bus.modifyInline(17);
-    // test_bus.modifyInline(7);
+    const test_bus = microbe.bus.Bus("Test", .{ .PA2, .PA3, .PA4, .PB4, .PB6 }, .{ .mode = .output }).init();
+    test_bus.modifyInline(7);
+    test_bus.modifyInline(17);
+    test_bus.modifyInline(7);
 
     uart1 = @TypeOf(uart1).init();
     uart1.start();

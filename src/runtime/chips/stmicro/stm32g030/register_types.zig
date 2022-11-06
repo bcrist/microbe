@@ -2202,7 +2202,7 @@ pub const usart = struct {
         RXFF: enum(u1) {
             RX_FIFO_not_full = 0,
             RX_FIFO_full = 1,
-        } = .TX_FIFO_not_full,
+        } = .RX_FIFO_not_full,
         TCBGT: enum(u1) {
             transmission_incomplete_or_failed = 0,
             transmission_complete = 1,

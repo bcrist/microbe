@@ -222,7 +222,7 @@ pub fn addEmbeddedExecutable(
         .main_packages = std.ArrayList(Pkg).init(builder.allocator),
     };
 
-    exe.inner.use_stage1 = true;
+    //exe.inner.use_stage1 = true;
 
     exe.inner.single_threaded = true;
     exe.inner.setTarget(chip.core.target);

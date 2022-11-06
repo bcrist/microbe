@@ -165,7 +165,7 @@ pub fn Bus(comptime bus_name: []const u8, comptime pads: anytype, comptime confi
                     @compileError("not implemented!");
                 }
             }
-            pub fn modifyInline(self: Self, state: State) callconv(.Inline) void {
+            pub inline fn modifyInline(self: Self, state: State) void {
                 @call(.{ .modifier = .always_inline }, modify, .{ self, state });
             }
 
@@ -188,7 +188,7 @@ pub fn Bus(comptime bus_name: []const u8, comptime pads: anytype, comptime confi
                     @compileError("not implemented!");
                 }
             }
-            pub fn setBitsInline(self: Self, state: State) callconv(.Inline) void {
+            pub inline fn setBitsInline(self: Self, state: State) void {
                 @call(.{ .modifier = .always_inline }, setBits, .{ self, state });
             }
 
@@ -211,7 +211,7 @@ pub fn Bus(comptime bus_name: []const u8, comptime pads: anytype, comptime confi
                     @compileError("not implemented!");
                 }
             }
-            pub fn clearBitsInline(self: Self, state: State) callconv(.Inline) void {
+            pub inline fn clearBitsInline(self: Self, state: State) void {
                 @call(.{ .modifier = .always_inline }, clearBits, .{ self, state });
             }
         } else struct {};
