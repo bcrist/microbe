@@ -247,24 +247,23 @@ pub fn Impl(comptime config: Config) type {
             // TODO Do some checks to see if the baud rate is too high (or perhaps too low)
             const raw_brr = @divTrunc(16_000_000 + config.baud_rate / 2, config.baud_rate);
 
-            // TODO Use OVER8 = 1 if baud rate is too high compared to clock source
+            // TODO Use OVER8 = .oversample_x8 if baud rate is too high compared to clock source
             var cr1 = chip.registers.types.usart.CR1 {
                 .OVER8 = .oversample_x16,
             };
 
-            comptime var raw_bits: u4 = switch (config.data_bits) {
-                .seven => 7,
-                .eight => 8,
-            };
+            comptime var raw_bits: u4 = @enumToInt(config.data_bits);
             if (config.parity != null) {
                 raw_bits += 1;
             }
+            std.debug.assert(raw_bits >= 7);
+            std.debug.assert(raw_bits <= 9);
             cr1.M0 = if (raw_bits == 9) 1 else 0;
             cr1.M1 = if (raw_bits == 7) 1 else 0;
 
             if (config.parity) |parity| {
                 cr1.PCE = .parity_enabled;
-                cr1.PS = if (parity == .odd) .odd else .even;
+                cr1.PS = parity;
             }
 
             if (!registers.basic_uart) {
@@ -290,11 +289,11 @@ pub fn Impl(comptime config: Config) type {
             registers.CR1.write(cr1);
             registers.CR2.write(cr2);
             registers.CR3.write(cr3);
+
+            // TODO use prescaler when it won't affect baud rate accuracy much
             registers.PRESC.write(.{
                 .PRESC = .div1,
             });
-
-            
 
             registers.BRR.write(.{
                 .BRR_0_3 = @truncate(u4, raw_brr),
@@ -423,7 +422,7 @@ fn UnbufferedRx(comptime I: type, comptime registers: Registers, comptime parity
             } else {
                 const isr = registers.ISR.read();
                 if (isr.RXNE_RXFNE == .RXD_available) {
-                    checkNewByteErrors(impl, isr) catch {
+                    checkNewByteErrors(&impl.rxi, isr) catch {
                         return out[0..0];
                     };
                     const b = @truncate(I.ExactDataType, impl.rxi.readByte());
@@ -450,7 +449,7 @@ fn UnbufferedRx(comptime I: type, comptime registers: Registers, comptime parity
                 isr = registers.ISR.read();
             }
 
-            try checkNewByteErrors(impl, isr);
+            try checkNewByteErrors(&impl.rxi, isr);
 
             return @truncate(I.ExactDataType, impl.rxi.readByte());
         }
@@ -458,33 +457,33 @@ fn UnbufferedRx(comptime I: type, comptime registers: Registers, comptime parity
         pub fn getReadError(impl: *I) ReadError!void {
             if (impl.rxi.peek_byte) |_| return;
             if (impl.rxi.pending_error) |err| return err;
-            try checkNewByteErrors(impl, registers.ISR.read());
+            try checkNewByteErrors(&impl.rxi, registers.ISR.read());
         }
 
-        fn checkNewByteErrors(impl: *I, isr: chip.registers.types.usart.ISR) ReadError!void {
+        fn checkNewByteErrors(self: *Self, isr: chip.registers.types.usart.ISR) ReadError!void {
             if (isr.FE == .framing_error_detected) {
                 registers.ICR.write(.{
                     .FECF = .clear_error,
                     .PECF = .clear_error,
                     .NCF = .clear_error,
                 });
-                const b = impl.rxi.readByte();
+                const b = self.readByte();
                 const err: ReadError = if (b == 0) error.BreakInterrupt else error.FramingError;
-                impl.rxi.pending_error = err;
+                self.pending_error = err;
                 return err;
             } else if (parity_enabled and isr.PE == .parity_error_detected) {
                 registers.ICR.write(.{
                     .PECF = .clear_error,
                     .NCF = .clear_error,
                 });
-                _ = impl.rxi.readByte();
-                impl.rxi.pending_error = error.ParityError;
+                _ = self.readByte();
+                self.pending_error = error.ParityError;
                 return error.ParityError;
             } else if (isr.NF == .noise_error_detected) {
                 registers.ICR.write(.{
                     .NCF = .clear_error,
                 });
-                impl.rxi.pending_error = error.NoiseError;
+                self.pending_error = error.NoiseError;
                 return error.NoiseError;
             }
         }

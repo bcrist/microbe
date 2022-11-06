@@ -1,6 +1,6 @@
 # Microbe
 
-Microbe is a framework for developing embedded firmware in Zig, primarily targetting small 32-bit architectures like ARM Cortex-M0.  It is similar in many ways to [microzig](https://github.com/ZigEmbeddedGroup/microzig) and in fact some parts were forked directly from that project.  But there are a few things about microzig that I didn't like:
+Microbe is a framework for developing embedded firmware in Zig, primarily targeting small 32-bit architectures like ARM Cortex-M0.  It is similar in many ways to [microzig](https://github.com/ZigEmbeddedGroup/microzig) and in fact some parts were forked directly from that project.  But there are a few things about microzig that I didn't like:
 
 * Microzig caters heavily to the use of development boards, which is great for beginners, but just adds a lot of unnecessary complexity if you always use microcontrollers directly on your project/product board.
 * The use of anonymous types to represent pins is weird, and seems to end up being a rather leaky abstraction.
