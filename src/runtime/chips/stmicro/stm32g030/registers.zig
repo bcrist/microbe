@@ -2423,25 +2423,25 @@ pub const registers = struct {
         /// Access control register
         pub const ACR = @intToPtr(*volatile Mmio(32, packed struct {
             /// Latency
-            LATENCY: u3 = 0,
+            LATENCY: rt.flash.WaitStates = fromInt(rt.flash.WaitStates, @as(u3, 0)),
             _reserved3: u1 = 0,
             _reserved4: u1 = 0,
             _reserved5: u1 = 0,
             _reserved6: u1 = 0,
             _reserved7: u1 = 0,
             /// Prefetch enable
-            PRFTEN: u1 = 0,
+            PRFTEN: rt.flash.PrefetchEnable = fromInt(rt.flash.PrefetchEnable, @as(u1, 0)),
             /// Instruction cache enable
-            ICEN: u1 = 1,
+            ICEN: rt.flash.CacheEnable = fromInt(rt.flash.CacheEnable, @as(u1, 1)),
             _reserved10: u1 = 1,
             /// Instruction cache reset
-            ICRST: u1 = 0,
+            ICRST: rt.flash.CacheResetRequest = fromInt(rt.flash.CacheResetRequest, @as(u1, 0)),
             _reserved12: u1 = 0,
             _reserved13: u1 = 0,
             _reserved14: u1 = 0,
             _reserved15: u1 = 0,
             /// Flash User area empty
-            EMPTY: u1 = 0,
+            EMPTY: rt.flash.EmptyFlag = fromInt(rt.flash.EmptyFlag, @as(u1, 0)),
             _reserved17: u1 = 0,
             _reserved18: u1 = 1,
             _reserved19: u1 = 0,
@@ -3522,10 +3522,10 @@ pub const registers = struct {
         /// address: 0x40021054
         /// Peripherals independent clock configuration register
         pub const CCIPR = @intToPtr(*volatile Mmio(32, packed struct {
-            /// USART1 clock source selection
-            USART1SEL: rt.rcc.UsartClockSource = fromInt(rt.rcc.UsartClockSource, @as(u2, 0)),
-            /// USART2 clock source selection
-            USART2SEL: rt.rcc.UsartClockSource = fromInt(rt.rcc.UsartClockSource, @as(u2, 0)),
+            /// USART clock source selection
+            USARTSEL: rt.rcc.UsartClockSource = fromInt(rt.rcc.UsartClockSource, @as(u2, 0)),
+            _reserved2: u1 = 0,
+            _reserved3: u1 = 0,
             _reserved4: u1 = 0,
             _reserved5: u1 = 0,
             _reserved6: u1 = 0,

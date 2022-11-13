@@ -200,12 +200,6 @@ pub fn Impl(comptime config: Config) type {
         pub fn init() Self {
             microbe.pads.reserve(pads, "UART");
 
-            // TODO support clock sources other than HSI16
-            switch (which) {
-                .USART1, .USART1_swap_TX_RX => chip.registers.RCC.CCIPR.modify(.{ .USART1SEL = .HSI16 }),
-                .USART2, .USART2_swap_TX_RX => chip.registers.RCC.CCIPR.modify(.{ .USART2SEL = .HSI16 }),
-            }
-
             switch (which) {
                 .USART1, .USART1_swap_TX_RX => chip.registers.RCC.APBENR2.modify(.{ .USART1EN = .clock_enabled }),
                 .USART2, .USART2_swap_TX_RX => chip.registers.RCC.APBENR1.modify(.{ .USART2EN = .clock_enabled }),
@@ -243,10 +237,10 @@ pub fn Impl(comptime config: Config) type {
 
             chip.gpio.configureAsAlternateFunction(pads, afs);
 
-            // TODO support clock sources other than HSI16
-            // TODO Do some checks to see if the baud rate is too high (or perhaps too low)
-            const raw_brr = @divTrunc(16_000_000 + config.baud_rate / 2, config.baud_rate);
+            const ker_clk = microbe.clock.getFrequency(.usart);
+            const raw_brr = @divTrunc(ker_clk + config.baud_rate / 2, config.baud_rate);
 
+            // TODO Do some checks to see if the baud rate is too high (or perhaps too low)
             // TODO Use OVER8 = .oversample_x8 if baud rate is too high compared to clock source
             var cr1 = chip.registers.types.usart.CR1 {
                 .OVER8 = .oversample_x16,
@@ -290,14 +284,14 @@ pub fn Impl(comptime config: Config) type {
             registers.CR2.write(cr2);
             registers.CR3.write(cr3);
 
-            // TODO use prescaler when it won't affect baud rate accuracy much
+            // TODO use prescaler when it won't affect baud rate accuracy much (for non-basic UART)
             registers.PRESC.write(.{
                 .PRESC = .div1,
             });
 
             registers.BRR.write(.{
                 .BRR_0_3 = @truncate(u4, raw_brr),
-                .BRR_4_15 = @as(u12, raw_brr >> 4),
+                .BRR_4_15 = @intCast(u12, raw_brr >> 4),
             });
 
             registers.RQR.write(.{

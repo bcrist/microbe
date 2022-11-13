@@ -1,8 +1,22 @@
 const std = @import("std");
 const microbe = @import("microbe");
-const core = microbe.core;
+const clock = microbe.clock;
 
-pub const log = microbe.defaultLog;
+pub const clocks = microbe.ClockConfig {
+    .hsi_enabled = true,
+    .hse_frequency_hz = 4_300_000,
+    .pll = .{
+        .source = .hse,
+        .r_frequency_hz = 44_842_857,
+    },
+    .sys_source = .{ .pll_r = {} },
+    .tick = .{ .period_ns = 999_981 },
+    .usart_source = .hsi,
+};
+
+pub const interrupts = struct {
+    pub const SysTick = clock.handleTickInterrupt;
+};
 
 pub var uart1: microbe.Uart(.{
     .baud_rate = 9600,
@@ -50,9 +64,6 @@ pub fn main() !void {
             try writer.writeAll("\r\n");
         }
 
-        var i: usize = 0;
-        while (i < 10_000_000) : (i += 1) {
-            asm volatile ("" ::: "memory");
-        }
+        clock.blockUntilMicrotick(clock.currentMicrotick().plus(.{ .seconds = 2 }));
     }
 }

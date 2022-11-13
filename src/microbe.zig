@@ -194,24 +194,24 @@ pub fn addEmbeddedExecutable(
         ) catch unreachable;
     }
 
-    const config_pkg = Pkg{
-        .name = "microbe-config",
+    const config_pkg = Pkg {
+        .name = "config",
         .source = .{ .path = config_file_name },
     };
 
-    const init_pkg = Pkg{
+    const init_pkg = Pkg {
         .name = "init",
         .source = .{ .path = init_file_name },
         .dependencies = &.{ pkg },
     };
 
-    const chip_pkg = Pkg{
+    const chip_pkg = Pkg {
         .name = "chip",
         .source = .{ .path = chip.path },
         .dependencies = &.{ pkg },
     };
 
-    const core_pkg = Pkg{
+    const core_pkg = Pkg {
         .name = "core",
         .source = .{ .path = chip.core.path },
         .dependencies = &.{ pkg },
@@ -224,7 +224,7 @@ pub fn addEmbeddedExecutable(
 
     //exe.inner.use_stage1 = true;
 
-    exe.inner.single_threaded = true;
+    exe.inner.single_threaded = chip.single_threaded;
     exe.inner.setTarget(chip.core.target);
 
     const linkerscript = linking.LinkerScriptStep.create(builder, chip, sections, &hash) catch unreachable;
@@ -237,10 +237,10 @@ pub fn addEmbeddedExecutable(
     exe.inner.bundle_compiler_rt = (exe.inner.target.cpu_arch.? != .avr); // don't bundle compiler_rt for AVR as it doesn't compile right now
 
     // these packages will be re-exported from runtime/microbe.zig
-    exe.inner.addPackage(config_pkg);
-    exe.inner.addPackage(init_pkg);
     exe.inner.addPackage(chip_pkg);
     exe.inner.addPackage(core_pkg);
+    exe.inner.addPackage(config_pkg);
+    exe.inner.addPackage(init_pkg);
     exe.inner.addPackage(.{
         .name = "main",
         .source = .{ .path = source },

@@ -85,8 +85,7 @@
         (APBSMENR* (* rcc.ClockEnableWhenSleeping))
 
         (CCIPR
-            (USART1SEL rcc.UsartClockSource)
-            (USART2SEL rcc.UsartClockSource)
+            (USARTSEL rcc.UsartClockSource)
             (I2CSEL rcc.I2CClockSource)
             (I2SSEL rcc.I2SClockSource)
             (ADCSEL rcc.AdcClockSource)
@@ -115,6 +114,15 @@
             (IWDGRSTF rcc.ResetFlag)
             (WWDGRSTF rcc.ResetFlag)
             (LPWRRSTF rcc.ResetFlag)
+        )
+    )
+    (FLASH
+        (ACR
+            (EMPTY flash.EmptyFlag)
+            (ICRST flash.CacheResetRequest)
+            (ICEN flash.CacheEnable)
+            (PRFTEN flash.PrefetchEnable)
+            (LATENCY flash.WaitStates)
         )
     )
 )

@@ -16,6 +16,7 @@ pub const Chip = struct {
     path: []const u8,
     core: Core,
     memory_regions: []const MemoryRegion,
+    single_threaded: bool = true,
 };
 
 pub const stm32g030j6 = Chip {

@@ -1359,7 +1359,25 @@ pub const rcc = struct {
         divisor: Divisor,
         enabled: bool,
 
-        const Divisor = enum(u3) {
+        pub fn fromDivisor(comptime div: comptime_int) AHBPrescale {
+            if (div == 1) {
+                return .{
+                    .divisor = .div2,
+                    .enabled = false,
+                };
+            } else {
+                return .{
+                    .divisor = Divisor.fromDivisor(div),
+                    .enabled = true,
+                };
+            }
+        }
+
+        pub fn divisor(self: AHBPrescale) u10 {
+            return if (self.enabled) self.div.divisor() else 1;
+        }
+
+        pub const Divisor = enum(u3) {
             div2 = 0,
             div4 = 1,
             div8 = 2,
@@ -1402,7 +1420,25 @@ pub const rcc = struct {
         divisor: Divisor,
         enabled: bool,
 
-        const Divisor = enum(u2) {
+        pub fn fromDivisor(comptime div: comptime_int) APBPrescale {
+            if (div == 1) {
+                return .{
+                    .divisor = .div2,
+                    .enabled = false,
+                };
+            } else {
+                return .{
+                    .divisor = Divisor.fromDivisor(div),
+                    .enabled = true,
+                };
+            }
+        }
+
+        pub fn divisor(self: APBPrescale) u10 {
+            return if (self.enabled) self.div.divisor() else 1;
+        }
+
+        pub const Divisor = enum(u2) {
             div2 = 0,
             div4 = 1,
             div8 = 2,
@@ -1467,6 +1503,7 @@ pub const rcc = struct {
         }
 
         pub fn divisor(self: MCOPrescale) u11 {
+            std.debug.assert(@enumToInt(self) <= 10);
             return @as(u11, 1) << @enumToInt(self);
         }
     };
@@ -1488,19 +1525,19 @@ pub const rcc = struct {
         div7 = 6,
         div8 = 7,
 
-        pub const min = .div1;
-        pub const max = .div8;
+        pub inline fn min() PLLMDivisor { return .div1; }
+        pub inline fn max() PLLMDivisor { return .div8; }
 
         pub fn fromDivisor(comptime div: comptime_int) PLLMDivisor {
             return @intToEnum(PLLMDivisor, div - 1);
         }
 
         pub fn divisor(self: PLLMDivisor) u4 {
-            return @enumToInt(self) + 1;
+            return @as(u4, @enumToInt(self)) + 1;
         }
     };
 
-    pub const PLLNMultiplier = enum(u7) {
+    pub const PLLNMultiplier = enum(u8) {
         x8 = 8,
         x9 = 9,
 
@@ -1590,8 +1627,8 @@ pub const rcc = struct {
         x86 = 86,
         _,
 
-        pub const min = .x8;
-        pub const max = .x86;
+        pub inline fn min() PLLNMultiplier { return .x8; }
+        pub inline fn max() PLLNMultiplier { return .x86; }
     };
 
     pub const PLLPDivisor = enum(u5) {
@@ -1628,20 +1665,19 @@ pub const rcc = struct {
         div32 = 31,
         _,
 
-        pub const min = .div2;
-        pub const max = .div32;
+        pub inline fn min() PLLPDivisor { return .div2; }
+        pub inline fn max() PLLPDivisor { return .div32; }
 
         pub fn fromDivisor(comptime div: comptime_int) PLLPDivisor {
             return @intToEnum(PLLPDivisor, div - 1);
         }
 
-        pub fn divisor(self: PLLPDivisor) u4 {
-            return @enumToInt(self) + 1;
+        pub fn divisor(self: PLLPDivisor) u6 {
+            return @as(u6, @enumToInt(self)) + 1;
         }
     };
 
     pub const PLLRDivisor = enum(u3) {
-        div1 = 0,
         div2 = 1,
         div3 = 2,
         div4 = 3,
@@ -1649,16 +1685,17 @@ pub const rcc = struct {
         div6 = 5,
         div7 = 6,
         div8 = 7,
+        _,
 
-        pub const min = .div1;
-        pub const max = .div8;
+        pub inline fn min() PLLRDivisor { return .div2; }
+        pub inline fn max() PLLRDivisor { return .div8; }
 
         pub fn fromDivisor(comptime div: comptime_int) PLLRDivisor {
             return @intToEnum(PLLRDivisor, div - 1);
         }
 
         pub fn divisor(self: PLLRDivisor) u4 {
-            return @enumToInt(self) + 1;
+            return @as(u4, @enumToInt(self)) + 1;
         }
     };
 
@@ -1722,6 +1759,36 @@ pub const rcc = struct {
     pub const ResetFlag = enum(u1) {
         no_reset = 0,
         reset_detected = 1,
+    };
+
+};
+
+pub const flash = struct {
+    pub const EmptyFlag = enum(u1) {
+        empty = 0,
+        programmed = 1,
+    };
+
+    pub const CacheResetRequest = enum(u1) {
+        no_action = 0,
+        request_cache_reset = 1, // only when cache disabled
+    };
+
+    pub const CacheEnable = enum(u1) {
+        cache_disabled = 0,
+        cache_enabled = 1,
+    };
+
+    pub const PrefetchEnable = enum(u1) {
+        prefetch_disabled = 0,
+        prefetch_enabled = 1,
+    };
+
+    pub const WaitStates = enum(u3) {
+        zero = 0,
+        one = 1,
+        two = 2,
+        _,
     };
 
 };
@@ -1994,8 +2061,8 @@ pub const usart = struct {
         div256 = 11,
         _,
 
-        pub const min = .div1;
-        pub const max = .div256;
+        pub inline fn min() PrescaleDivisor { return .div2; }
+        pub inline fn max() PrescaleDivisor { return .div256; }
 
         pub fn fromDivisor(comptime div: comptime_int) PrescaleDivisor {
             return std.enums.nameCast(PrescaleDivisor, std.fmt.comptimePrint("div{}", .{ div }));

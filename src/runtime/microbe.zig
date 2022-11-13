@@ -2,32 +2,29 @@
 // If you do a @import("microbe"), you'll *basically* get this file.
 
 const std = @import("std");
-const root = @import("root");
 const builtin = @import("builtin");
 const init = @import("init");
 
-/// The package that defines the main() function to be called after reset.
 pub const main = @import("main");
-
-pub const config = @import("microbe-config");
+pub const config = @import("config");
 pub const chip = @import("chip");
 pub const core = @import("core");
 
 pub const interrupts = @import("interrupts.zig");
 pub const pads = @import("pads.zig");
 pub const dma = if (@hasDecl(chip, "dma")) @import("dma.zig") else struct{};
-
+pub const clock = @import("clock.zig");
+pub const ClockConfig = clock.Config;
 pub const bus = @import("bus.zig");
 pub const Bus = bus.Bus;
-
 pub const uart = @import("uart.zig");
 pub const Uart = uart.Uart;
-
+pub const jtag = @import("jtag.zig");
 
 // log is a no-op by default. Parts of microbe use the stdlib logging
 // facility and compilations will fail on freestanding systems that
 // use it but do not explicitly set `root.log`
-pub const log = main.log;
+pub const log = if (@hasDecl(main, "log")) main.log else defaultLog;
 pub fn defaultLog(
     comptime message_level: std.log.Level,
     comptime scope: @Type(.EnumLiteral),
@@ -91,8 +88,9 @@ pub fn hang() noreturn {
 /// It will invoke the main function from the root source file and provide error return handling
 /// align(4) shouldn't be necessary here, but sometimes zig ends up using align(2) on arm for some reason...
 export fn microbe_main() align(4) callconv(.C) noreturn {
-    if (!@hasDecl(main, "main"))
+    if (!@hasDecl(main, "main")) {
         @compileError("The root source file must provide a public function main!");
+    }
 
     const main_fn = @field(main, "main");
     const info: std.builtin.Type = @typeInfo(@TypeOf(main_fn));
@@ -108,15 +106,24 @@ export fn microbe_main() align(4) callconv(.C) noreturn {
         @compileError("TODO: Embedded event loop not supported yet. Please try again later.");
     }
 
-    // There usually isn't any core-specific setup needed, but this prevents an issue where the
-    // vector table isn't actually exported if nothing in the program uses anything from `core`.
-    core.init();
+    // There usually isn't any core- or chip-specific setup needed, but this prevents an issue
+    // where the vector table isn't actually exported if nothing in the program uses anything
+    // from `core`.
+    if (@hasDecl(core, "init")) {
+        core.init();
+    }
+    if (@hasDecl(chip, "init")) {
+        chip.init();
+    }
 
     // initialize .bss and .data sections
     init.init();
 
     if (@hasDecl(main, "init")) {
         main.init();
+    }
+    if (@hasDecl(main, "clocks")) {
+        chip.clocks.init(main.clocks);
     }
 
     if (@typeInfo(return_type) == .ErrorUnion) {

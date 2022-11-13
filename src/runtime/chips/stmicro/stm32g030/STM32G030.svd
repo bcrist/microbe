@@ -5084,15 +5084,9 @@ Note: The software is allowed to write this bit only when ADSTART=0 (which ensur
           <resetValue>0x00000000</resetValue>
           <fields>
             <field>
-              <name>USART1SEL</name>
-              <description>USART1 clock source selection</description>
+              <name>USARTSEL</name>
+              <description>USART clock source selection</description>
               <bitOffset>0</bitOffset>
-              <bitWidth>2</bitWidth>
-            </field>
-            <field>
-              <name>USART2SEL</name>
-              <description>USART2 clock source selection</description>
-              <bitOffset>2</bitOffset>
               <bitWidth>2</bitWidth>
             </field>
             <field>
