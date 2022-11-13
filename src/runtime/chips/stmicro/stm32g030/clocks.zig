@@ -825,7 +825,7 @@ pub fn init(comptime config: Config) void {
 
     if (parsed.pll_in_source) |source_domain| {
         const source = switch (source_domain) {
-            .hsi => .HSI,
+            .hsi => .HSI16,
             .hse => .HSE,
             else => unreachable,
         };
