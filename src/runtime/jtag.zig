@@ -1,150 +1,296 @@
-// const std = @import("std");
-// const microbe = @import("root");
-// const chip = microbe.chip;
+const std = @import("std");
+const microbe = @import("root");
+const chip = microbe.chip;
+const clock = microbe.clock;
 
-// pub const PadID = chip.gpio.PadID;
+pub const PadID = chip.gpio.PadID;
 
-// pub const Config = struct {
-//     tck: PadID,
-//     tms: PadID,
-//     tdo: PadID,
-//     tdi: PadID,
-//     max_frequency: comptime_int,
-// };
+pub const Config = struct {
+    tck: PadID,
+    tms: PadID,
+    tdo: PadID, // Note this is an input from the adapter's perspective; it retains the naming convention of the DUT
+    tdi: PadID, // Note this is an output from the adapter's perspective; it retains the naming convention of the DUT
+    max_frequency_hz: comptime_int,
+    chain: []const type,
+};
 
-// pub const State = enum {
-//     unknown,
-//         // TMS 1 -> unknown2
-//     unknown2,
-//         // TMS 1 -> unknown3
-//     unknown3,
-//         // TMS 1 -> unknown4
-//     unknown4,
-//         // TMS 1 -> unknown5
-//     unknown5,
-//         // TMS 1 -> reset
-//     reset,
-//         // TMS 0 -> idle
-//         // TMS 1 -> reset
-//     idle,
-//         // TMS 0 -> idle
-//         // TMS 1 -> DR_select
-//     DR_select,
-//         // TMS 0 -> DR_capture
-//         // TMS 1 -> IR_select
-//     DR_capture,
-//         // TMS 0 -> DR_shift
-//         // TMS 1 -> DR_exit1
-//     DR_shift,
-//         // TMS 0 -> DR_shift
-//         // TMS 1 -> DR_exit1
-//     DR_exit1,
-//         // TMS 0 -> DR_pause
-//         // TMS 1 -> DR_update
-//     DR_pause,
-//         // TMS 0 -> DR_pause
-//         // TMS 1 -> DR_exit2
-//     DR_exit2,
-//         // TMS 0 -> DR_shift
-//         // TMS 1 -> DR_update
-//     DR_update,
-//         // TMS 0 -> idle
-//         // TMS 1 -> DR_select
-//     IR_select,
-//         // TMS 0 -> IR_capture
-//         // TMS 1 -> reset
-//     IR_capture,
-//         // TMS 0 -> IR_shift
-//         // TMS 1 -> IR_exit1
-//     IR_shift,
-//         // TMS 0 -> IR_shift
-//         // TMS 1 -> IR_exit1
-//     IR_exit1,
-//         // TMS 0 -> IR_pause
-//         // TMS 1 -> IR_update
-//     IR_pause,
-//         // TMS 0 -> IR_pause
-//         // TMS 1 -> IR_exit2
-//     IR_exit2,
-//         // TMS 0 -> IR_shift
-//         // TMS 1 -> IR_update
-//     IR_update,
-//         // TMS 0 -> idle
-//         // TMS 1 -> DR_select
-// };
+pub const State = enum {
+    unknown,
+    unknown2,
+    unknown3,
+    unknown4,
+    unknown5,
+    reset,
+    idle,
+    DR_select,
+    DR_capture,
+    DR_shift,
+    DR_exit1,
+    DR_pause,
+    DR_exit2,
+    DR_update,
+    IR_select,
+    IR_capture,
+    IR_shift,
+    IR_exit1,
+    IR_pause,
+    IR_exit2,
+    IR_update,
+};
 
-// pub fn Adapter(comptime config: Config) type { comptime {
+pub fn Adapter(comptime config: Config) type { comptime {
 
-//     var pad_ids: []const PadID = &[_]PadID {
-//         config.tck,
-//         config.tms,
-//         config.tdo,
-//         config.tdi,
-//     };
+    var pad_ids: []const PadID = &.{
+        config.tck,
+        config.tms,
+        config.tdo,
+        config.tdi,
+    };
 
-//     return struct {
-//         const Self = @This();
-//         current_state: State,
-//         target_state: State,
-//         next_state: State,
+    var outputs: []const PadID = &.{
+        config.tck,
+        config.tms,
+        config.tdi,
+    };
 
-//         pub fn init() Self {
-//             const cs = microbe.interrupts.enterCriticalSection();
-//             defer cs.leave();
+    var inputs: []const PadID = &.{
+        config.tdo,
+    };
 
-//             microbe.pads.reserve(pad_ids, pad_reservation_name);
-//             chip.gpio.ensurePortsEnabled(pad_ids);
-//             chip.gpio.configureTermination(pad_ids, config.termination);
-//             switch (config.mode) {
-//                 .output => {
-//                     chip.gpio.configureSlewRate(pad_ids, config.slew);
-//                     chip.gpio.configureDriveMode(pad_ids, config.drive);
-//                     chip.gpio.configureAsOutput(pad_ids);
-//                 },
-//                 .input => {
-//                     chip.gpio.configureAsInput(pad_ids);
-//                 },
-//                 .bidirectional => {
-//                     chip.gpio.configureSlewRate(pad_ids, config.slew);
-//                     chip.gpio.configureDriveMode(pad_ids, config.drive);
-//                     chip.gpio.configureAsInput(pad_ids);
-//                 },
-//             }
-//             return .{};
-//         }
+    const clock_half_period_microticks = clock.divRound(clock.getFrequency(.microtick), config.max_frequency_hz * 2);
 
-//         pub fn deinit(_: Self) void {
-//             const cs = microbe.interrupts.enterCriticalSection();
-//             defer cs.leave();
+    return struct {
+        const AdapterSelf = @This();
 
-//             if (config.termination != .float) {
-//                 chip.gpio.configureTermination(pad_ids, .float);
-//             }
-//             chip.gpio.configureAsUnused(pad_ids);
-//             microbe.pads.release(pad_ids, pad_reservation_name);
-//         }
+        pub const max_frequency_hz = config.max_frequency_hz;
 
-//         pub fn read(_: Self) State {
-//             var raw = RawInt {};
-//             if (@hasDecl(chip.gpio, "readInputPort") and @hasDecl(chip.gpio, "getIOPorts")) {
-//                 inline for (chip.gpio.getIOPorts(pad_ids)) |port| {
-//                     const port_state = chip.gpio.readInputPort(port);
-//                     inline for (pad_ids) |pad, raw_bit| {
-//                         if (chip.gpio.getIOPort(pad) == port) {
-//                             const port_bit = 1 << chip.gpio.getOffset(pad);
-//                             if (0 != (port_state & port_bit)) {
-//                                 raw |= 1 << raw_bit;
-//                             }
-//                         }
-//                     }
-//                 }
-//             } else {
-//                 // TODO
-//                 @compileError("not implemented!");
-//             }
-//             return @bitCast(State, raw);
-//         }
+        state: State,
 
+        pub fn init() AdapterSelf {
+            microbe.pads.reserve(pad_ids, "JTAG");
+            chip.gpio.ensurePortsEnabled(pad_ids);
+            chip.gpio.configureSlewRate(outputs, .very_slow);
+            chip.gpio.configureDriveMode(outputs, .push_pull);
+            chip.gpio.configureAsOutput(outputs);
+            chip.gpio.configureAsInput(inputs);
+            return .{ .state = .unknown };
+        }
 
-//     };
-// }}
+        pub fn deinit(_: AdapterSelf) void {
+            chip.gpio.configureAsUnused(pad_ids);
+            microbe.pads.release(pad_ids, "JTAG");
+        }
+
+        pub fn idle(self: *AdapterSelf, clocks: u32) void {
+            self.changeState(.idle);
+            chip.gpio.writeOutput(config.tms, 0);
+            var n = clocks;
+            while (n > 0) : (n -= 1) {
+                _ = self.clockPulse();
+            }
+        }
+
+        pub fn changeState(self: *AdapterSelf, target_state: State) void {
+            while (self.state != target_state) {
+                var tms: u1 = 1;
+                const next_state: State = switch (self.state) {
+                    .unknown => .unknown2,
+                    .unknown2 => .unknown3,
+                    .unknown3 => .unknown4,
+                    .unknown4 => .unknown5,
+                    .unknown5 => .reset,
+                    .reset => next: {
+                        tms = 0;
+                        break :next .idle;
+                    },
+                    .idle => .DR_select,
+                    .DR_select => switch (target_state) {
+                        .DR_capture, .DR_shift, .DR_exit1, .DR_pause, .DR_exit2, .DR_update => next: {
+                            tms = 0;
+                            break :next .DR_capture;
+                        },
+                        else => .IR_select,
+                    },
+                    .DR_capture => switch (target_state) {
+                        .DR_shift => next: {
+                            tms = 0;
+                            break :next .DR_shift;
+                        },
+                        else => .DR_exit1,
+                    },
+                    .DR_shift => .DR_exit1,
+                    .DR_exit1 => switch (target_state) {
+                        .DR_pause, .DR_exit2, .DR_shift => next: {
+                            tms = 0;
+                            break :next .DR_pause;
+                        },
+                        else => .DR_update,
+                    },
+                    .DR_pause => .DR_exit2,
+                    .DR_exit2 => switch (target_state) {
+                        .DR_shift, .DR_exit1, .DR_pause => next: {
+                            // TODO target_state of DR_exit1 or DR_pause doesn't really make
+                            // sense here, since it will end up shifting a bit unexpectedly.
+                            // But it's probably better than panicing.
+                            tms = 0;
+                            break :next .DR_shift;
+                        },
+                        else => .DR_update,
+                    },
+                    .DR_update => switch (target_state) {
+                        .idle => next: {
+                            tms = 0;
+                            break :next .idle;
+                        },
+                        else => .DR_select,
+                    },
+                    .IR_select => switch (target_state) {
+                        .IR_capture, .IR_shift, .IR_exit1, .IR_pause, .IR_exit2, .IR_update => next: {
+                            tms = 0;
+                            break :next .IR_capture;
+                        },
+                        else => .reset,
+                    },
+                    .IR_capture => switch (target_state) {
+                        .IR_shift => next: {
+                            tms = 0;
+                            break :next .IR_shift;
+                        },
+                        else => .IR_exit1,
+                    },
+                    .IR_shift => .IR_exit1,
+                    .IR_exit1 => switch (target_state) {
+                        .IR_pause, .IR_exit2, .IR_shift => next: {
+                            tms = 0;
+                            break :next .DR_pause;
+                        },
+                        else => .IR_update,
+                    },
+                    .IR_pause => .IR_exit2,
+                    .IR_exit2 => switch (target_state) {
+                        .IR_shift, .IR_exit1, .IR_pause => next: {
+                            // TODO target_state of IR_exit1 or IR_pause doesn't really make
+                            // sense here, since it will end up shifting a bit unexpectedly.
+                            // But it's probably better than panicing.
+                            tms = 0;
+                            break :next .IR_shift;
+                        },
+                        else => .IR_update,
+                    },
+                    .IR_update => switch (target_state) {
+                        .idle => next: {
+                            tms = 0;
+                            break :next .idle;
+                        },
+                        else => .DR_select,
+                    },
+                };
+                chip.gpio.writeOutput(config.tms, tms);
+                _ = self.clockPulse();
+                self.state = next_state;
+            }
+        }
+
+        pub fn shiftIR(self: *AdapterSelf, comptime T: type, value: T) T {
+            return self.shift(.IR_shift, .IR_exit1, T, value);
+        }
+
+        pub fn shiftDR(self: *AdapterSelf, comptime T: type, value: T) T {
+            return self.shift(.DR_shift, .DR_exit1, T, value);
+        }
+
+        fn shift(self: *AdapterSelf, shift_state: State, exit_state: State, comptime T: type, value: T) T {
+            if (@bitSizeOf(T) == 0) {
+                return @bitCast(T, {});
+            }
+            self.changeState(shift_state);
+            chip.gpio.writeOutput(config.tms, 0);
+            const IntT = std.meta.Int(.unsigned, @bitSizeOf(T));
+            var bitsRemaining: u32 = @bitSizeOf(T);
+            var valueRemaining = castToInt(IntT, value);
+            var capture: IntT = 0;
+            while (bitsRemaining > 1) : (bitsRemaining -= 1) {
+                chip.gpio.writeOutput(config.tdi, @truncate(u1, valueRemaining));
+                valueRemaining >>= 1;
+                capture >>= 1;
+                if (self.clockPulse() == 1) {
+                    capture |= @shlExact(@as(IntT, 1), @bitSizeOf(T) - 1);
+                }
+            }
+            chip.gpio.writeOutput(config.tms, 1);
+            chip.gpio.writeOutput(config.tdi, @truncate(u1, valueRemaining));
+            capture >>= 1;
+            if (self.clockPulse() == 1) {
+                capture |= @shlExact(@as(IntT, 1), @bitSizeOf(T) - 1);
+            }
+            self.state = exit_state;
+
+            return castFromInt(T, capture);
+        }
+
+        fn clockPulse(_: AdapterSelf) u1 {
+            chip.gpio.writeOutput(config.tck, 0);
+            var t = clock.currentMicrotick().plus(.{ .ticks = clock_half_period_microticks });
+            clock.blockUntilMicrotick(t);
+            const bit = chip.gpio.readInput(config.tdo);
+            chip.gpio.writeOutput(config.tck, 1);
+            t = t.plus(.{ .ticks = clock_half_period_microticks });
+            clock.blockUntilMicrotick(t);
+            return bit;
+        }
+
+        inline fn castToInt(comptime IntT: type, value: anytype) IntT {
+            return switch (@typeInfo(@TypeOf(value))) {
+                .Enum => @as(IntT, @enumToInt(value)),
+                else => @bitCast(IntT, value),
+            };
+        }
+
+        inline fn castFromInt(comptime T: type, value: anytype) T {
+            return switch (@typeInfo(T)) {
+                .Enum => @intToEnum(T, value),
+                else => @bitCast(T, value),
+            };
+        }
+
+        pub fn TAP(comptime index: comptime_int) type {
+            return struct {
+                const TAPSelf = @This();
+                const InstructionType = config.chain[index];
+                adapter: *AdapterSelf,
+
+                pub fn instruction(self: TAPSelf, insn: InstructionType, ending_state: State) void {
+                    inline for (config.chain) |T, i| {
+                        if (i == index) {
+                            _ = self.adapter.shiftIR(InstructionType, insn);
+                        } else {
+                            const BypassType = std.meta.Int(.unsigned, @bitSizeOf(T));
+                            _ = self.adapter.shiftIR(BypassType, ~@as(BypassType, 0));
+                        }
+                    }
+                    self.adapter.changeState(ending_state);
+                }
+
+                pub fn data(self: TAPSelf, comptime T: type, value: T, ending_state: State) T {
+                    if (index > 0) {
+                        const BypassType = std.meta.Int(.unsigned, index);
+                        _ = self.adapter.shiftDR(BypassType, 0);
+                    }
+                    const capture = self.adapter.shiftDR(T, value);
+                    if (index < config.chain.len - 1) {
+                        const BypassType = std.meta.Int(.unsigned, config.chain.len - index - 1);
+                        _ = self.adapter.shiftDR(BypassType, 0);
+                    }
+                    self.adapter.changeState(ending_state);
+                    return capture;
+                }
+
+            };
+        }
+
+        pub fn tap(self: *AdapterSelf, comptime index: comptime_int) TAP(index) {
+            return .{ .adapter = self };
+        }
+
+    };
+}}

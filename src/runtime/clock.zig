@@ -156,7 +156,15 @@ pub usingnamespace if (@hasDecl(chip.clocks, "currentMicrotick")) struct {
         }
     }
 
-} else struct {};
+    pub fn delay(comptime amount: anytype) void {
+        blockUntilMicrotick(currentMicrotick().plus(amount));
+    }
+
+} else struct {
+    pub fn delay(comptime amount: anytype) void {
+        blockUntilTick(current_tick.plus(amount));
+    }
+};
 
 pub fn fmtFrequency(freq: u64) std.fmt.Formatter(formatFrequency) {
     return .{ .data = freq };

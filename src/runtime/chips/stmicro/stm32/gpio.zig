@@ -168,27 +168,27 @@ pub fn modifyOutputPort(comptime port: IOPort, bits_to_clear: u16, bits_to_set: 
 }
 
 pub fn readInput(comptime pad: PadID) u1 {
-    const port = getIOPort(pad);
+    const port = comptime getIOPort(pad);
     var v = @field(chip.registers, "GPIO" ++ @tagName(port)).IDR.read();
     return @field(v, "D" ++ @tagName(pad)[2..]);
 }
 
 pub fn readOutput(comptime pad: PadID) u1 {
-    const port = getIOPort(pad);
+    const port = comptime getIOPort(pad);
     var v = @field(chip.registers, "GPIO" ++ @tagName(port)).ODR.read();
     return @field(v, "D" ++ @tagName(pad)[2..]);
 }
 
 pub fn writeOutput(comptime pad: PadID, state: u1) void {
-    const port = getIOPort(pad);
+    const port = comptime getIOPort(pad);
     if (state == 0) {
         const BRR = chip.registers.types.gpio.BRR;
-        const v = BRR {};
+        var v = BRR {};
         @field(v, "BR" ++ @tagName(pad)[2..]) = .reset;
         @field(chip.registers, "GPIO" ++ @tagName(port)).BRR.write(v);
     } else {
         const BSRR = chip.registers.types.gpio.BSRR;
-        const v = BSRR {};
+        var v = BSRR {};
         @field(v, "BS" ++ @tagName(pad)[2..]) = .set;
         @field(chip.registers, "GPIO" ++ @tagName(port)).BSRR.write(v);
     }

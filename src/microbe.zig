@@ -223,6 +223,8 @@ pub fn addEmbeddedExecutable(
     };
 
     //exe.inner.use_stage1 = true;
+    exe.inner.use_stage1 = false;
+    exe.inner.strip = false;
 
     exe.inner.single_threaded = chip.single_threaded;
     exe.inner.setTarget(chip.core.target);
