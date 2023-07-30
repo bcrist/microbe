@@ -1,14 +1,14 @@
 const std = @import("std");
-const microbe = @import("src/microbe.zig");
+const microbe = @import("microbe.zig");
 
 pub fn build(b: *std.build.Builder) void {
-    var example = microbe.addEmbeddedExecutable(b,
-        "example.elf",
-        "example/main.zig",
-        microbe.chips.stm32g030k8,
-        microbe.defaultSections(2048),
-    );
-    example.setBuildMode(b.standardReleaseOptions());
+    var example = microbe.addExecutable(b, .{
+        .name = "example.elf",
+        .root_source_file = .{ .path = "example/main.zig" },
+        .chip = microbe.Chip.stm32g030k8,
+        .sections = microbe.Section.defaultArmSections(2048),
+        .optimize = b.standardOptimizeOption(),
+    });
     example.install();
 
     var raw = example.installRaw("example.bin", .{});
