@@ -9,7 +9,7 @@ Microbe is a framework for developing embedded firmware in Zig, primarily target
 * There's no facility to easily work with multiple GPIOs simultaneously as a parallel bus.
 * The SVD-generated register types can be difficult to use, especially where a field would ideally be represented by an enum.
 
-Some of these issues could be solved by PRs to microzig but in some cases it's just a matter of stylistic differences of opinion.  If you're a microzig contributor and think something you see here should be ported, let me know and I'll see if I can help.
+I don't bring these up to criticize the microzig project, but rather to highlight the areas where Microbe takes a different path.  If you haven't tried microzig yet but you're looking to do embedded programming with Zig, start there first.  If you have tried microzig but share some of the feelings I listed above, then this project may be useful to you.  And if you're a microzig contributor and think something you see here should be ported, let me know and I'll see if I can help.
 
 ## Project Structure & Device Support
 
