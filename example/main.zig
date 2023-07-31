@@ -1,8 +1,18 @@
 const std = @import("std");
+pub const chip = @import("chip");
 const microbe = @import("microbe");
-const clock = microbe.clock;
 
-pub const clocks = microbe.ClockConfig {
+comptime {
+    _ = @import("config");
+    _ = @import("chip");
+}
+
+pub const panic = microbe.defaultPanic;
+pub const std_options = struct {
+    pub const logFn = microbe.defaultLog;
+};
+
+pub const clocks = chip.clocks.Config {
     .hsi_enabled = true,
     .hse_frequency_hz = 4_300_000,
     .pll = .{
@@ -15,10 +25,10 @@ pub const clocks = microbe.ClockConfig {
 };
 
 pub const interrupts = struct {
-    pub const SysTick = clock.handleTickInterrupt;
+    pub const SysTick = chip.clocks.handleTickInterrupt;
 };
 
-pub var uart1: microbe.Uart(.{
+pub var uart1: microbe.uart.Uart(.{
     .baud_rate = 9600,
     .tx = .PA9,
     .rx = .PA10,
@@ -26,11 +36,14 @@ pub var uart1: microbe.Uart(.{
     // .rts = .PA12,
 }) = undefined;
 
+
+const TestBus = microbe.bus.Bus("Test", .{ .PA2, .PA3, .PA4, .PB4, .PB6 }, .{ .mode = .output });
+
 pub fn main() !void {
-    const test_bus = microbe.bus.Bus("Test", .{ .PA2, .PA3, .PA4, .PB4, .PB6 }, .{ .mode = .output }).init();
-    test_bus.modifyInline(7);
-    test_bus.modifyInline(17);
-    test_bus.modifyInline(7);
+    TestBus.init();
+    TestBus.modifyInline(7);
+    TestBus.modifyInline(17);
+    TestBus.modifyInline(7);
 
     uart1 = @TypeOf(uart1).init();
     uart1.start();
@@ -64,6 +77,6 @@ pub fn main() !void {
             try writer.writeAll("\r\n");
         }
 
-        clock.blockUntilMicrotick(clock.currentMicrotick().plus(.{ .seconds = 2 }));
+        chip.clocks.blockUntilMicrotick(chip.clocks.currentMicrotick().plus(.{ .seconds = 2 }));
     }
 }

@@ -1,0 +1,10 @@
+.{
+    .name = "microbe-example",
+    .version = "0.0.0",
+    .dependencies = .{
+        .@"microbe-stm32" = .{
+            .url = "https://github.com/bcrist/microbe-stm32/archive/ce47ce12cb70615ebed8ea8921e9d9fc75425138.tar.gz",
+            .hash = "1220aad9e74f29fd76c45bd07485453125f3eed6d9689de60fea1daafc0320545378",
+        },
+    },
+}

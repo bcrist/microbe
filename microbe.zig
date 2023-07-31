@@ -25,21 +25,16 @@ pub fn addExecutable(b: *std.Build, options: ExecutableOptions) *std.build.LibEx
     const config_step = ConfigStep.create(b, options.chip, options.sections, hash) catch unreachable;
     const linkerscript_step = LinkerScriptStep.create(b, options.chip, options.sections, hash) catch unreachable;
 
-    const microbe_rt = b.dependency("microbe-rt");
-    const rt_module = microbe_rt.module("microbe");
+    const chip_dep = b.dependency(options.chip.dependency_name, .{});
+    const chip_module = chip_dep.module(options.chip.module_name);
+    const rt_module = chip_module.dependencies.get("microbe").?;
 
     const config_module = b.createModule(.{
-        .source_file = .{ .generated = config_step.generated_file },
+        .source_file = .{ .generated = &config_step.generated_file },
+        .dependencies = &.{
+            .{ .name = "chip", .module = chip_module },
+        },
     });
-
-    const chip_dep = b.dependency(options.chip.dependency_name);
-    const chip_module = chip_dep.module(options.chip.module_name);
-
-    rt_module.dependencies.put("chip", chip_module);
-    rt_module.dependencies.put("config", config_module);
-
-    chip_module.dependencies.put("microbe", rt_module);
-    chip_module.dependencies.put("config", config_module);
 
     var exe = b.addExecutable(.{
         .name = options.name,
@@ -54,10 +49,11 @@ pub fn addExecutable(b: *std.Build, options: ExecutableOptions) *std.build.LibEx
         .single_threaded = options.chip.single_threaded,
         .linkage = .static,
     });
+    exe.strip = false;
     exe.bundle_compiler_rt = options.chip.core.bundle_compiler_rt;
     exe.setLinkerScriptPath(.{ .generated = &linkerscript_step.generated_file });
-    exe.addPackage("microbe", rt_module);
-    exe.addPackage("config", config_module);
+    exe.addModule("microbe", rt_module);
+    exe.addModule("config", config_module);
     exe.addModule("chip", chip_module);
 
     return exe;
@@ -65,38 +61,26 @@ pub fn addExecutable(b: *std.Build, options: ExecutableOptions) *std.build.LibEx
 
 fn getHash(b: *std.Build, chip: Chip, sections: []const Section) [32]u8 {
     var hash = b.cache.hash;
-    hash.add(chip.name);
-    hash.add(chip.core.name);
+    hash.addBytes(chip.name);
+    hash.addBytes(chip.core.name);
 
     for (chip.memory_regions) |memory_region| {
-        hash.add(memory_region.name);
+        hash.addBytes(memory_region.name);
         hash.add(memory_region.offset);
         hash.add(memory_region.length);
         hash.add(memory_region.access.bits.mask);
     }
 
     for (sections) |section| {
-        hash.add(section.name);
+        hash.addBytes(section.name);
         for (section.contents) |entry| {
-            hash.add(entry);
+            hash.addBytes(entry);
         }
-        hash.add(std.mem.asBytes(&section.start_alignment_bytes));
-        hash.add(std.mem.asBytes(&section.end_alignment_bytes));
-        if (section.rom_region) |region| {
-            hash.add(region);
-        } else {
-            hash.add("~");
-        }
-        if (section.ram_region) |region| {
-            hash.add(region);
-        } else {
-            hash.add("~");
-        }
-        if (section.init_value) |v| {
-            hash.add(std.mem.asBytes(&v));
-        } else {
-            hash.add("~");
-        }
+        hash.addBytes(std.mem.asBytes(&section.start_alignment_bytes));
+        hash.addBytes(std.mem.asBytes(&section.end_alignment_bytes));
+        hash.addBytes(section.rom_region orelse "~");
+        hash.addBytes(section.ram_region orelse "~");
+        hash.addBytes(if (section.init_value) |v| std.mem.asBytes(&v) else "~");
     }
 
     return hash.final();

@@ -44,7 +44,9 @@ fn findMemoryRegionIndex(region_name: []const u8, chip: Chip) !usize {
     return error.MissingMemoryRegion;
 }
 
-fn make(step: *Step) !void {
+fn make(step: *Step, progress: *std.Progress.Node) !void {
+    _ = progress;
+
     const linkerscript = @fieldParentPtr(LinkerScriptStep, "step", step);
 
     const owner = linkerscript.step.owner;
@@ -70,7 +72,7 @@ fn make(step: *Step) !void {
         \\ * Target CPU:  {s}
         \\ * Target Chip: {s}
         \\ */
-        \\ENTRY(start);
+        \\ENTRY(_start);
         \\
         \\MEMORY
         \\{{
@@ -147,7 +149,6 @@ fn make(step: *Step) !void {
     const dir_path = try owner.cache_root.join(owner.allocator, &.{
         "microbe",
         chip.name,
-        chip.core.name,
     });
 
     var dir = try owner.cache_root.handle.makeOpenPath(dir_path, .{});

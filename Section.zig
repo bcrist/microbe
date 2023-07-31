@@ -12,7 +12,7 @@ rom_region: ?[]const u8 = null,
 ram_region: ?[]const u8 = null,
 init_value: ?u8 = null,
 
-pub fn romSection(comptime name: []const u8, comptime rom_region: []const u8) Section {
+pub fn keepRomSection(comptime name: []const u8, comptime rom_region: []const u8) Section {
     return .{
         .name = name,
         .contents = &.{
@@ -22,11 +22,21 @@ pub fn romSection(comptime name: []const u8, comptime rom_region: []const u8) Se
     };
 }
 
+pub fn romSection(comptime name: []const u8, comptime rom_region: []const u8) Section {
+    return .{
+        .name = name,
+        .contents = &.{
+            "*(." ++ name ++ "*)"
+        },
+        .rom_region = rom_region,
+    };
+}
+
 pub fn initializedRamSection(comptime name: []const u8, comptime rom_region: []const u8, comptime ram_region: []const u8) Section {
     return .{
         .name = name,
         .contents = &.{
-            "KEEP(*(." ++ name ++ "*))"
+            "*(." ++ name ++ "*)"
         },
         .rom_region = rom_region,
         .ram_region = ram_region,
@@ -37,7 +47,7 @@ pub fn uninitializedRamSection(comptime name: []const u8, comptime ram_region: [
     return .{
         .name = name,
         .contents = &.{
-            "KEEP(*(." ++ name ++ "*))"
+            "*(." ++ name ++ "*)"
         },
         .ram_region = ram_region,
     };
@@ -47,7 +57,7 @@ pub fn zeroedRamSection(comptime name: []const u8, comptime ram_region: []const 
     return .{
         .name = name,
         .contents = &.{
-            "KEEP(*(." ++ name ++ "*))"
+            "*(." ++ name ++ "*)"
         },
         .ram_region = ram_region,
         .init_value = 0,
@@ -55,7 +65,7 @@ pub fn zeroedRamSection(comptime name: []const u8, comptime ram_region: []const 
 }
 
 pub fn defaultVectorTableSection() Section {
-    return romSection("vector_table", "flash");
+    return keepRomSection("vector_table", "flash");
 }
 
 pub fn defaultTextSection() Section {
@@ -87,7 +97,7 @@ pub fn defaultHeapSection() Section {
 }
 
 pub fn defaultStackSection(comptime stack_size: usize) Section {
-    var aligned_stack_size = std.mem.alignForward(stack_size, 8);
+    var aligned_stack_size = std.mem.alignForward(usize, stack_size, 8);
     return .{
         .name = "stack",
         .contents = &.{
@@ -124,31 +134,29 @@ pub fn defaultArmExidxSection() Section {
 }
 
 pub fn defaultArmSections(comptime stack_size: usize) []const Section {
-    comptime {
-        return &.{
-            // FLASH only:
-            defaultVectorTableSection(),
-            defaultTextSection(),
-            defaultArmExtabSection(),
-            defaultArmExidxSection(),
-            defaultRoDataSection(),
+    return comptime &.{
+        // FLASH only:
+        defaultVectorTableSection(),
+        defaultTextSection(),
+        defaultArmExtabSection(),
+        defaultArmExidxSection(),
+        defaultRoDataSection(),
 
-            // RAM only:
-            // Stack goes first to avoid overflows silently corrupting data; instead
-            // they'll generally cause a fault when trying to write outside of ram.
-            // Note this assumes the usual downward-growing stack convention.
-            defaultStackSection(stack_size),
+        // RAM only:
+        // Stack goes first to avoid overflows silently corrupting data; instead
+        // they'll generally cause a fault when trying to write outside of ram.
+        // Note this assumes the usual downward-growing stack convention.
+        defaultStackSection(stack_size),
 
-            // FLASH + RAM:
-            defaultDataSection(),
+        // FLASH + RAM:
+        defaultDataSection(),
 
-            // RAM only:
-            defaultBssSection(),
-            defaultUDataSection(),
-            defaultHeapSection(),
+        // RAM only:
+        defaultBssSection(),
+        defaultUDataSection(),
+        defaultHeapSection(),
 
-            // FLASH only:
-            defaultNvmSection(),
-        };
-    }
+        // FLASH only:
+        defaultNvmSection(),
+    };
 }
