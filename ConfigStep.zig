@@ -180,6 +180,8 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
     );
 
     for (self.sections) |section| {
+        if (section.skip_init) continue;
+
         if (section.ram_region) |_| {
             if (section.rom_region) |_| {
                 try writer.print(
