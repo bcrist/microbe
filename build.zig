@@ -65,4 +65,7 @@ pub fn build(b: *std.Build) void {
     _ = b.addModule("chip_util", .{
         .source_file = .{ .path = "src/chip_util.zig" },
     });
+    _ = b.addModule("empty", .{
+        .source_file = .{ .path = "src/empty.zig" },
+    });
 }
