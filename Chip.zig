@@ -16,7 +16,7 @@ single_threaded: bool = true,
 
 pub fn rp2040(comptime flash_size_kibytes: usize) Chip {
     return .{
-        .name = std.fmt.comptimePrint("RP2040 ({s} kiB flash)", .{ flash_size_kibytes }),
+        .name = std.fmt.comptimePrint("RP2040 ({} kiB flash)", .{ flash_size_kibytes }),
         .dependency_name = "microbe-rpi",
         .module_name = "rp2040",
         .core = Core.cortex_m0plus,
