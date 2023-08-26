@@ -52,7 +52,7 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
     defer man.deinit();
 
     // Random bytes to make hash unique. Change this if implementation is modified.
-    man.hash.add(@as(u32, 0x0123_4567));
+    man.hash.add(@as(u32, 0x212b_4d03));
 
     hash.addChipAndSections(&man.hash, chip, self.sections);
 
