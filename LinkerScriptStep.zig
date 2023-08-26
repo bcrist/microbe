@@ -61,17 +61,27 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
 
     hash.addChipAndSections(&man.hash, chip, self.sections);
 
+    if (try step.cacheHit(&man)) {
+        // Cache hit, skip subprocess execution.
+        const digest = man.final();
+        self.output_file.path = try b.cache_root.join(b.allocator, &.{
+            "microbe",
+            &digest,
+            "link.ld",
+        });
+        return;
+    }
+
     const digest = man.final();
     self.output_file.path = try b.cache_root.join(b.allocator, &.{
         "microbe",
         &digest,
         "link.ld",
     });
-
-    if (try step.cacheHit(&man)) {
-        // Cache hit, skip regenerating file.
-        return;
-    }
+    const cache_dir = "microbe" ++ std.fs.path.sep_str ++ digest;
+    b.cache_root.handle.makePath(cache_dir) catch |err| {
+        return step.fail("unable to make path {s}: {s}", .{ cache_dir, @errorName(err) });
+    };
 
     if (target.cpu_arch == null) {
         std.log.err("target does not have 'cpu_arch'", .{});

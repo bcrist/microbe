@@ -50,17 +50,27 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
 
     hash.addChipAndSections(&man.hash, chip, self.sections);
 
+    if (try step.cacheHit(&man)) {
+        // Cache hit, skip regenerating file.
+        const digest = man.final();
+        self.output_file.path = try b.cache_root.join(b.allocator, &.{
+            "microbe",
+            &digest,
+            "config.zig",
+        });
+        return;
+    }
+
     const digest = man.final();
     self.output_file.path = try b.cache_root.join(b.allocator, &.{
         "microbe",
         &digest,
         "config.zig",
     });
-
-    if (try step.cacheHit(&man)) {
-        // Cache hit, skip regenerating file.
-        return;
-    }
+    const cache_dir = "microbe" ++ std.fs.path.sep_str ++ digest;
+    b.cache_root.handle.makePath(cache_dir) catch |err| {
+        return step.fail("unable to make path {s}: {s}", .{ cache_dir, @errorName(err) });
+    };
 
     var contents = std.ArrayList(u8).init(b.allocator);
     defer contents.deinit();
