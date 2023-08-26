@@ -76,7 +76,7 @@ fn make(step: *Build.Step, progress: *std.Progress.Node) !void {
     var crc_stream = std.io.fixedBufferStream(buf[252..256]);
     try crc_stream.writer().writeIntLittle(u32, crc);
 
-    var file = try b.cache_root.handle.createFile(self.output_file.path, .{});
+    var file = try b.cache_root.handle.createFile(self.output_file.getPath(), .{});
     defer file.close();
 
     const writer = file.writer();
