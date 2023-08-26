@@ -19,7 +19,7 @@ pub const Option = struct {
     escape: bool = false,
 };
 
-pub fn create(owner: *Build, chip: Chip, sections: []const Section, extra: []const Option) *ConfigStep {
+pub fn create(owner: *Build, chip: Chip, sections: []const Section) *ConfigStep {
     var self = owner.allocator.create(ConfigStep) catch @panic("OOM");
     self.* = ConfigStep{
         .step = Step.init(.{
@@ -33,7 +33,6 @@ pub fn create(owner: *Build, chip: Chip, sections: []const Section, extra: []con
         },
         .chip = chip,
         .sections = sections,
-        .extra = extra,
     };
     return self;
 }
