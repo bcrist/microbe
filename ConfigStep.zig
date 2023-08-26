@@ -13,7 +13,13 @@ output_file: std.build.GeneratedFile,
 chip: Chip,
 sections: []const Section,
 
-pub fn create(owner: *Build, chip: Chip, sections: []const Section) *ConfigStep {
+pub const Option = struct {
+    name: []const u8,
+    value: []const u8,
+    escape: bool = false,
+};
+
+pub fn create(owner: *Build, chip: Chip, sections: []const Section, extra: []const Option) *ConfigStep {
     var self = owner.allocator.create(ConfigStep) catch @panic("OOM");
     self.* = ConfigStep{
         .step = Step.init(.{
@@ -27,6 +33,7 @@ pub fn create(owner: *Build, chip: Chip, sections: []const Section) *ConfigStep 
         },
         .chip = chip,
         .sections = sections,
+        .extra = extra,
     };
     return self;
 }
@@ -105,7 +112,16 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
         \\    }
         \\}
         \\
+        \\
     );
+
+    for (chip.extra_config) |option| {
+        if (option.escape) {
+            try writer.print("pub const {s} = \"{s}\"\n", .{ std.zig.fmtId(option.name), std.fmt.fmtSliceEscapeUpper(option.value) });
+        } else {
+            try writer.print("pub const {s} = {s}\n", .{ std.zig.fmtId(option.name), option.value });
+        }
+    }
 
     try writer.writeAll("\npub const regions = struct {\n");
     for (chip.memory_regions) |region| {

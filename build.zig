@@ -5,11 +5,10 @@ pub const Section = @import("Section.zig");
 pub const MemoryRegion = @import("MemoryRegion.zig");
 const ConfigStep = @import("ConfigStep.zig");
 const LinkerScriptStep = @import("LinkerScriptStep.zig");
-const Boot2Crc32Step = @import("Boot2Crc32Step.zig");
 
 pub const ExecutableOptions = struct {
     name: []const u8,
-    root_source_file: ?std.build.FileSource = null,
+    root_source_file: ?std.Build.LazyPath = null,
     chip: Chip,
     sections: []const Section,
     version: ?std.SemanticVersion = null,
@@ -55,37 +54,15 @@ pub fn addExecutable(b: *std.Build, options: ExecutableOptions) *std.build.LibEx
     exe.addModule("config", config_module);
     exe.addModule("chip", chip_module);
 
-    if (std.mem.eql(u8, options.chip.dependency_name, "microbe-rpi")) {
-        var boot2exe = b.addObject(.{
-            .name = "boot2",
-            .root_source_file = options.root_source_file,
-            .optimize = options.optimize,
-            .max_rss = options.max_rss,
-            .link_libc = options.link_libc,
-            .use_llvm = options.use_llvm,
-            .use_lld = options.use_lld,
-            .target = options.chip.core.target,
-            .single_threaded = options.chip.single_threaded,
-        });
-        boot2exe.strip = false;
-        boot2exe.bundle_compiler_rt = options.chip.core.bundle_compiler_rt;
-        boot2exe.addModule("microbe", rt_module);
-        boot2exe.addModule("config", config_module);
-        boot2exe.addModule("chip", chip_module);
-
-        var boot2extract = b.addObjCopy(boot2exe.getOutputSource(), .{
-            .format = .bin,
-            .only_section = "boot2_src",
-            .pad_to = 252,
-        });
-
-        var boot2 = Boot2Crc32Step.create(b, boot2extract.getOutputSource());
-        exe.step.dependOn(&boot2.step);
-        exe.addAnonymousModule("boot2", .{ .source_file = boot2.getOutputSource() });
-    }
-
     return exe;
 }
 
-pub fn build(_: *std.Build) void {
+pub fn build(b: *std.Build) void {
+    // Expose runtime modules:
+    _ = b.addModule("microbe", .{
+        .source_file = .{ .path = "src/microbe.zig" },
+    });
+    _ = b.addModule("chip_util", .{
+        .source_file = .{ .path = "src/chip_util.zig" },
+    });
 }

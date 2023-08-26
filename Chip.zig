@@ -1,6 +1,7 @@
 const std = @import("std");
 const Core = @import("Core.zig");
 const MemoryRegion = @import("MemoryRegion.zig");
+const ConfigStep = @import("ConfigStep.zig");
 const mainFlash = MemoryRegion.mainFlash;
 const mainRam = MemoryRegion.mainRam;
 const executableRam = MemoryRegion.executableRam;
@@ -13,24 +14,7 @@ module_name: []const u8,
 core: Core,
 memory_regions: []const MemoryRegion,
 single_threaded: bool = true,
-
-pub fn rp2040(comptime flash_size_kibytes: usize) Chip {
-    return .{
-        .name = std.fmt.comptimePrint("RP2040 ({} kiB flash)", .{ flash_size_kibytes }),
-        .dependency_name = "microbe-rpi",
-        .module_name = "rp2040",
-        .core = Core.cortex_m0plus,
-        .single_threaded = false,
-        .memory_regions = comptime &.{
-            mainFlash(0x10000000, flash_size_kibytes * 1024),
-            mainRam(0x20000000, 256 * 1024),
-            executableRam("xip_cache", 0x15000000, 16 * 1024),
-            executableRam("sram4", 0x20040000, 4 * 1024),
-            executableRam("sram5", 0x20041000, 4 * 1024),
-            executableRam("usb_dpram", 0x50100000, 4 * 1024),
-        },
-    };
-}
+extra_config: []const ConfigStep.Option = &.{},
 
 pub const stm32g030j6 = Chip {
     .name = "STM32G030J6",

@@ -13,6 +13,12 @@ pub fn addChipAndSections(hash: *std.Build.Cache.HashHelper, chip: Chip, section
         hash.add(memory_region.access.bits.mask);
     }
 
+    for (chip.extra_config) |option| {
+        hash.addBytes(option.name);
+        hash.add(option.escape);
+        hash.addBytes(option.value);
+    }
+
     for (sections) |section| {
         hash.addBytes(section.name);
         for (section.contents) |entry| {
