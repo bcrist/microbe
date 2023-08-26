@@ -21,7 +21,7 @@ pub fn rp2040(comptime flash_size_kibytes: usize) Chip {
         .module_name = "rp2040",
         .core = Core.cortex_m0plus,
         .single_threaded = false,
-        .memory_regions = &.{
+        .memory_regions = comptime &.{
             mainFlash(0x10000000, flash_size_kibytes * 1024),
             mainRam(0x20000000, 256 * 1024),
             executableRam("xip_cache", 0x15000000, 16 * 1024),
