@@ -16,18 +16,18 @@ single_threaded: bool = true,
 
 pub fn rp2040(flash_size_kibytes: usize) Chip {
     return .{
-        .name = std.fmt.comptimePrint("RP2040 ({s} kiB)", .{ flash_size_kibytes }),
+        .name = std.fmt.comptimePrint("RP2040 ({s} kiB flash)", .{ flash_size_kibytes }),
         .dependency_name = "microbe-rpi",
         .module_name = "rp2040",
         .core = Core.cortex_m0plus,
         .single_threaded = false,
         .memory_regions = &.{
-            mainFlash(0x0, flash_size_kibytes * 1024),
+            mainFlash(0x10000000, flash_size_kibytes * 1024),
             mainRam(0x20000000, 256 * 1024),
             executableRam("xip_cache", 0x15000000, 16 * 1024),
             executableRam("sram4", 0x20040000, 4 * 1024),
             executableRam("sram5", 0x20041000, 4 * 1024),
-            executableRam("usb_dpram", 0x50100000, 64 * 1024),
+            executableRam("usb_dpram", 0x50100000, 4 * 1024),
         },
     };
 }

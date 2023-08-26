@@ -1,6 +1,7 @@
 const std = @import("std");
 const Section = @import("Section.zig");
 const Chip = @import("Chip.zig");
+const hash = @import("hash.zig");
 const Step = std.build.Step;
 const Build = std.Build;
 const GeneratedFile = std.build.GeneratedFile;
@@ -8,43 +9,60 @@ const GeneratedFile = std.build.GeneratedFile;
 const ConfigStep = @This();
 
 step: Step,
-generated_file: std.build.GeneratedFile,
-builder: *Build,
+output_file: std.build.GeneratedFile,
 chip: Chip,
 sections: []const Section,
-hash: [32]u8,
 
-pub fn create(owner: *Build, chip: Chip, sections: []const Section, hash: [32]u8) !*ConfigStep {
-    var config = try owner.allocator.create(ConfigStep);
-    config.* = ConfigStep{
+pub fn create(owner: *Build, chip: Chip, sections: []const Section) *ConfigStep {
+    var self = owner.allocator.create(ConfigStep) catch @panic("OOM");
+    self.* = ConfigStep{
         .step = Step.init(.{
             .id = .custom,
             .name = "config",
             .owner = owner,
             .makeFn = make,
         }),
-        .generated_file = .{
-            .step = &config.step,
+        .output_file = .{
+            .step = &self.step,
         },
-        .builder = owner,
         .chip = chip,
         .sections = sections,
-        .hash = hash,
     };
-    return config;
+    return self;
+}
+
+pub fn getOutputSource(self: *const ConfigStep) std.Build.FileSource {
+    return .{ .generated = &self.output_file };
 }
 
 fn make(step: *Step, progress: *std.Progress.Node) !void {
     _ = progress;
 
-    const config = @fieldParentPtr(ConfigStep, "step", step);
+    const b = step.owner;
+    const self = @fieldParentPtr(ConfigStep, "step", step);
+    const chip = self.chip;
 
-    const owner = config.step.owner;
-    const chip = config.chip;
+    var man = b.cache.obtain();
+    defer man.deinit();
 
-    // TODO check for existing file and skip regenerating?
+    // Random bytes to make hash unique. Change this if implementation is modified.
+    man.hash.add(@as(u32, 0x0123_4567));
 
-    var contents = std.ArrayList(u8).init(owner.allocator);
+    hash.addChipAndSections(&man.hash, chip, self.sections);
+
+    const digest = man.final();
+    self.output_file.path = try b.cache_root.join(b.allocator, &.{
+        "microbe",
+        &digest,
+        "config.zig",
+    });
+
+    if (try step.cacheHit(&man)) {
+        // Cache hit, skip regenerating file.
+        return;
+    }
+
+    var contents = std.ArrayList(u8).init(b.allocator);
     defer contents.deinit();
 
     const writer = contents.writer();
@@ -62,7 +80,7 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
     try writer.print("pub const chip_name = \"{}\";\n", .{ std.fmt.fmtSliceEscapeUpper(chip.name) });
     try writer.print("pub const core_name = \"{}\";\n", .{ std.fmt.fmtSliceEscapeUpper(chip.core.name) });
 
-    const target = try std.zig.CrossTarget.zigTriple(chip.core.target, owner.allocator);
+    const target = try std.zig.CrossTarget.zigTriple(chip.core.target, b.allocator);
     try writer.print("pub const target = \"{s}\";\n", .{ std.fmt.fmtSliceEscapeUpper(target) });
 
     try writer.writeAll(
@@ -90,9 +108,9 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
         \\
     );
 
-    var final_sections = try owner.allocator.alloc(?usize, chip.memory_regions.len);
+    var final_sections = try b.allocator.alloc(?usize, chip.memory_regions.len);
     @memset(final_sections, null);
-    for (config.sections, 0..) |section, i| {
+    for (self.sections, 0..) |section, i| {
         if (section.ram_region orelse section.rom_region) |region_name| {
             for (chip.memory_regions, 0..) |region, r| {
                 if (std.mem.eql(u8, region_name, region.name)) {
@@ -102,7 +120,7 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
         }
     }
 
-    for (config.sections, 0..) |section, i| {
+    for (self.sections, 0..) |section, i| {
         var load = false;
         var start = false;
         var min = false;
@@ -136,16 +154,7 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
         \\
     );
 
-    for (config.sections, 0..) |section, i| {
-        _ = i;
-        // for (final_sections) |section_index| {
-        //     if (section_index == i) {
-        //         try writer.print(
-        //             \\    if (@intFromPtr(&_{s}_min) > @intFromPtr(&_{s}_end)) @panic("OOM ({s})");
-        //             \\
-        //         , .{ section.name, section.name, section.ram_region orelse section.rom_region.? });
-        //     }
-        // }
+    for (self.sections) |section| {
         if (section.ram_region) |_| {
             if (section.rom_region) |_| {
                 try writer.print(
@@ -188,19 +197,9 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
         \\
     );
 
-    const dir_path = try owner.cache_root.join(owner.allocator, &.{
-        "microbe",
-        chip.name,
-    });
-
-    var dir = try owner.cache_root.handle.makeOpenPath(dir_path, .{});
-    defer dir.close();
-
-    const filename = try std.fmt.allocPrint(owner.allocator, "{s}.zig", .{ &config.hash });
-    const file = try dir.createFile(filename, .{});
+    var file = try b.cache_root.handle.createFile(self.output_file.getPath(), .{});
     defer file.close();
 
     try file.writeAll(contents.items);
-    const full_path = owner.pathJoin(&.{ dir_path, filename });
-    config.generated_file.path = full_path;
+    try man.writeManifest();
 }

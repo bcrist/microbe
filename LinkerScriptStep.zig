@@ -1,6 +1,7 @@
 const std = @import("std");
 const Section = @import("Section.zig");
 const Chip = @import("Chip.zig");
+const hash = @import("hash.zig");
 const Step = std.build.Step;
 const Build = std.Build;
 const GeneratedFile = std.build.GeneratedFile;
@@ -8,30 +9,30 @@ const GeneratedFile = std.build.GeneratedFile;
 const LinkerScriptStep = @This();
 
 step: Step,
-generated_file: std.build.GeneratedFile,
-builder: *Build,
+output_file: std.build.GeneratedFile,
 chip: Chip,
 sections: []Section,
-hash: [32]u8,
 
-pub fn create(owner: *Build, chip: Chip, sections: []const Section, hash: [32]u8) !*LinkerScriptStep {
-    var linkerscript = try owner.allocator.create(LinkerScriptStep);
-    linkerscript.* = LinkerScriptStep{
+pub fn create(owner: *Build, chip: Chip, sections: []const Section) *LinkerScriptStep {
+    var self = owner.allocator.create(LinkerScriptStep) catch @panic("OOM");
+    self.* = LinkerScriptStep{
         .step = Step.init(.{
             .id = .custom,
             .name = "linkerscript",
             .owner = owner,
             .makeFn = make,
         }),
-        .generated_file = .{
-            .step = &linkerscript.step,
+        .output_file = .{
+            .step = &self.step,
         },
-        .builder = owner,
         .chip = chip,
         .sections = try owner.allocator.dupe(Section, sections),
-        .hash = hash,
     };
-    return linkerscript;
+    return self;
+}
+
+pub fn getOutputSource(self: *const LinkerScriptStep) std.Build.FileSource {
+    return .{ .generated = &self.output_file };
 }
 
 fn findMemoryRegionIndex(region_name: []const u8, chip: Chip) !usize {
@@ -47,20 +48,37 @@ fn findMemoryRegionIndex(region_name: []const u8, chip: Chip) !usize {
 fn make(step: *Step, progress: *std.Progress.Node) !void {
     _ = progress;
 
-    const linkerscript = @fieldParentPtr(LinkerScriptStep, "step", step);
-
-    const owner = linkerscript.step.owner;
-    const chip = linkerscript.chip;
+    const b = step.owner;
+    const self = @fieldParentPtr(LinkerScriptStep, "step", step);
+    const chip = self.chip;
     const target = chip.core.target;
 
-    // TODO check for existing file and skip regenerating?
+    var man = b.cache.obtain();
+    defer man.deinit();
+
+    // Random bytes to make hash unique. Change this if linker script implementation is modified.
+    man.hash.add(@as(u32, 0x0123_4567));
+
+    hash.addChipAndSections(&man.hash, chip, self.sections);
+
+    const digest = man.final();
+    self.output_file.path = try b.cache_root.join(b.allocator, &.{
+        "microbe",
+        &digest,
+        "link.ld",
+    });
+
+    if (try step.cacheHit(&man)) {
+        // Cache hit, skip regenerating file.
+        return;
+    }
 
     if (target.cpu_arch == null) {
         std.log.err("target does not have 'cpu_arch'", .{});
         return error.NoCpuArch;
     }
 
-    var contents = std.ArrayList(u8).init(owner.allocator);
+    var contents = std.ArrayList(u8).init(b.allocator);
     defer contents.deinit();
 
     const writer = contents.writer();
@@ -87,10 +105,10 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
         try writer.print(") : ORIGIN = 0x{X:0>8}, LENGTH = 0x{X:0>8}\n", .{ region.offset, region.length });
     }
 
-    var final_sections = try linkerscript.builder.allocator.alloc(?usize, chip.memory_regions.len);
+    var final_sections = try self.builder.allocator.alloc(?usize, chip.memory_regions.len);
     @memset(final_sections, null);
 
-    for (linkerscript.sections, 0..) |section, i| {
+    for (self.sections, 0..) |section, i| {
         if (section.ram_region) |ram| {
             var r = try findMemoryRegionIndex(ram, chip);
             final_sections[r] = i;
@@ -112,7 +130,7 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
         \\
     );
 
-    for (linkerscript.sections, 0..) |section, section_index| {
+    for (self.sections, 0..) |section, section_index| {
         if (section.ram_region) |ram| {
             const r = try findMemoryRegionIndex(ram, chip);
             const is_final_section = final_sections[r] == section_index;
@@ -138,7 +156,7 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
 
     for (chip.memory_regions, 0..) |region, region_index| {
         if (final_sections[region_index]) |section_index| {
-            var section = linkerscript.sections[section_index];
+            var section = self.sections[section_index];
             try writer.print(
                 \\_{s}_end = ORIGIN({s}) + LENGTH({s});
                 \\
@@ -146,21 +164,11 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
         }
     }
 
-    const dir_path = try owner.cache_root.join(owner.allocator, &.{
-        "microbe",
-        chip.name,
-    });
-
-    var dir = try owner.cache_root.handle.makeOpenPath(dir_path, .{});
-    defer dir.close();
-
-    const filename = try std.fmt.allocPrint(owner.allocator, "{s}.ld", .{ &linkerscript.hash });
-    const file = try dir.createFile(filename, .{});
+    var file = try b.cache_root.handle.createFile(self.output_file.getPath(), .{});
     defer file.close();
 
     try file.writeAll(contents.items);
-    const full_path = owner.pathJoin(&.{ dir_path, filename });
-    linkerscript.generated_file.path = full_path;
+    try man.writeManifest();
 }
 
 fn writeSectionRam(writer: anytype, section: Section, is_final_section: bool, region_name: []const u8) !void {

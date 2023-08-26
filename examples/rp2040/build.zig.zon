@@ -1,0 +1,12 @@
+.{
+    .name = "microbe-example-rpi",
+    .version = "0.0.0",
+    .dependencies = .{
+        .microbe = .{
+            .url = "https://github.com/bcrist/microbe/archive/.tar.gz",
+        },
+        .@"microbe-rpi" = .{
+            .url = "https://github.com/bcrist/microbe-rpi/archive/ea7050a8d0fe3a0bb31d18b25b319c87d94f0b42.tar.gz",
+        },
+    },
+}

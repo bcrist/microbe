@@ -96,17 +96,21 @@ pub fn defaultHeapSection() Section {
     return uninitializedRamSection("heap", "ram");
 }
 
-pub fn defaultStackSection(comptime stack_size: usize) Section {
+pub fn stackSection(comptime name: []const u8, comptime ram_region: []const u8, comptime stack_size: usize) Section {
     var aligned_stack_size = std.mem.alignForward(usize, stack_size, 8);
     return .{
-        .name = "stack",
+        .name = name,
         .contents = &.{
             std.fmt.comptimePrint(". = . + {};", .{ aligned_stack_size }),
         },
         .start_alignment_bytes = 8,
         .end_alignment_bytes = null,
-        .ram_region = "ram",
+        .ram_region = ram_region,
     };
+}
+
+pub fn defaultStackSection(comptime stack_size: usize) Section {
+    return stackSection("stack", "ram", stack_size);
 }
 
 pub fn defaultArmExtabSection() Section {
@@ -147,6 +151,50 @@ pub fn defaultArmSections(comptime stack_size: usize) []const Section {
         // they'll generally cause a fault when trying to write outside of ram.
         // Note this assumes the usual downward-growing stack convention.
         defaultStackSection(stack_size),
+
+        // FLASH + RAM:
+        defaultDataSection(),
+
+        // RAM only:
+        defaultBssSection(),
+        defaultUDataSection(),
+        defaultHeapSection(),
+
+        // FLASH only:
+        defaultNvmSection(),
+    };
+}
+
+pub fn rp2040Boot2Section() Section {
+    return .{
+        .name = "boot2",
+        .contents = &.{
+            \\KEEP(*(.boot2))
+            \\. = _boot2_start + 0x100;
+        },
+        .rom_region = "flash",
+        .ram_region = "sram5",
+    };
+}
+
+pub fn defaultRp2040Sections() []const Section {
+    return comptime &.{
+        // FLASH only:
+
+        rp2040Boot2Section(),
+        romSection("boot3", "flash"),
+        defaultTextSection(),
+        defaultArmExtabSection(),
+        defaultArmExidxSection(),
+        defaultRoDataSection(),
+
+        // RAM only:
+
+        // We're assuming we'll use the 4KB SRAM4 for core 0 and SRAM5 for core 1.
+        // Since those are dedicated memory regions, we don't actually need to specify the size here.
+        // Note the first 256 bytes of SRAM5 are also used for the stage2 bootloader
+        stackSection("core0_stack", "sram4", 0),
+        stackSection("core1_stack", "sram5", 0),
 
         // FLASH + RAM:
         defaultDataSection(),
