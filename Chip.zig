@@ -14,7 +14,7 @@ core: Core,
 memory_regions: []const MemoryRegion,
 single_threaded: bool = true,
 
-pub fn rp2040(flash_size_kibytes: usize) Chip {
+pub fn rp2040(comptime flash_size_kibytes: usize) Chip {
     return .{
         .name = std.fmt.comptimePrint("RP2040 ({s} kiB flash)", .{ flash_size_kibytes }),
         .dependency_name = "microbe-rpi",

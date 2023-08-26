@@ -29,7 +29,7 @@ pub fn addExecutable(b: *std.Build, options: ExecutableOptions) *std.build.LibEx
     const rt_module = chip_module.dependencies.get("microbe").?;
 
     const config_module = b.createModule(.{
-        .source_file = .{ .generated = &config_step.generated_file },
+        .source_file = config_step.getOutputSource(),
         .dependencies = &.{
             .{ .name = "chip", .module = chip_module },
         },
@@ -50,7 +50,7 @@ pub fn addExecutable(b: *std.Build, options: ExecutableOptions) *std.build.LibEx
     });
     exe.strip = false;
     exe.bundle_compiler_rt = options.chip.core.bundle_compiler_rt;
-    exe.setLinkerScriptPath(.{ .generated = &linkerscript_step.generated_file });
+    exe.setLinkerScriptPath(linkerscript_step.getOutputSource());
     exe.addModule("microbe", rt_module);
     exe.addModule("config", config_module);
     exe.addModule("chip", chip_module);
@@ -74,7 +74,7 @@ pub fn addExecutable(b: *std.Build, options: ExecutableOptions) *std.build.LibEx
         boot2exe.addModule("chip", chip_module);
 
         var boot2extract = b.addObjCopy(boot2exe.getOutputSource(), .{
-            .format = .raw,
+            .format = .bin,
             .only_section = "boot2_src",
             .pad_to = 252,
         });
@@ -87,3 +87,5 @@ pub fn addExecutable(b: *std.Build, options: ExecutableOptions) *std.build.LibEx
     return exe;
 }
 
+pub fn build(_: *std.Build) void {
+}

@@ -2,7 +2,7 @@ const std = @import("std");
 const Chip = @import("Chip.zig");
 const Section = @import("Section.zig");
 
-fn addChipAndSections(hash: *std.Build.Cache.HashHelper, chip: Chip, sections: []const Section) void {
+pub fn addChipAndSections(hash: *std.Build.Cache.HashHelper, chip: Chip, sections: []const Section) void {
     hash.addBytes(chip.name);
     hash.addBytes(chip.core.name);
 

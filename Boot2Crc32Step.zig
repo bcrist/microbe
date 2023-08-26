@@ -4,10 +4,10 @@ const Build = std.Build;
 const Boot2Crc32Step = @This();
 
 step: Build.Step,
-source: Build.FileSource,
+source: Build.LazyPath,
 output_file: Build.GeneratedFile,
 
-pub fn create(owner: *Build, source: Build.FileSource) *Boot2Crc32Step {
+pub fn create(owner: *Build, source: Build.LazyPath) *Boot2Crc32Step {
     var self = owner.allocator.create(Boot2Crc32Step) catch @panic("OOM");
     self.* = .{
         .step = Build.Step.init(.{
@@ -16,7 +16,7 @@ pub fn create(owner: *Build, source: Build.FileSource) *Boot2Crc32Step {
             .owner = owner,
             .makeFn = make,
         }),
-        .source = owner,
+        .source = source,
         .output_file = .{
             .step = &self.step,
         },
@@ -25,7 +25,7 @@ pub fn create(owner: *Build, source: Build.FileSource) *Boot2Crc32Step {
     return self;
 }
 
-pub fn getOutputSource(self: *const Boot2Crc32Step) Build.FileSource {
+pub fn getOutputSource(self: *const Boot2Crc32Step) Build.LazyPath {
     return .{ .generated = &self.output_file };
 }
 

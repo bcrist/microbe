@@ -26,12 +26,12 @@ pub fn create(owner: *Build, chip: Chip, sections: []const Section) *LinkerScrip
             .step = &self.step,
         },
         .chip = chip,
-        .sections = try owner.allocator.dupe(Section, sections),
+        .sections = owner.allocator.dupe(Section, sections) catch @panic("OOM"),
     };
     return self;
 }
 
-pub fn getOutputSource(self: *const LinkerScriptStep) std.Build.FileSource {
+pub fn getOutputSource(self: *const LinkerScriptStep) std.Build.LazyPath {
     return .{ .generated = &self.output_file };
 }
 
@@ -105,7 +105,7 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
         try writer.print(") : ORIGIN = 0x{X:0>8}, LENGTH = 0x{X:0>8}\n", .{ region.offset, region.length });
     }
 
-    var final_sections = try self.builder.allocator.alloc(?usize, chip.memory_regions.len);
+    var final_sections = try b.allocator.alloc(?usize, chip.memory_regions.len);
     @memset(final_sections, null);
 
     for (self.sections, 0..) |section, i| {
