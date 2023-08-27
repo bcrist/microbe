@@ -3,7 +3,7 @@ pub const Core = @import("Core.zig");
 pub const Chip = @import("Chip.zig");
 pub const Section = @import("Section.zig");
 pub const MemoryRegion = @import("MemoryRegion.zig");
-const BinToUf2Step = @import("BinToUf2Step.zig");
+pub const BinToUf2Step = @import("BinToUf2Step.zig");
 const ConfigStep = @import("ConfigStep.zig");
 const LinkerScriptStep = @import("LinkerScriptStep.zig");
 

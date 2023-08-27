@@ -107,7 +107,7 @@ fn make(step: *Step, prog_node: *std.Progress.Node) !void {
     var writer = out_file.writer();
 
     const block_size = self.block_size;
-    const num_blocks: u32 = @intCast((in_file_contents.len + block_size - 1) / block_size);
+    const num_blocks = (in_file_contents.len + block_size - 1) / block_size;
 
     var flags: u32 = 0;
     var file_size_or_family_id: u32 = @intCast(in_file_contents.len);
@@ -119,7 +119,7 @@ fn make(step: *Step, prog_node: *std.Progress.Node) !void {
 
     var address = self.base_address;
     for (0..num_blocks) |block_num| {
-        const block = in_file_contents[block_num * block_size ..];
+        var block = in_file_contents[block_num * block_size ..];
         if (block.len > block_size) {
             block = block[0..block_size];
         }
@@ -129,8 +129,8 @@ fn make(step: *Step, prog_node: *std.Progress.Node) !void {
         try writer.writeIntLittle(u32, flags);
         try writer.writeIntLittle(u32, address);
         try writer.writeIntLittle(u32, block_size);
-        try writer.writeIntLittle(u32, block_num);
-        try writer.writeIntLittle(u32, num_blocks);
+        try writer.writeIntLittle(u32, @intCast(block_num));
+        try writer.writeIntLittle(u32, @intCast(num_blocks));
         try writer.writeIntLittle(u32, file_size_or_family_id);
         try writer.writeAll(block);
         if (block.len < 476) {
