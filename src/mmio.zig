@@ -31,11 +31,11 @@ fn MmioRw(comptime T: type) type {
         raw: RawType,
 
         pub inline fn read(self: *volatile Self) Type {
-            return if (@typeInfo(@TypeOf(Type)) == .Enum) @enumFromInt(self.raw) else @bitCast(self.raw);
+            return fromInt(Type, self.raw);
         }
 
         pub inline fn write(self: *volatile Self, val: Type) void {
-            self.raw = if (@typeInfo(@TypeOf(Type)) == .Enum) @intFromEnum(val) else @bitCast(val);
+            self.raw = toInt(RawType, val);
         }
 
         pub inline fn modify(self: *volatile Self, fields: anytype) void {
@@ -67,11 +67,11 @@ fn MmioRwInt(comptime T: type) type {
         raw: RawType,
 
         pub inline fn read(self: *volatile Self) Type {
-            return @bitCast(self.raw);
+            return fromInt(Type, self.raw);
         }
 
         pub inline fn write(self: *volatile Self, val: Type) void {
-            self.raw = @bitCast(val);
+            self.raw = toInt(RawType, val);
         }
     };
 }
@@ -86,7 +86,7 @@ fn MmioR(comptime T: type) type {
         raw: RawType,
 
         pub inline fn read(self: *volatile Self) Type {
-            return @bitCast(self.raw);
+            return fromInt(Type, self.raw);
         }
     };
 }
@@ -101,7 +101,23 @@ fn MmioW(comptime T: type) type {
         raw: RawType,
 
         pub inline fn write(self: *volatile Self, val: Type) void {
-            self.raw = @bitCast(val);
+            self.raw = toInt(RawType, val);
         }
+    };
+}
+
+fn toInt(comptime T: type, value: anytype) T {
+    return switch (@typeInfo(@TypeOf(value))) {
+        .Enum => @intFromEnum(value),
+        .Pointer => @intFromPtr(value),
+        else => @bitCast(value),
+    };
+}
+
+fn fromInt(comptime T: type, int_value: anytype) T {
+    return switch (@typeInfo(T)) {
+        .Enum => @enumFromInt(int_value),
+        .Pointer => @ptrFromInt(int_value),
+        else => @bitCast(int_value),
     };
 }
