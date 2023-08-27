@@ -116,9 +116,9 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
 
     for (chip.extra_config) |option| {
         if (option.escape) {
-            try writer.print("pub const {s} = \"{s}\"\n", .{ std.zig.fmtId(option.name), std.fmt.fmtSliceEscapeUpper(option.value) });
+            try writer.print("pub const {s} = \"{s}\";\n", .{ std.zig.fmtId(option.name), std.fmt.fmtSliceEscapeUpper(option.value) });
         } else {
-            try writer.print("pub const {s} = {s}\n", .{ std.zig.fmtId(option.name), option.value });
+            try writer.print("pub const {s} = {s};\n", .{ std.zig.fmtId(option.name), option.value });
         }
     }
 
