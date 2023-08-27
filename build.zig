@@ -3,6 +3,7 @@ pub const Core = @import("Core.zig");
 pub const Chip = @import("Chip.zig");
 pub const Section = @import("Section.zig");
 pub const MemoryRegion = @import("MemoryRegion.zig");
+const BinToUf2Step = @import("BinToUf2Step.zig");
 const ConfigStep = @import("ConfigStep.zig");
 const LinkerScriptStep = @import("LinkerScriptStep.zig");
 
@@ -28,7 +29,7 @@ pub fn addExecutable(b: *std.Build, options: ExecutableOptions) *std.build.LibEx
     const rt_module = chip_module.dependencies.get("microbe").?;
 
     const config_module = b.createModule(.{
-        .source_file = config_step.getOutputSource(),
+        .source_file = config_step.getOutput(),
         .dependencies = &.{
             .{ .name = "chip", .module = chip_module },
         },
@@ -49,12 +50,16 @@ pub fn addExecutable(b: *std.Build, options: ExecutableOptions) *std.build.LibEx
     });
     exe.strip = false;
     exe.bundle_compiler_rt = options.chip.core.bundle_compiler_rt;
-    exe.setLinkerScriptPath(linkerscript_step.getOutputSource());
+    exe.setLinkerScriptPath(linkerscript_step.getOutput());
     exe.addModule("microbe", rt_module);
     exe.addModule("config", config_module);
     exe.addModule("chip", chip_module);
 
     return exe;
+}
+
+pub fn addBinToUf2(b: *std.Build, input_file: std.Build.LazyPath, options: BinToUf2Step.Options) *BinToUf2Step {
+    return BinToUf2Step.create(b, input_file, options);
 }
 
 pub fn build(b: *std.Build) void {

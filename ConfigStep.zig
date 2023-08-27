@@ -37,7 +37,10 @@ pub fn create(owner: *Build, chip: Chip, sections: []const Section) *ConfigStep 
     return self;
 }
 
-pub fn getOutputSource(self: *const ConfigStep) std.Build.FileSource {
+/// deprecated: use getOutput
+pub const getOutputSource = getOutput;
+
+pub fn getOutput(self: *const ConfigStep) std.Build.FileSource {
     return .{ .generated = &self.output_file };
 }
 

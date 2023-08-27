@@ -31,7 +31,10 @@ pub fn create(owner: *Build, chip: Chip, sections: []const Section) *LinkerScrip
     return self;
 }
 
-pub fn getOutputSource(self: *const LinkerScriptStep) std.Build.LazyPath {
+/// deprecated: use getOutput
+pub const getOutputSource = getOutput;
+
+pub fn getOutput(self: *const LinkerScriptStep) std.Build.LazyPath {
     return .{ .generated = &self.output_file };
 }
 
