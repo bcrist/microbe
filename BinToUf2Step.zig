@@ -137,6 +137,8 @@ fn make(step: *Step, prog_node: *std.Progress.Node) !void {
             try writer.writeByteNTimes(0, 476 - block.len);
         }
         try writer.writeIntLittle(u32, 0x0AB16F30);
+
+        address += block_size;
     }
 
     self.output_file.path = full_dest_path;
