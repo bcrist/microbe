@@ -48,6 +48,16 @@ fn findMemoryRegionIndex(region_name: []const u8, chip: Chip) !usize {
     return error.MissingMemoryRegion;
 }
 
+fn findMemoryRegionIndexByAddress(address: u32, chip: Chip) !usize {
+    for (chip.memory_regions, 0..) |region, i| {
+        if (address >= region.offset and address < region.offset + region.length) {
+            return i;
+        }
+    }
+    std.log.err("chip {s} does not have a memory region containing address 0x{X}", .{ chip.name, address });
+    return error.MissingMemoryRegion;
+}
+
 fn make(step: *Step, progress: *std.Progress.Node) !void {
     _ = progress;
 
@@ -128,9 +138,25 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
             if (section.rom_region) |rom| {
                 // just make sure the rom region exists
                 _ = try findMemoryRegionIndex(rom, chip);
+            } else if (section.rom_address) |addr| {
+                // just make sure the rom region exists
+                _ = try findMemoryRegionIndexByAddress(addr, chip);
+            }
+        } else if (section.ram_address) |ram_addr| {
+            var r = try findMemoryRegionIndexByAddress(ram_addr, chip);
+            final_sections[r] = i;
+            if (section.rom_region) |rom| {
+                // just make sure the rom region exists
+                _ = try findMemoryRegionIndex(rom, chip);
+            } else if (section.rom_address) |addr| {
+                // just make sure the rom region exists
+                _ = try findMemoryRegionIndexByAddress(addr, chip);
             }
         } else if (section.rom_region) |rom| {
             var r = try findMemoryRegionIndex(rom, chip);
+            final_sections[r] = i;
+        } else if (section.rom_address) |rom_addr| {
+            var r = try findMemoryRegionIndexByAddress(rom_addr, chip);
             final_sections[r] = i;
         }
     }
@@ -144,18 +170,21 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
     );
 
     for (self.sections, 0..) |section, section_index| {
-        if (section.ram_region) |ram| {
-            const r = try findMemoryRegionIndex(ram, chip);
+        const has_rom_assignment = section.rom_region != null or section.rom_address != null;
+        const has_ram_assignment = section.ram_region != null or section.ram_address != null;
+
+        if (has_ram_assignment) {
+            const r = if (section.ram_region) |region| try findMemoryRegionIndex(region, chip) else try findMemoryRegionIndexByAddress(section.ram_address.?, chip);
             const is_final_section = final_sections[r] == section_index;
-            if (section.rom_region) |rom| {
-                try writeSectionLoad(writer, section, is_final_section, ram, rom);
+            if (has_rom_assignment) {
+                try writeSectionLoad(writer, section, is_final_section);
             } else {
-                try writeSectionRam(writer, section, is_final_section, ram);
+                try writeSectionRam(writer, section, is_final_section);
             }
-        } else if (section.rom_region) |rom| {
-            const r = try findMemoryRegionIndex(rom, chip);
+        } else if (has_rom_assignment) {
+            const r = if (section.rom_region) |region| try findMemoryRegionIndex(region, chip) else try findMemoryRegionIndexByAddress(section.rom_address.?, chip);
             const is_final_section = final_sections[r] == section_index;
-            try writeSectionRom(writer, section, is_final_section, rom);
+            try writeSectionRom(writer, section, is_final_section);
         } else {
             std.log.err("Section {s} must be assigned to a ROM or RAM memory range, or both!", .{ section.name });
             return error.InvalidSection;
@@ -184,45 +213,57 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
     try man.writeManifest();
 }
 
-fn writeSectionRam(writer: anytype, section: Section, is_final_section: bool, region_name: []const u8) !void {
-    try writer.print("  .{s} 0x{X} (NOLOAD) : {{\n", .{
-        section.name,
-        section.ram_region_offset orelse 0,
-    });
+fn writeSectionRam(writer: anytype, section: Section, is_final_section: bool) !void {
+    try writer.print("  .{s}", .{ section.name });
+    if (section.ram_address) |addr| {
+        try writer.print(" 0x{X}", .{ addr });
+    }
+    try writer.writeAll(" (NOLOAD) : {\n");
     try writeSectionContents(writer, section, is_final_section);
-    try writer.print(
-        \\  }} > {s}
-        \\
-        \\
-    , .{ region_name });
+    try writer.writeAll("  }");
+    if (section.ram_region) |region| {
+        try writer.print(" > {s}", .{ region });
+    }
+    try writer.writeByte('\n');
 }
 
-fn writeSectionRom(writer: anytype, section: Section, is_final_section: bool, region_name: []const u8) !void {
-    try writer.print("  .{s} 0x{X} : {{\n", .{
-        section.name,
-        section.rom_region_offset orelse 0,
-    });
+fn writeSectionRom(writer: anytype, section: Section, is_final_section: bool) !void {
+    try writer.print("  .{s}", .{ section.name });
+    if (Section.rom_address) |addr| {
+        try writer.print(" 0x{X}", .{ addr });
+    }
+    try writer.writeAll(" : {\n");
     try writeSectionContents(writer, section, is_final_section);
-    try writer.print(
-        \\  }} > {s}
-        \\
-        \\
-    , .{ region_name });
+    try writer.writeAll("  }");
+    if (section.rom_region) |region| {
+        try writer.print(" > {s}", .{ region });
+    }
+    try writer.writeByte('\n');
 }
 
-fn writeSectionLoad(writer: anytype, section: Section, is_final_section: bool, ram_region: []const u8, rom_region: []const u8) !void {
-    try writer.print("  .{s} 0x{X} : AT(0x{X}) {{\n", .{
-        section.name,
-        section.ram_region_offset orelse 0,
-        section.rom_region_offset orelse 0,
-    });
+fn writeSectionLoad(writer: anytype, section: Section, is_final_section: bool) !void {
+    try writer.print("  .{s}", .{ section.name });
+    if (Section.ram_address) |addr| {
+        try writer.print(" 0x{X}", .{ addr });
+    }
+    try writer.writeAll(" :");
+    if (Section.rom_address) |addr| {
+        try writer.print(" AT(0x{X})", .{ addr });
+    }
+    try writer.writeAll(" {\n");
     try writeSectionContents(writer, section, is_final_section);
+    try writer.writeAll(" }");
+    if (section.ram_region) |region| {
+        try writer.print(" > {s}", .{ region });
+    }
+    if (section.rom_region) |region| {
+        try writer.print(" AT > {s}", .{ region });
+    }
     try writer.print(
-        \\  }} > {s} AT > {s}
         \\  _{s}_load = LOADADDR(.{s});
         \\
         \\
-    , .{ ram_region, rom_region, section.name, section.name });
+    , .{ section.name, section.name });
 }
 
 fn writeSectionContents(writer: anytype, section: Section, is_final_section: bool) !void {

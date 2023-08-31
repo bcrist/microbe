@@ -10,8 +10,8 @@ start_alignment_bytes: ?u32 = 4,
 end_alignment_bytes: ?u32 = 4,
 rom_region: ?[]const u8 = null,
 ram_region: ?[]const u8 = null,
-rom_region_offset: ?u32 = null,
-ram_region_offset: ?u32 = null,
+rom_address: ?u32 = null,
+ram_address: ?u32 = null,
 init_value: ?u8 = null,
 skip_init: bool = false, // used by RP2040 boot2 section (it gets loaded by the built-in ROM instead)
 
