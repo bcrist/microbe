@@ -224,7 +224,7 @@ fn writeSectionRam(writer: anytype, section: Section, is_final_section: bool) !v
     if (section.ram_region) |region| {
         try writer.print(" > {s}", .{ region });
     }
-    try writer.writeByte('\n');
+    try writer.writeAll("\n\n");
 }
 
 fn writeSectionRom(writer: anytype, section: Section, is_final_section: bool) !void {
@@ -238,7 +238,7 @@ fn writeSectionRom(writer: anytype, section: Section, is_final_section: bool) !v
     if (section.rom_region) |region| {
         try writer.print(" > {s}", .{ region });
     }
-    try writer.writeByte('\n');
+    try writer.writeAll("\n\n");
 }
 
 fn writeSectionLoad(writer: anytype, section: Section, is_final_section: bool) !void {
@@ -260,6 +260,7 @@ fn writeSectionLoad(writer: anytype, section: Section, is_final_section: bool) !
         try writer.print(" AT > {s}", .{ region });
     }
     try writer.print(
+        \\
         \\  _{s}_load = LOADADDR(.{s});
         \\
         \\
