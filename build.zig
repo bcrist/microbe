@@ -20,7 +20,7 @@ pub const ExecutableOptions = struct {
     use_lld: ?bool = null,
 };
 
-pub fn addExecutable(b: *std.Build, options: ExecutableOptions) *std.build.LibExeObjStep {
+pub fn addExecutable(b: *std.Build, options: ExecutableOptions) *std.Build.Step.Compile {
     const config_step = ConfigStep.create(b, options.chip, options.sections);
     const linkerscript_step = LinkerScriptStep.create(b, options.chip, options.sections);
 
