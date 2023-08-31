@@ -60,7 +60,7 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
     defer man.deinit();
 
     // Random bytes to make hash unique. Change this if linker script implementation is modified.
-    man.hash.add(@as(u32, 0x36e1_27bb));
+    man.hash.add(@as(u32, 0x36e1_27bc));
 
     hash.addChipAndSections(&man.hash, chip, self.sections);
 
@@ -185,11 +185,10 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
 }
 
 fn writeSectionRam(writer: anytype, section: Section, is_final_section: bool, region_name: []const u8) !void {
-    try writer.print(
-        \\  .{s} (NOLOAD) :
-        \\  {{
-        \\
-    , .{ section.name });
+    try writer.print("  .{s} 0x{X} (NOLOAD) : {{\n", .{
+        section.name,
+        section.ram_region_offset orelse 0,
+    });
     try writeSectionContents(writer, section, is_final_section);
     try writer.print(
         \\  }} > {s}
@@ -199,11 +198,10 @@ fn writeSectionRam(writer: anytype, section: Section, is_final_section: bool, re
 }
 
 fn writeSectionRom(writer: anytype, section: Section, is_final_section: bool, region_name: []const u8) !void {
-    try writer.print(
-        \\  .{s} :
-        \\  {{
-        \\
-    , .{ section.name });
+    try writer.print("  .{s} 0x{X} : {{\n", .{
+        section.name,
+        section.rom_region_offset orelse 0,
+    });
     try writeSectionContents(writer, section, is_final_section);
     try writer.print(
         \\  }} > {s}
@@ -213,11 +211,11 @@ fn writeSectionRom(writer: anytype, section: Section, is_final_section: bool, re
 }
 
 fn writeSectionLoad(writer: anytype, section: Section, is_final_section: bool, ram_region: []const u8, rom_region: []const u8) !void {
-    try writer.print(
-        \\  .{s} :
-        \\  {{
-        \\
-    , .{ section.name });
+    try writer.print("  .{s} 0x{X} : AT(0x{X}) {{\n", .{
+        section.name,
+        section.ram_region_offset orelse 0,
+        section.rom_region_offset orelse 0,
+    });
     try writeSectionContents(writer, section, is_final_section);
     try writer.print(
         \\  }} > {s} AT > {s}
