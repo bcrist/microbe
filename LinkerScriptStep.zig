@@ -60,7 +60,7 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
     defer man.deinit();
 
     // Random bytes to make hash unique. Change this if linker script implementation is modified.
-    man.hash.add(@as(u32, 0x36e1_27ba));
+    man.hash.add(@as(u32, 0x36e1_27bb));
 
     hash.addChipAndSections(&man.hash, chip, self.sections);
 
@@ -103,7 +103,7 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
         \\ * Target CPU:  {s}
         \\ * Target Chip: {s}
         \\ */
-        \\ENTRY(_start);
+        \\ENTRY(_boot2);
         \\
         \\MEMORY
         \\{{

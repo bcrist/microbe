@@ -55,7 +55,7 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
     defer man.deinit();
 
     // Random bytes to make hash unique. Change this if implementation is modified.
-    man.hash.add(@as(u32, 0x212b_4d03));
+    man.hash.add(@as(u32, 0x212b_4d07));
 
     hash.addChipAndSections(&man.hash, chip, self.sections);
 
@@ -177,7 +177,7 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
 
     try writer.writeAll(
         \\
-        \\export fn _init_ram() void {
+        \\pub fn initRam() callconv(.C) void {
         \\    @setCold(true);
         \\
     );
