@@ -4,8 +4,8 @@ pub const Chip = @import("Chip.zig");
 pub const Section = @import("Section.zig");
 pub const MemoryRegion = @import("MemoryRegion.zig");
 pub const BinToUf2Step = @import("BinToUf2Step.zig");
-const ConfigStep = @import("ConfigStep.zig");
-const LinkerScriptStep = @import("LinkerScriptStep.zig");
+pub const ConfigStep = @import("ConfigStep.zig");
+pub const LinkerScriptStep = @import("LinkerScriptStep.zig");
 
 pub const ExecutableOptions = struct {
     name: []const u8,
