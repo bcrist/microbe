@@ -229,7 +229,7 @@ fn writeSectionRam(writer: anytype, section: Section, is_final_section: bool) !v
 
 fn writeSectionRom(writer: anytype, section: Section, is_final_section: bool) !void {
     try writer.print("  .{s}", .{ section.name });
-    if (Section.rom_address) |addr| {
+    if (section.rom_address) |addr| {
         try writer.print(" 0x{X}", .{ addr });
     }
     try writer.writeAll(" : {\n");
@@ -243,11 +243,11 @@ fn writeSectionRom(writer: anytype, section: Section, is_final_section: bool) !v
 
 fn writeSectionLoad(writer: anytype, section: Section, is_final_section: bool) !void {
     try writer.print("  .{s}", .{ section.name });
-    if (Section.ram_address) |addr| {
+    if (section.ram_address) |addr| {
         try writer.print(" 0x{X}", .{ addr });
     }
     try writer.writeAll(" :");
-    if (Section.rom_address) |addr| {
+    if (section.rom_address) |addr| {
         try writer.print(" AT(0x{X})", .{ addr });
     }
     try writer.writeAll(" {\n");
