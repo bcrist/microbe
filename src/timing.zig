@@ -1,23 +1,5 @@
-/// Chip clocks can be configured automatically by declaring a `clocks` constant
-/// in the root source file:
-///
-/// pub const clocks = chip.clocks.Config { ... };
-///
-/// The exact format of the Config struct depends on the chip in use.
-///
-/// chip.clocks.getConfig() will return a comptime constant ParsedConfig
-/// based on either the Config declared in the root source file, or the
-/// default reset clock configuration if no clock configuration is provided.
-///
-/// ParsedConfig is guaranteed to have a field for every clock domain in the
-/// Domain enum, with the field being named `@tagName(domain) ++ "_frequency_hz"`
-/// and having type `comptime_int`.  Additionally, if a clock domain is sourced
-/// from another domain, it will have a field `@tagName(domain) ++ "_source"`
-/// whose type is either `Domain` or `?Domain`.  Normally, these fields will
-/// be accessed through `getFrequency(domain)` and `getSource(domain)`.
 
-const std = @import("std");
-const chip = @import("root").chip;
+
 
 /// Tick period may vary, but it should be between 1us and 1ms (1kHz to 1MHz).
 /// This means rollovers will happen no more frequently than once every 70 minutes,
@@ -33,7 +15,7 @@ pub const Tick = enum (i32) {
     _,
 
     pub fn now() Tick {
-        return chip.clocks.currentTick();
+        return chip.timing.currentTick();
     }
 
     pub fn isAfter(self: Tick, other: Tick) bool {
@@ -45,8 +27,12 @@ pub const Tick = enum (i32) {
     }
 
     pub fn plus(self: Tick, comptime time: anytype) Tick {
-        const extra = comptime parseDuration(i32, time, chip.clocks.getFrequency(.tick));
+        const extra = comptime parseDuration(i32, time, frequencyHz());
         return @enumFromInt(@intFromEnum(self) +% extra);
+    }
+
+    pub fn frequencyHz() comptime_int {
+        return chip.timing.getTickFrequencyHz();
     }
 };
 
@@ -57,7 +43,7 @@ pub const Tick = enum (i32) {
 pub const Microtick = enum (i64) {
 
     pub fn now() Microtick {
-        return chip.clocks.currentMicrotick();
+        return chip.timing.currentMicrotick();
     }
 
     pub fn isAfter(self: Microtick, other: Microtick) bool {
@@ -69,8 +55,12 @@ pub const Microtick = enum (i64) {
     }
 
     pub fn plus(self: Microtick, comptime time: anytype) Microtick {
-        const extra = comptime parseDuration(i64, time, chip.clocks.getFrequency(.microtick));
+        const extra = comptime parseDuration(i64, time, frequencyHz());
         return @enumFromInt(@intFromEnum(self) +% extra);
+    }
+
+    pub fn frequencyHz() comptime_int {
+        return chip.timing.getMicrotickFrequencyHz();
     }
 };
 
@@ -94,3 +84,6 @@ fn parseDuration(comptime T: type, comptime time: anytype, comptime tick_frequen
     }
     return @max(1, extra);
 }
+
+const chip = @import("root").chip;
+const std = @import("std");

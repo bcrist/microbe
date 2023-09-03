@@ -3,15 +3,18 @@ const builtin = @import("builtin");
 const root = @import("root");
 
 pub const Mmio = @import("mmio.zig").Mmio;
-const clocks = @import("clocks.zig");
-pub const Tick = clocks.Tick;
-pub const Microtick = clocks.Microtick;
+const timing = @import("timing.zig");
+pub const Tick = timing.Tick;
+pub const Microtick = timing.Microtick;
 pub const CriticalSection = @import("CriticalSection.zig");
-pub const pads = @import("pads.zig");
-pub const dma = @import("dma.zig");
 pub const bus = @import("bus.zig");
 pub const uart = @import("uart.zig");
 pub const jtag = @import("jtag.zig");
+
+const validation = @import("resource_validation.zig");
+pub const RuntimeResourceValidator = if (root.config.runtime_resource_validation)
+    validation.RuntimeResourceValidator else validation.NullResourceValidator;
+pub const ComptimeResourceValidator = validation.ComptimeResourceValidator;
 
 pub fn defaultLog(
     comptime message_level: std.log.Level,

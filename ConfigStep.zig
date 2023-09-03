@@ -12,6 +12,7 @@ step: Step,
 output_file: std.build.GeneratedFile,
 chip: Chip,
 sections: []const Section,
+runtime_resource_validation: bool,
 
 pub const Option = struct {
     name: []const u8,
@@ -21,6 +22,11 @@ pub const Option = struct {
 
 pub fn create(owner: *Build, chip: Chip, sections: []const Section) *ConfigStep {
     var self = owner.allocator.create(ConfigStep) catch @panic("OOM");
+    const runtime_resource_validation = owner.option(
+        bool,
+        "runtime_validation",
+        "Do resource usage checks at runtime (allows usage by different peripherals at different times)"
+    ) orelse false;
     self.* = ConfigStep{
         .step = Step.init(.{
             .id = .custom,
@@ -33,6 +39,7 @@ pub fn create(owner: *Build, chip: Chip, sections: []const Section) *ConfigStep 
         },
         .chip = chip,
         .sections = sections,
+        .runtime_resource_validation = runtime_resource_validation,
     };
     return self;
 }
@@ -55,7 +62,7 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
     defer man.deinit();
 
     // Random bytes to make hash unique. Change this if implementation is modified.
-    man.hash.add(@as(u32, 0x212b_4d07));
+    man.hash.add(@as(u32, 0x212b_4d27));
 
     hash.addChipAndSections(&man.hash, chip, self.sections);
 
@@ -95,12 +102,20 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
     );
 
     // TODO consider putting git commit hash in here
-
-    try writer.print("pub const chip_name = \"{}\";\n", .{ std.fmt.fmtSliceEscapeUpper(chip.name) });
-    try writer.print("pub const core_name = \"{}\";\n", .{ std.fmt.fmtSliceEscapeUpper(chip.core.name) });
-
-    const target = try std.zig.CrossTarget.zigTriple(chip.core.target, b.allocator);
-    try writer.print("pub const target = \"{s}\";\n", .{ std.fmt.fmtSliceEscapeUpper(target) });
+    try writer.print(
+        \\pub const chip_name = "{}";
+        \\pub const core_name = "{}";
+        \\
+        \\pub const target = "{s}";
+        \\
+        \\pub const runtime_resource_validation = {};
+        \\
+    , .{
+        std.fmt.fmtSliceEscapeUpper(chip.name),
+        std.fmt.fmtSliceEscapeUpper(chip.core.name),
+        std.fmt.fmtSliceEscapeUpper(try std.zig.CrossTarget.zigTriple(chip.core.target, b.allocator)),
+        self.runtime_resource_validation,
+    });
 
     try writer.writeAll(
         \\

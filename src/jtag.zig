@@ -1,16 +1,18 @@
 const std = @import("std");
-const chip = @import("root").chip;
-const pads = @import("pads.zig");
-const Tick = @import("clocks.zig").Tick;
-const Microtick = @import("clocks.zig").Microtick;
+const chip = @import("chip_interface.zig");
+const chip_util = @import("chip_util");
+const mmio = @import("mmio.zig");
+const Microtick = @import("timing.zig").Microtick;
 
-pub const PadID = chip.gpio.PadID;
+pub const PadID = chip.PadID;
 
 pub const Config = struct {
+    name: [:0]const u8 = "JTAG",
     tck: PadID,
     tms: PadID,
     tdo: PadID, // Note this is an input from the adapter's perspective; it retains the naming convention of the DUT
     tdi: PadID, // Note this is an output from the adapter's perspective; it retains the naming convention of the DUT
+    gpio_config: ?chip.gpio.Config = null,
     max_frequency_hz: comptime_int,
     chain: []const type,
 };
@@ -58,7 +60,9 @@ pub fn Adapter(comptime config: Config) type {
             config.tdo,
         };
 
-        const clock_half_period_microticks = @divTrunc(chip.clocks.getFrequency(.microtick) + config.max_frequency_hz, config.max_frequency_hz * 2);
+        const clock_half_period_microticks = chip_util.divRound(chip.getMicrotickFrequencyHz(), config.max_frequency_hz * 2);
+
+        chip.validation.pads.reserveAll(pad_ids, config.name);
 
         return struct {
             const AdapterSelf = @This();
@@ -68,18 +72,13 @@ pub fn Adapter(comptime config: Config) type {
             state: State,
 
             pub fn init() AdapterSelf {
-                pads.reserve(pad_ids, "JTAG");
-                chip.gpio.ensurePortsEnabled(pad_ids);
-                chip.gpio.configureSlewRate(outputs, .very_slow);
-                chip.gpio.configureDriveMode(outputs, .push_pull);
-                chip.gpio.configureAsOutput(outputs);
-                chip.gpio.configureAsInput(inputs);
+                chip.gpio.ensureInit(pad_ids);
+                if (config.gpio_config) |gpio_config| {
+                    chip.gpio.configure(pad_ids, gpio_config);
+                }
+                chip.gpio.setOutputEnables(outputs);
+                chip.gpio.clearOutputEnables(inputs);
                 return .{ .state = .unknown };
-            }
-
-            pub fn deinit(_: AdapterSelf) void {
-                chip.gpio.configureAsUnused(pad_ids);
-                pads.release(pad_ids, "JTAG");
             }
 
             pub fn idle(self: *AdapterSelf, clocks: u32) void {
@@ -91,11 +90,11 @@ pub fn Adapter(comptime config: Config) type {
                 }
             }
 
-            pub fn idleUntil(self: *AdapterSelf, tick: Tick, min_clocks: u32) u32 {
+            pub fn idleUntil(self: *AdapterSelf, tick: Microtick, min_clocks: u32) u32 {
                 self.changeState(.idle);
                 chip.gpio.writeOutput(config.tms, 0);
                 var clocks: u32 = 0;
-                while (chip.clocks.currentTick().isBefore(tick)) {
+                while (Microtick.now().isBefore(tick)) {
                     _ = self.clockPulse();
                     clocks += 1;
                 }
@@ -223,7 +222,7 @@ pub fn Adapter(comptime config: Config) type {
                 chip.gpio.writeOutput(config.tms, 0);
                 const IntT = std.meta.Int(.unsigned, @bitSizeOf(T));
                 var bitsRemaining: u32 = @bitSizeOf(T);
-                var valueRemaining = castToInt(IntT, value);
+                var valueRemaining = mmio.toInt(IntT, value);
                 var capture: IntT = 0;
                 while (bitsRemaining > 1) : (bitsRemaining -= 1) {
                     chip.gpio.writeOutput(config.tdi, @as(u1, @truncate(valueRemaining)));
@@ -241,32 +240,18 @@ pub fn Adapter(comptime config: Config) type {
                 }
                 self.state = exit_state;
 
-                return castFromInt(T, capture);
+                return mmio.fromInt(T, capture);
             }
 
             fn clockPulse(_: AdapterSelf) u1 {
                 chip.gpio.writeOutput(config.tck, 0);
                 var t = Microtick.now().plus(.{ .ticks = clock_half_period_microticks });
-                chip.clocks.blockUntilMicrotick(t);
+                chip.timing.blockUntilMicrotick(t);
                 const bit = chip.gpio.readInput(config.tdo);
                 chip.gpio.writeOutput(config.tck, 1);
                 t = t.plus(.{ .ticks = clock_half_period_microticks });
-                chip.clocks.blockUntilMicrotick(t);
+                chip.timing.blockUntilMicrotick(t);
                 return bit;
-            }
-
-            inline fn castToInt(comptime IntT: type, value: anytype) IntT {
-                return switch (@typeInfo(@TypeOf(value))) {
-                    .Enum => @as(IntT, @intFromEnum(value)),
-                    else => @as(IntT, @bitCast(value)),
-                };
-            }
-
-            inline fn castFromInt(comptime T: type, value: anytype) T {
-                return switch (@typeInfo(T)) {
-                    .Enum => @as(T, @enumFromInt(value)),
-                    else => @as(T, @bitCast(value)),
-                };
             }
 
             pub fn TAP(comptime index: comptime_int) type {

@@ -106,7 +106,7 @@ fn MmioW(comptime T: type) type {
     };
 }
 
-inline fn toInt(comptime T: type, value: anytype) T {
+pub inline fn toInt(comptime T: type, value: anytype) T {
     return switch (@typeInfo(@TypeOf(value))) {
         .Enum => @intFromEnum(value),
         .Pointer => @intFromPtr(value),
@@ -114,7 +114,7 @@ inline fn toInt(comptime T: type, value: anytype) T {
     };
 }
 
-inline fn fromInt(comptime T: type, int_value: anytype) T {
+pub inline fn fromInt(comptime T: type, int_value: anytype) T {
     return switch (@typeInfo(T)) {
         .Enum => @enumFromInt(int_value),
         .Pointer => @ptrFromInt(int_value),

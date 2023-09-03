@@ -1,12 +1,9 @@
-const std = @import("std");
-const chip = @import("root").chip;
-
 pub fn configureInterruptEnables(comptime config: anytype) void {
     const info = @typeInfo(@TypeOf(config));
     switch (info) {
         .Struct => |struct_info| {
             for (struct_info.fields) |field| {
-                chip.interrupts.setEnabled(std.enums.nameCast(chip.interrupts.Type, field.name), @field(config, field.name));
+                chip.interrupts.setEnabled(std.enums.nameCast(chip.interrupts.Interrupt, field.name), @field(config, field.name));
             }
         },
         else => {
@@ -20,7 +17,7 @@ pub fn configureInterruptPriorities(comptime config: anytype) void {
     switch (info) {
         .Struct => |struct_info| {
             for (struct_info.fields) |field| {
-                chip.interrupts.setPriority(std.enums.nameCast(chip.interrupts.Type, field.name), @field(config, field.name));
+                chip.interrupts.setPriority(std.enums.nameCast(chip.interrupts.Exception, field.name), @field(config, field.name));
             }
         },
         else => {
@@ -61,3 +58,31 @@ fn formatFrequency(frequency: u64, comptime fmt: []const u8, options: std.fmt.Fo
 pub fn divRound(comptime dividend: comptime_int, comptime divisor: comptime_int) comptime_int {
     return @divTrunc(dividend + @divTrunc(divisor, 2), divisor);
 }
+
+// This intentionally converts to strings and looks for equality there, so that you can check a
+// PadID against a tuple of enum literals, some of which might not be valid PadIDs.  That's
+// useful when writing generic chip code, where some packages will be missing some PadIDs that
+// other related chips do have.
+pub fn isPadInSet(comptime pad: chip.PadID, comptime set: anytype) bool {
+    comptime {
+        inline for (set) |p| {
+            switch (@typeInfo(@TypeOf(p))) {
+                .EnumLiteral => {
+                    if (std.mem.eql(u8, @tagName(p), @tagName(pad))) {
+                        return true;
+                    }
+                },
+                .Pointer => {
+                    if (std.mem.eql(u8, p, @tagName(pad))) {
+                        return true;
+                    }
+                },
+                else => @compileError("Expected enum or string literal!"),
+            }
+        }
+        return false;
+    }
+}
+
+const chip = @import("root").chip;
+const std = @import("std");
