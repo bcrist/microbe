@@ -35,11 +35,13 @@ pub fn addExecutable(b: *std.Build, options: ExecutableOptions) *std.Build.Step.
         },
     });
 
-    microbe_module.dependencies.put("chip", chip_module);
-    microbe_module.dependencies.put("config", config_module);
+    microbe_module.dependencies.put("chip", chip_module) catch @panic("OOM");
+    microbe_module.dependencies.put("config", config_module) catch @panic("OOM");
+    microbe_module.dependencies.put("microbe", microbe_module) catch @panic("OOM");
 
-    chip_module.dependencies.put("microbe", microbe_module);
-    chip_module.dependencies.put("config", config_module);
+    chip_module.dependencies.put("chip", chip_module) catch @panic("OOM");
+    chip_module.dependencies.put("config", config_module) catch @panic("OOM");
+    chip_module.dependencies.put("microbe", microbe_module) catch @panic("OOM");
 
     var exe = b.addExecutable(.{
         .name = options.name,
