@@ -64,7 +64,7 @@ pub fn addExecutable(b: *std.Build, options: ExecutableOptions) *std.Build.Step.
     return exe;
 }
 
-fn cloneModule(b: *std.Build, dependency_name: []const u8, module_name: []const u8) *Module {
+fn cloneModule(b: *std.Build, dependency_name: []const u8, module_name: []const u8) *std.Build.Module {
     const module = b.dependency(dependency_name, .{}).module(module_name);
     const clone = module.builder.createModule(.{
         .source_file = module.source_file,
