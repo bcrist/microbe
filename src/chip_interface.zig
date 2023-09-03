@@ -1,4 +1,4 @@
-const chip = @import("root").chip;
+const chip = @import("chip");
 
 pub const PadID = chip.PadID;
 

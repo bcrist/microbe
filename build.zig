@@ -13,7 +13,7 @@ pub const ExecutableOptions = struct {
     chip: Chip,
     sections: []const Section,
     version: ?std.SemanticVersion = null,
-    optimize: std.builtin.Mode = .Debug,
+    optimize: ?std.builtin.Mode = null,
     max_rss: usize = 0,
     link_libc: ?bool = null,
     use_llvm: ?bool = null,
@@ -24,22 +24,28 @@ pub fn addExecutable(b: *std.Build, options: ExecutableOptions) *std.Build.Step.
     const config_step = ConfigStep.create(b, options.chip, options.sections);
     const linkerscript_step = LinkerScriptStep.create(b, options.chip, options.sections);
 
-    const chip_dep = b.dependency(options.chip.dependency_name, .{});
-    const chip_module = chip_dep.module(options.chip.module_name);
-    const rt_module = chip_module.dependencies.get("microbe").?;
+    const microbe_module = cloneModule(b, "microbe", "microbe");
+    const chip_module = cloneModule(b, options.chip.dependency_name, options.chip.module_name);
 
     const config_module = b.createModule(.{
         .source_file = config_step.getOutput(),
         .dependencies = &.{
+            .{ .name = "microbe", .module = microbe_module },
             .{ .name = "chip", .module = chip_module },
         },
     });
+
+    microbe_module.dependencies.put("chip", chip_module);
+    microbe_module.dependencies.put("config", config_module);
+
+    chip_module.dependencies.put("microbe", microbe_module);
+    chip_module.dependencies.put("config", config_module);
 
     var exe = b.addExecutable(.{
         .name = options.name,
         .root_source_file = options.root_source_file,
         .version = options.version,
-        .optimize = options.optimize,
+        .optimize = options.optimize orelse b.standardOptimizeOption(.{ .preferred_optimize_mode = .ReleaseSmall }),
         .max_rss = options.max_rss,
         .link_libc = options.link_libc,
         .use_llvm = options.use_llvm,
@@ -51,11 +57,25 @@ pub fn addExecutable(b: *std.Build, options: ExecutableOptions) *std.Build.Step.
     exe.strip = false;
     exe.bundle_compiler_rt = options.chip.core.bundle_compiler_rt;
     exe.setLinkerScriptPath(linkerscript_step.getOutput());
-    exe.addModule("microbe", rt_module);
+    exe.addModule("microbe", microbe_module);
     exe.addModule("config", config_module);
     exe.addModule("chip", chip_module);
 
     return exe;
+}
+
+fn cloneModule(b: *std.Build, dependency_name: []const u8, module_name: []const u8) *Module {
+    const module = b.dependency(dependency_name, .{}).module(module_name);
+    const clone = module.builder.createModule(.{
+        .source_file = module.source_file,
+    });
+
+    var iter = module.dependencies.iterator();
+    while (iter.next()) |entry| {
+        clone.dependencies.put(entry.key_ptr.*, entry.value_ptr.*) catch @panic("OOM");
+    }
+
+    return clone;
 }
 
 pub fn addBinToUf2(b: *std.Build, input_file: std.Build.LazyPath, options: BinToUf2Step.Options) *BinToUf2Step {

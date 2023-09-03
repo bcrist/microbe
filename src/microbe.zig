@@ -1,6 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const root = @import("root");
+const config = @import("config");
 
 pub const Mmio = @import("mmio.zig").Mmio;
 const timing = @import("timing.zig");
@@ -12,7 +12,7 @@ pub const uart = @import("uart.zig");
 pub const jtag = @import("jtag.zig");
 
 const validation = @import("resource_validation.zig");
-pub const RuntimeResourceValidator = if (root.config.runtime_resource_validation)
+pub const RuntimeResourceValidator = if (config.runtime_resource_validation)
     validation.RuntimeResourceValidator else validation.NullResourceValidator;
 pub const ComptimeResourceValidator = validation.ComptimeResourceValidator;
 

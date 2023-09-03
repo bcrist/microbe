@@ -19,4 +19,4 @@ enable_on_leave: bool,
 
 const CriticalSection = @This();
 
-const chip = @import("root").chip;
+const chip = @import("chip_interface.zig");

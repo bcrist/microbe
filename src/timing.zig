@@ -85,5 +85,5 @@ fn parseDuration(comptime T: type, comptime time: anytype, comptime tick_frequen
     return @max(1, extra);
 }
 
-const chip = @import("root").chip;
+const chip = @import("chip_interface.zig");
 const std = @import("std");
