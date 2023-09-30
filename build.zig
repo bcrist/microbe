@@ -12,6 +12,7 @@ pub const ExecutableOptions = struct {
     root_source_file: ?std.Build.LazyPath = null,
     chip: Chip,
     sections: []const Section,
+    enable_runtime_resource_validation: ?bool = null,
     version: ?std.SemanticVersion = null,
     optimize: ?std.builtin.Mode = null,
     max_rss: usize = 0,
@@ -21,8 +22,14 @@ pub const ExecutableOptions = struct {
 };
 
 pub fn addExecutable(b: *std.Build, options: ExecutableOptions) *std.Build.Step.Compile {
+    const optimize = options.optimize orelse b.standardOptimizeOption(.{ .preferred_optimize_mode = .ReleaseSmall });
+    const enable_runtime_resource_validation = options.enable_runtime_resource_validation orelse switch (optimize) {
+        .Debug => true,
+        else => false,
+    };
+
     const config_step = ConfigStep.create(b, options.chip, options.sections);
-    const linkerscript_step = LinkerScriptStep.create(b, options.chip, options.sections);
+    const linkerscript_step = LinkerScriptStep.create(b, options.chip, options.sections, enable_runtime_resource_validation);
 
     const microbe_module = cloneModule(b, "microbe", "microbe");
     const chip_module = cloneModule(b, options.chip.dependency_name, options.chip.module_name);
@@ -47,7 +54,7 @@ pub fn addExecutable(b: *std.Build, options: ExecutableOptions) *std.Build.Step.
         .name = options.name,
         .root_source_file = options.root_source_file,
         .version = options.version,
-        .optimize = options.optimize orelse b.standardOptimizeOption(.{ .preferred_optimize_mode = .ReleaseSmall }),
+        .optimize = optimize,
         .max_rss = options.max_rss,
         .link_libc = options.link_libc,
         .use_llvm = options.use_llvm,

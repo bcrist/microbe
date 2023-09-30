@@ -1,7 +1,6 @@
 const std = @import("std");
 const Core = @import("Core.zig");
 const MemoryRegion = @import("MemoryRegion.zig");
-const ConfigStep = @import("ConfigStep.zig");
 const mainFlash = MemoryRegion.mainFlash;
 const mainRam = MemoryRegion.mainRam;
 const executableRam = MemoryRegion.executableRam;
@@ -14,7 +13,13 @@ module_name: []const u8,
 core: Core,
 memory_regions: []const MemoryRegion,
 single_threaded: bool = true,
-extra_config: []const ConfigStep.Option = &.{},
+extra_config: []const ExtraOption = &.{},
+
+pub const ExtraOption = struct {
+    name: []const u8,
+    value: []const u8,
+    escape: bool = false,
+};
 
 pub const stm32g030j6 = Chip {
     .name = "STM32G030J6",

@@ -14,19 +14,8 @@ chip: Chip,
 sections: []const Section,
 runtime_resource_validation: bool,
 
-pub const Option = struct {
-    name: []const u8,
-    value: []const u8,
-    escape: bool = false,
-};
-
-pub fn create(owner: *Build, chip: Chip, sections: []const Section) *ConfigStep {
+pub fn create(owner: *Build, chip: Chip, sections: []const Section, enable_runtime_resource_validation: bool) *ConfigStep {
     var self = owner.allocator.create(ConfigStep) catch @panic("OOM");
-    const runtime_resource_validation = owner.option(
-        bool,
-        "runtime_validation",
-        "Do resource usage checks at runtime (allows usage by different peripherals at different times)"
-    ) orelse false;
     self.* = ConfigStep{
         .step = Step.init(.{
             .id = .custom,
@@ -39,7 +28,7 @@ pub fn create(owner: *Build, chip: Chip, sections: []const Section) *ConfigStep 
         },
         .chip = chip,
         .sections = sections,
-        .runtime_resource_validation = runtime_resource_validation,
+        .runtime_resource_validation = enable_runtime_resource_validation,
     };
     return self;
 }
