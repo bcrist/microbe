@@ -84,5 +84,5 @@ pub fn isPadInSet(comptime pad: chip.PadID, comptime set: anytype) bool {
     }
 }
 
-const chip = @import("chip_interface.zig");
+const chip = @import("chip");
 const std = @import("std");
