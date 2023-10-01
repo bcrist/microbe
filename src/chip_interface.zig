@@ -7,6 +7,9 @@ pub const interrupts = struct {
 
     pub const Interrupt = i.Interrupt;
     pub const Exception = i.Exception;
+    pub const Handler = i.Handler;
+
+    pub const unhandled = i.unhandled; // (comptime Exception) -> Handler
 
     pub const isEnabled = i.isEnabled; // (comptime Interrupt) -> bool
     pub const setEnabled = i.setEnabled; // (comptime Interrupt, comptime bool) -> void

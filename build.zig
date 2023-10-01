@@ -22,7 +22,7 @@ pub const ExecutableOptions = struct {
 };
 
 pub fn addExecutable(b: *std.Build, options: ExecutableOptions) *std.Build.Step.Compile {
-    const optimize = options.optimize orelse b.standardOptimizeOption(.{ .preferred_optimize_mode = .ReleaseSmall });
+    const optimize = options.optimize orelse b.standardOptimizeOption(.{});
     const enable_runtime_resource_validation = options.enable_runtime_resource_validation orelse switch (optimize) {
         .Debug => true,
         else => false,
