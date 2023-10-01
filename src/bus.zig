@@ -9,20 +9,9 @@ pub const Config = struct {
     gpio_config: ?chip.gpio.Config = null,
 };
 
-pub fn Bus(comptime pads_struct: anytype, comptime config: Config) type {
+pub fn Bus(comptime pad_ids: []const chip.PadID, comptime config: Config) type {
     comptime {
-        const PadsType = @TypeOf(pads_struct);
-        const pads_struct_info = @typeInfo(PadsType).Struct;
-
-        if (!pads_struct_info.is_tuple) {
-            @compileError("Struct State types not yet stupported");
-        }
-
-        var pad_ids: []const PadID = &[_]PadID{};
-        var RawInt = std.meta.Int(.unsigned, pads_struct_info.fields.len);
-        inline for (pads_struct) |pad| {
-            pad_ids = pad_ids ++ .{ pad };
-        }
+        var RawInt = std.meta.Int(.unsigned, pad_ids.len);
 
         chip.validation.pads.reserveAll(pad_ids, config.name);
 
