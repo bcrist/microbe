@@ -28,8 +28,8 @@ pub fn addExecutable(b: *std.Build, options: ExecutableOptions) *std.Build.Step.
         else => false,
     };
 
-    const config_step = ConfigStep.create(b, options.chip, options.sections);
-    const linkerscript_step = LinkerScriptStep.create(b, options.chip, options.sections, enable_runtime_resource_validation);
+    const config_step = ConfigStep.create(b, options.chip, options.sections, enable_runtime_resource_validation);
+    const linkerscript_step = LinkerScriptStep.create(b, options.chip, options.sections);
 
     const microbe_module = cloneModule(b, "microbe", "microbe");
     const chip_module = cloneModule(b, options.chip.dependency_name, options.chip.module_name);
