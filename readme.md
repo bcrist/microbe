@@ -93,10 +93,11 @@ All UART implementations should expose at least these declarations:
 
 Implementations that have reception capability should provide:
 
-    fn isRxIdle(*Self) bool
-    fn getRxBytesAvailable(*Self) usize
+    fn isRxIdle(*Self) bool // optional; some hardware may not be capable of reporting this
+    fn getRxAvailableCount(*Self) usize
     fn canRead(*Self) bool
-    fn peek(*Self, []DataType) []const DataType
+    fn peek(*Self, []DataType) ReadError![]const DataType
+    fn peekOne(*Self) ReadError!?DataType
 
     const ReadError
     const Reader // usually std.io.Reader(..., ReadError, ...)
@@ -128,8 +129,8 @@ Implementations that have reception capability should provide:
 
 Implementations that have transmission capability should provide:
 
-    fn isTxIdle(*Self) bool
-    fn getTxBytesAvailable(*Self) usize
+    fn isTxIdle(*Self) bool // optional; some hardware may not be capable of reporting this
+    fn getTxAvailableCount(*Self) usize
     fn canWrite(*Self) bool
 
     const WriteError
