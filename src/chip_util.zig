@@ -84,5 +84,25 @@ pub fn isPadInSet(comptime pad: chip.PadID, comptime set: anytype) bool {
     }
 }
 
+pub fn errorSetContainsAny(comptime Haystack: type, comptime Needle: type) bool {
+    const haystack_set = @typeInfo(Haystack).ErrorSet orelse &.{};
+    const needle_set = @typeInfo(Needle).ErrorSet orelse &.{};
+
+    inline for (needle_set) |err| {
+        if (comptime std.mem.indexOfScalar(std.builtin.Type.Error, haystack_set, err) != null) return true;
+    }
+    return false;
+}
+
+pub fn errorSetContainsAll(comptime Haystack: type, comptime Needle: type) bool {
+    const haystack_set = @typeInfo(Haystack).ErrorSet orelse &.{};
+    const needle_set = @typeInfo(Needle).ErrorSet orelse &.{};
+
+    inline for (needle_set) |err| {
+        if (comptime std.mem.indexOfScalar(std.builtin.Type.Error, haystack_set, err) == null) return false;
+    }
+    return true;
+}
+
 const chip = @import("chip");
 const std = @import("std");
