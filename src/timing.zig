@@ -31,6 +31,10 @@ pub const Tick = enum (i32) {
         return @enumFromInt(@intFromEnum(self) +% extra);
     }
 
+    pub fn delay(comptime time: anytype) void {
+        chip.timing.blockUntilTick(now().plus(time));
+    }
+
     pub fn frequencyHz() comptime_int {
         return chip.timing.getTickFrequencyHz();
     }
@@ -57,6 +61,10 @@ pub const Microtick = enum (i64) {
     pub fn plus(self: Microtick, comptime time: anytype) Microtick {
         const extra = comptime parseDuration(i64, time, frequencyHz());
         return @enumFromInt(@intFromEnum(self) +% extra);
+    }
+
+    pub fn delay(comptime time: anytype) void {
+        chip.timing.blockUntilMicrotick(now().plus(time));
     }
 
     pub fn frequencyHz() comptime_int {
