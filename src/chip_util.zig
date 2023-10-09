@@ -90,7 +90,7 @@ pub fn errorSetContainsAny(comptime Haystack: type, comptime Needle: type) bool 
 
     inline for (needle_set) |nerr| {
         inline for (haystack_set) |herr| {
-            if (comptime std.mem.equals(u8, nerr.name, herr.name)) {
+            if (comptime std.mem.eql(u8, nerr.name, herr.name)) {
                 return true;
             }
         }
@@ -104,7 +104,7 @@ pub fn errorSetContainsAll(comptime Haystack: type, comptime Needle: type) bool 
 
     outer: inline for (needle_set) |nerr| {
         inline for (haystack_set) |herr| {
-            if (comptime std.mem.equals(u8, nerr.name, herr.name)) {
+            if (comptime std.mem.eql(u8, nerr.name, herr.name)) {
                 continue :outer;
             }
         }
