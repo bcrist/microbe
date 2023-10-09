@@ -88,8 +88,12 @@ pub fn errorSetContainsAny(comptime Haystack: type, comptime Needle: type) bool 
     const haystack_set = @typeInfo(Haystack).ErrorSet orelse &.{};
     const needle_set = @typeInfo(Needle).ErrorSet orelse &.{};
 
-    inline for (needle_set) |err| {
-        if (comptime std.mem.indexOfScalar(std.builtin.Type.Error, haystack_set, err) != null) return true;
+    inline for (needle_set) |nerr| {
+        inline for (haystack_set) |herr| {
+            if (comptime std.mem.equals(u8, nerr.name, herr.name)) {
+                return true;
+            }
+        }
     }
     return false;
 }
@@ -98,8 +102,13 @@ pub fn errorSetContainsAll(comptime Haystack: type, comptime Needle: type) bool 
     const haystack_set = @typeInfo(Haystack).ErrorSet orelse &.{};
     const needle_set = @typeInfo(Needle).ErrorSet orelse &.{};
 
-    inline for (needle_set) |err| {
-        if (comptime std.mem.indexOfScalar(std.builtin.Type.Error, haystack_set, err) == null) return false;
+    outer: inline for (needle_set) |nerr| {
+        inline for (haystack_set) |herr| {
+            if (comptime std.mem.equals(u8, nerr.name, herr.name)) {
+                continue :outer;
+            }
+        }
+        return false;
     }
     return true;
 }
