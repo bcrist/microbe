@@ -55,7 +55,7 @@ pub const DeviceQualifier = packed struct (u80) {
 
 pub const Configuration = packed struct (u72) {
     _len: u8 = @sizeOf(Configuration),
-    _kind: .configuration,
+    _kind: Kind = .configuration,
 
     /// Total length of all descriptors in this configuration, concatenated.
     /// This will include this descriptor, plus at least one interface
@@ -66,9 +66,9 @@ pub const Configuration = packed struct (u72) {
     name: StringID = .default_configuration_name,
     _bus_powered: bool = true, // must be set even if self_powered is set.
     self_powered: bool,
-    remote_wakeup: bool, // device can signal for host to exit sleep
+    remote_wakeup: bool, // device can signal for host to take it out of suspend
     _reserved: u5 = 0,
-    max_power_ma_div2: u8,
+    max_current_ma_div2: u8,
 };
 
 pub const Interface = packed struct (u72) {

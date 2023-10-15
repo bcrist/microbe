@@ -105,7 +105,7 @@ pub fn Usb(comptime cfg: anytype) type {
             if (events.setup_request) self.handleSetup();
 
             if (events.buffer_ready) {
-                var iter = chip.usb.get.bufferIterator();
+                var iter = chip.usb.bufferIterator();
                 while (iter.next()) |info| {
                     self.updateBuffer(info);
                 }
@@ -156,7 +156,7 @@ pub fn Usb(comptime cfg: anytype) type {
                         if (self.setup_data_offset > 0) {
                             const setup = chip.usb.getSetupPacket();
                             std.debug.assert(setup.request == .get_descriptor);
-                            self.handleGetDescriptor(setup.payload.descriptor, setup.data_len);
+                            self.handleGetDescriptor(setup.getDescriptorPayload(), setup.data_len);
                         } else {
                             // We've completed all the EP0 IN DATA packets needed for this control transfer.
                             // Set up for an empty EP0 OUT STATUS packet:
@@ -229,14 +229,14 @@ pub fn Usb(comptime cfg: anytype) type {
             switch (setup.request) {
                 .set_address => if (setup.direction == .out) {
                     chip.usb.startTransferOut(0, 0, .data1, true);
-                    const address: u7 = @truncate(setup.payload.set_address.address);
+                    const address = setup.getAddressPayload();
                     self.new_address = address;
                     if (debug) log.info("set address: {}", .{ address });
                     return;
                 },
                 .set_configuration => if (setup.direction == .out) {
                     chip.usb.startTransferOut(0, 0, .data1, true);
-                    const configuration = setup.payload.set_configuration.configuration;
+                    const configuration = setup.getConfigurationNumberPayload();
                     self.configuration = configuration;
                     if (@hasDecl(config, "setConfiguration")) {
                         config.setConfiguration(configuration);
@@ -251,7 +251,7 @@ pub fn Usb(comptime cfg: anytype) type {
                     return;
                 },
                 .get_descriptor => if (setup.direction == .in) {
-                    self.handleGetDescriptor(setup.payload.descriptor, setup.data_len);
+                    self.handleGetDescriptor(setup.getDescriptorPayload(), setup.data_len);
                     return;
                 },
                 .get_status => if (setup.direction == .in) {
@@ -262,11 +262,11 @@ pub fn Usb(comptime cfg: anytype) type {
                             if (self.allow_remote_wakeup) status |= 2;
                         },
                         .interface => {
-                            const interface: u8 = @intCast(setup.payload.interface_status.interface);
+                            const interface: u8 = setup.getInterfaceNumberPayload();
                             if (debug) log.info("get interface {} status", .{ interface });
                         },
                         .endpoint => {
-                            const ep: endpoint.Index = @intCast(setup.payload.endpoint_status.endpoint);
+                            const ep: endpoint.Index = @intCast(setup.getEndpointNumberPayload());
                             if (self.ep_state[ep].halted) status |= 1;
                             if (debug) log.info("get endpoint {} status", .{ ep });
                         },
@@ -276,7 +276,7 @@ pub fn Usb(comptime cfg: anytype) type {
                 },
                 .set_feature, .clear_feature => if (setup.direction == .out) {
                     chip.usb.startTransferOut(0, 0, .data1, true);
-                    const f = setup.payload.feature;
+                    const f = setup.getFeaturePayload();
                     switch (f.feature) {
                         .endpoint_halt => if (setup.target == .endpoint) {
                             const ep: endpoint.Index = @intCast(f.endpoint);
@@ -311,7 +311,7 @@ pub fn Usb(comptime cfg: anytype) type {
             }
         }
 
-        fn handleGetDescriptor(self: *Self, which: SetupDescriptorInfo, requested_len: usize) void {
+        fn handleGetDescriptor(self: *Self, which: SetupPacket.DescriptorPayload, requested_len: usize) void {
             switch (which.kind) {
                 .device => {
                     const d: descriptor.Device = config.getDeviceDescriptor();
@@ -478,43 +478,66 @@ pub const SetupPacket = packed struct (u64) {
         synch_frame = 12,
         _,
     },
-    payload: union {
-        raw: u32,
-        feature: packed struct (u32) { // used by clear_feature and set_feature
-            feature: Feature,
-            endpoint: u16,
-        },
-        interface_status: packed struct (u32) {
-            _reserved: u16,
-            interface: u16,
-        },
-        endpoint_status: packed struct (u32) {
-            _reserved: u16,
-            endpoint: u16,
-        },
-        set_address: packed struct (u32) {
+    payload: u32,
+    data_len: u16,
+
+    pub fn getAddressPayload(self: SetupPacket) u7 {
+        std.debug.assert(self.request == .set_address);
+        const payload: packed struct (u32) {
             address: u16,
             _reserved: u16,
-        },
-        descriptor: SetupDescriptorInfo,
-        set_configuration: packed struct (u32) {
+        } = @bitCast(self.payload);
+        return @truncate(payload.address);
+    }
+
+    pub const DescriptorPayload = packed struct (u32) {
+        index: u8,
+        kind: descriptor.Kind,
+        language: u16,
+    };
+    pub fn getDescriptorPayload(self: SetupPacket) DescriptorPayload {
+        std.debug.assert(self.request == .get_descriptor or self.request == .set_descriptor);
+        return @bitCast(self.payload);
+    }
+
+    pub const FeaturePayload = packed struct (u32) { feature: Feature, endpoint: u16 };
+    pub fn getFeaturePayload(self: SetupPacket) FeaturePayload {
+        std.debug.assert(self.request == .get_feature or self.request == .set_feature);
+        return @bitCast(self.payload);
+    }
+
+    pub fn getConfigurationNumberPayload(self: SetupPacket) u8 {
+        std.debug.assert(self.request == .set_configuration);
+        const payload: packed struct (u32) {
             configuration: u16,
             _reserved: u16,
-        },
-        get_interface: packed struct (u32) {
+        } = @bitCast(self.payload);
+        return @truncate(payload.configuration);
+    }
+
+    pub fn getInterfaceNumberPayload(self: SetupPacket) u8 {
+        std.debug.assert(self.request == .get_interface or self.request == .get_status and self.target == .interface);
+        const payload: packed struct (u32) {
             _reserved: u16,
             interface: u16,
-        },
-        set_interface: packed struct (u32) {
-            alternate_setting: u16,
-            interface: u16,
-        },
-        synch_frame: packed struct (u32) {
+        } = @bitCast(self.payload);
+        return @truncate(payload.interface);
+    }
+
+    pub const SetInterfacePayload = packed struct (u32) { alternate_setting: u16, interface: u16 };
+    pub fn getSetInterfacePayload(self: SetupPacket) SetInterfacePayload {
+        std.debug.assert(self.request == .set_interface);
+        return @bitCast(self.payload);
+    }
+
+    pub fn getEndpointNumberPayload(self: SetupPacket) u8 {
+        std.debug.assert(self.request == .synch_frame or self.request == .get_status and self.target == .endpoint);
+        const payload: packed struct (u32) {
             _reserved: u16,
             endpoint: u16,
-        },
-    },
-    data_len: u16,
+        } = @bitCast(self.payload);
+        return @truncate(payload.endpoint);
+    }
 };
 
 pub const Feature = enum (u16) {
@@ -524,11 +547,7 @@ pub const Feature = enum (u16) {
     _
 };
 
-pub const SetupDescriptorInfo = packed struct (u32) {
-    index: u8,
-    kind: descriptor.Kind,
-    language: u16,
-};
+
 
 pub const PID = enum (u1) {
     data0 = 0,
