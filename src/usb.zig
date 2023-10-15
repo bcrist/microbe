@@ -59,7 +59,7 @@ pub fn Usb(comptime cfg: anytype) type {
         configuration: ?u8 = null, // The current configuration number, or null if the host hasn't yet selected one
         started: bool = false, // Have we set up buffer transfers after being configured?
         allow_remote_wakeup: bool = false, // allow device to request wakeup from suspend
-        ep_state: [16]extern struct {
+        ep_state: [16]struct {
             in_max_packet_size_bytes: u16 = chip.usb.max_packet_size_bytes,
             out_max_packet_size_bytes: u16 = chip.usb.max_packet_size_bytes,
             next_pid: PID = .data0,
