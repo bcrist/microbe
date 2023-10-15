@@ -3,6 +3,7 @@ const root = @import("root");
 const builtin = @import("builtin");
 const config = @import("config");
 
+pub const util = @import("util.zig");
 pub const Mmio = @import("mmio.zig").Mmio;
 const timing = @import("timing.zig");
 pub const Tick = timing.Tick;
