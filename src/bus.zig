@@ -1,6 +1,6 @@
 const std = @import("std");
 const chip = @import("chip_interface.zig");
-const mmio = @import("mmio.zig");
+const util = @import("util.zig");
 
 pub const PadID = chip.PadID;
 
@@ -51,7 +51,7 @@ pub fn Bus(comptime pad_ids: []const chip.PadID, comptime config: Config) type {
                         }
                     }
                 }
-                return mmio.fromInt(State, raw);
+                return util.fromInt(State, raw);
             }
             pub inline fn readInline() State {
                 return @call(.always_inline, read, .{});
@@ -70,14 +70,14 @@ pub fn Bus(comptime pad_ids: []const chip.PadID, comptime config: Config) type {
                         }
                     }
                 }
-                return mmio.fromInt(State, raw);
+                return util.fromInt(State, raw);
             }
             pub inline fn getInline() State {
                 return @call(.always_inline, get, .{});
             }
 
             pub fn modify(state: State) void {
-                const raw = mmio.toInt(RawInt, state);
+                const raw = util.toInt(RawInt, state);
                 inline for (ports) |port| {
                     var to_clear: chip.gpio.PortDataType = 0;
                     var to_set: chip.gpio.PortDataType = 0;
@@ -99,7 +99,7 @@ pub fn Bus(comptime pad_ids: []const chip.PadID, comptime config: Config) type {
             }
 
             pub fn setBits(state: State) void {
-                const raw = mmio.toInt(RawInt, state);
+                const raw = util.toInt(RawInt, state);
                 inline for (ports) |port| {
                     var to_set: chip.gpio.PortDataType = 0;
                     inline for (pad_ids, 0..) |pad, raw_bit| {
@@ -117,7 +117,7 @@ pub fn Bus(comptime pad_ids: []const chip.PadID, comptime config: Config) type {
             }
 
             pub fn clearBits(state: State) void {
-                const raw = mmio.toInt(state);
+                const raw = util.toInt(state);
                 inline for (ports) |port| {
                     var to_clear: chip.gpio.PortDataType = 0;
                     inline for (pad_ids, 0..) |pad, raw_bit| {
