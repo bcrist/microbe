@@ -48,7 +48,7 @@ pub const DeviceQualifier = packed struct (u80) {
 
     usb_version: UsbVersion,
     class: classes.Info,
-    max_packet_size_bytes: u8 = chip.usb_max_packet_size_bytes,
+    max_packet_size_bytes: u8 = chip.usb.max_packet_size_bytes,
     configuration_count: u8,
     _reserved: u8 = 0,
 };

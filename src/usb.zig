@@ -191,7 +191,7 @@ pub fn Usb(comptime cfg: anytype) type {
                     if (debug) log.debug("ep{} in waiting...", .{ ep });
                 }
             } else {
-                const data: []const u8 = config.fillInBuffer(ep, state.max_packet_size);
+                const data: []const u8 = config.fillInBuffer(ep, state.in_max_packet_size_bytes);
                 chip.usb.fillBufferIn(ep, 0, data);
                 chip.usb.startTransferIn(ep, data.len, state.next_pid, true);
                 self.ep_state[ep].in = .active;
@@ -215,7 +215,7 @@ pub fn Usb(comptime cfg: anytype) type {
                     if (debug) log.debug("ep{} out waiting...", .{ ep });
                 }
             } else {
-                chip.usb.startTransferOut(ep, state.max_packet_size, state.next_pid, true);
+                chip.usb.startTransferOut(ep, state.out_max_packet_size_bytes, state.next_pid, true);
                 self.ep_state[ep].out = .active;
                 self.ep_state[ep].next_pid = state.next_pid.next();
                 if (debug) log.debug("ep{} out started", .{ ep });
@@ -315,7 +315,7 @@ pub fn Usb(comptime cfg: anytype) type {
             switch (which.kind) {
                 .device => {
                     const d: descriptor.Device = config.getDeviceDescriptor();
-                    self.setupTransferInData(requested_len, std.mem.asBytes(&d));
+                    self.setupTransferInData(@intCast(requested_len), std.mem.asBytes(&d));
                     if (debug and self.setup_data_offset == 0) {
                         log.info("get device descriptor {}B", .{ requested_len });
                     }
@@ -328,7 +328,7 @@ pub fn Usb(comptime cfg: anytype) type {
                         .max_packet_size_bytes = d.max_packet_size_bytes,
                         .configuration_count = d.configuration_count,
                     };
-                    self.setupTransferInData(requested_len, std.mem.asBytes(&dq));
+                    self.setupTransferInData(@intCast(requested_len), std.mem.asBytes(&dq));
                     if (debug and self.setup_data_offset == 0) {
                         log.info("get device qualifier {}B", .{ requested_len });
                     }
@@ -337,7 +337,7 @@ pub fn Usb(comptime cfg: anytype) type {
                 .string => {
                     const id: descriptor.StringID = @enumFromInt(which.index);
                     const d: []const u8 = config.getStringDescriptor(id, which.language);
-                    self.setupTransferInData(requested_len, d);
+                    self.setupTransferInData(@intCast(requested_len), d);
                     if (debug) log.info("get string {}B: id = {}, lang = {}", .{ requested_len, id, which.language });
                     return;
                 },
@@ -360,7 +360,7 @@ pub fn Usb(comptime cfg: anytype) type {
                         total_len = fillInterfaceDescriptor(configuration, @intCast(i), total_len);
                     }
 
-                    self.setupTransferIn(requested_len, total_len);
+                    self.setupTransferIn(@intCast(requested_len), total_len);
                     if (debug and self.setup_data_offset == 0) {
                         log.info("get configuration descriptor {}B: {}", .{ requested_len, configuration });
                     }
@@ -369,7 +369,7 @@ pub fn Usb(comptime cfg: anytype) type {
                 .interface => {
                     const configuration = self.configuration orelse 0;
                     const total_len = fillInterfaceDescriptor(configuration, @intCast(which.index), 0);
-                    self.setupTransferIn(requested_len, total_len);
+                    self.setupTransferIn(@intCast(requested_len), total_len);
                     if (debug and self.setup_data_offset == 0) {
                         log.info("get interface descriptor {}B: config = {}, interface = {}", .{
                             requested_len,
@@ -379,9 +379,9 @@ pub fn Usb(comptime cfg: anytype) type {
                     }
                 },
                 else => {
-                    const configuration = self.configuration;
+                    const configuration = self.configuration orelse 0;
                     const d: []const u8 = config.getDescriptor(which.kind, configuration, which.index);
-                    self.setupTransferInData(requested_len, d);
+                    self.setupTransferInData(@intCast(requested_len), d);
                     if (debug and self.setup_data_offset == 0) {
                         log.info("get descriptor {}B: config = {}, kind = 0x{X}, index = {}", .{
                             requested_len,
@@ -395,7 +395,7 @@ pub fn Usb(comptime cfg: anytype) type {
             }
         }
 
-        fn fillInterfaceDescriptor(configuration: u8, interface: u8, offset: u8) usize {
+        fn fillInterfaceDescriptor(configuration: u8, interface: u8, offset: isize) isize {
             var total_length = offset;
             const id: descriptor.Interface = config.getInterfaceDescriptor(configuration, interface);
             chip.usb.fillBufferIn(0, total_length, std.mem.asBytes(&id));
@@ -421,7 +421,7 @@ pub fn Usb(comptime cfg: anytype) type {
         fn setupTransferInData(self: *Self, requested_len: isize, data: []const u8) void {
             var total_len: isize = -self.setup_data_offset;
             chip.usb.fillBufferIn(0, total_len, data);
-            total_len += data.len;
+            total_len += @intCast(data.len);
             self.setupTransferIn(requested_len, total_len);
         }
 
@@ -430,11 +430,11 @@ pub fn Usb(comptime cfg: anytype) type {
 
             const pid = self.ep_state[0].next_pid;
             const len = @min(requested_len, total_len);
-            if (len > self.ep_state[0].max_packet_size_bytes) {
-                chip.usb.startTransferIn(0, len, pid, false);
+            if (len > self.ep_state[0].in_max_packet_size_bytes) {
+                chip.usb.startTransferIn(0, @intCast(len), pid, false);
                 self.setup_data_offset += len;
             } else {
-                chip.usb.startTransferIn(0, len, pid, true);
+                chip.usb.startTransferIn(0, @intCast(len), pid, true);
                 self.setup_data_offset = 0;
             }
             self.ep_state[0].next_pid = pid.next();
