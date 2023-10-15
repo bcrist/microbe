@@ -1,4 +1,5 @@
 const std = @import("std");
+const chip = @import("chip");
 
 pub const AccessType = enum { rw, r, w };
 
@@ -37,7 +38,7 @@ fn MmioRw(comptime T: type) type {
             self.raw = toInt(RawType, val);
         }
 
-        pub inline fn modify(self: *volatile Self, fields: anytype) void {
+        pub inline fn rmw(self: *volatile Self, fields: anytype) void {
             var val = self.read();
             inline for (@typeInfo(@TypeOf(fields)).Struct.fields) |field| {
                 @field(val, field.name) = @field(fields, field.name);
@@ -45,13 +46,63 @@ fn MmioRw(comptime T: type) type {
             self.write(val);
         }
 
-        pub inline fn toggle(self: *volatile Self, fields: anytype) void {
-            var val = self.read();
-            inline for (@typeInfo(@TypeOf(fields)).Struct.fields) |field| {
-                const field_name = @tagName(field.default_value.?);
-                @field(val, field_name) = !@field(val, field_name);
+        pub inline fn modify(comptime self: *volatile Self, comptime fields: anytype) void {
+            if (@hasDecl(chip, "modifyRegister")) {
+                comptime var bits_to_set = fromInt(Type, @as(RawType, 0));
+                comptime var bits_to_clear = fromInt(Type, ~@as(RawType, 0));
+                inline for (@typeInfo(@TypeOf(fields)).Struct.fields) |field| {
+                    @field(bits_to_set, field.name) = @field(fields, field.name);
+                    @field(bits_to_clear, field.name) = @field(fields, field.name);
+                }
+                chip.modifyRegister(&self.raw, comptime toInt(RawType, bits_to_set), ~comptime toInt(RawType, bits_to_clear));
+            } else {
+                self.rmw(fields);
             }
-            self.write(val);
+        }
+
+        fn getBitMask(comptime fields: anytype) RawType {
+            return comptime bits: {
+                var ones = fromInt(Type, @as(RawType, 0));
+                var zeroes = fromInt(Type, ~@as(RawType, 0));
+                inline for (@typeInfo(@TypeOf(fields)).Struct.fields) |field| {
+                    @field(ones, field.name) = @field(fields, field.name);
+                    @field(zeroes, field.name) = @field(fields, field.name);
+                }
+                const a = toInt(RawType, ones);
+                const b = ~toInt(RawType, zeroes);
+                break :bits a | b;
+            };
+        }
+
+        pub inline fn toggleBits(comptime self: *volatile Self, comptime fields: anytype) void {
+            const bits_to_toggle = comptime getBitMask(fields);
+            if (@hasDecl(chip, "toggleRegisterBits")) {
+                chip.toggleRegisterBits(&self.raw, bits_to_toggle);
+            } else {
+                self.raw ^= bits_to_toggle;
+            }
+        }
+
+        pub inline fn clearBits(comptime self: *volatile Self, comptime fields: anytype) void {
+            const bits_to_clear = comptime getBitMask(fields);
+            if (@hasDecl(chip, "clearRegisterBits")) {
+                chip.clearRegisterBits(&self.raw, bits_to_clear);
+            } else if (@hasDecl(chip, "modifyRegister")) {
+                chip.modifyRegister(&self.raw, 0, bits_to_clear);
+            } else {
+                self.raw &= ~bits_to_clear;
+            }
+        }
+
+        pub inline fn setBits(comptime self: *volatile Self, comptime fields: anytype) void {
+            const bits_to_set = comptime getBitMask(fields);
+            if (@hasDecl(chip, "setRegisterBits")) {
+                chip.setRegisterBits(&self.raw, bits_to_set);
+            } else if (@hasDecl(chip, "modifyRegister")) {
+                chip.modifyRegister(&self.raw, bits_to_set, 0);
+            } else {
+                self.raw |= bits_to_set;
+            }
         }
     };
 }
