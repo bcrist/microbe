@@ -113,5 +113,8 @@ pub fn errorSetContainsAll(comptime Haystack: type, comptime Needle: type) bool 
     return true;
 }
 
+pub const fromInt = @import("mmio.zig").fromInt;
+pub const toInt = @import("mmio.zig").toInt;
+
 const chip = @import("chip");
 const std = @import("std");
