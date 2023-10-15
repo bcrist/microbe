@@ -92,14 +92,7 @@ pub fn addBinToUf2(b: *std.Build, input_file: std.Build.LazyPath, options: BinTo
 }
 
 pub fn build(b: *std.Build) void {
-    const chip_util = b.addModule("chip_util", .{
-        .source_file = .{ .path = "src/chip_util.zig" },
-    });
-
     _ = b.addModule("microbe", .{
         .source_file = .{ .path = "src/microbe.zig" },
-        .dependencies = &.{
-            .{ .name = "chip_util", .module = chip_util },
-        },
     });
 }

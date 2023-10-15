@@ -1,5 +1,9 @@
 const std = @import("std");
 const chip = @import("chip");
+const util = @import("util.zig");
+
+const toInt = util.toInt;
+const fromInt = util.fromInt;
 
 pub const AccessType = enum { rw, r, w };
 
@@ -162,21 +166,5 @@ fn MmioW(comptime T: type) type {
         pub inline fn write(self: *volatile Self, val: Type) void {
             self.raw = toInt(RawType, val);
         }
-    };
-}
-
-pub inline fn toInt(comptime T: type, value: anytype) T {
-    return switch (@typeInfo(@TypeOf(value))) {
-        .Enum => @intFromEnum(value),
-        .Pointer => @intFromPtr(value),
-        else => @bitCast(value),
-    };
-}
-
-pub inline fn fromInt(comptime T: type, int_value: anytype) T {
-    return switch (@typeInfo(T)) {
-        .Enum => @enumFromInt(int_value),
-        .Pointer => @ptrFromInt(int_value),
-        else => @bitCast(int_value),
     };
 }

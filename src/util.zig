@@ -113,8 +113,21 @@ pub fn errorSetContainsAll(comptime Haystack: type, comptime Needle: type) bool 
     return true;
 }
 
-pub const fromInt = @import("mmio.zig").fromInt;
-pub const toInt = @import("mmio.zig").toInt;
+pub inline fn toInt(comptime T: type, value: anytype) T {
+    return switch (@typeInfo(@TypeOf(value))) {
+        .Enum => @intFromEnum(value),
+        .Pointer => @intFromPtr(value),
+        else => @bitCast(value),
+    };
+}
+
+pub inline fn fromInt(comptime T: type, int_value: anytype) T {
+    return switch (@typeInfo(T)) {
+        .Enum => @enumFromInt(int_value),
+        .Pointer => @ptrFromInt(int_value),
+        else => @bitCast(int_value),
+    };
+}
 
 const chip = @import("chip");
 const std = @import("std");

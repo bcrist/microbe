@@ -1,6 +1,6 @@
 const std = @import("std");
 const chip = @import("chip_interface.zig");
-const chip_util = @import("chip_util");
+const util = @import("util.zig");
 const mmio = @import("mmio.zig");
 const Microtick = @import("timing.zig").Microtick;
 
@@ -60,7 +60,7 @@ pub fn Adapter(comptime config: Config) type {
             config.tdo,
         };
 
-        const clock_half_period_microticks = chip_util.divRound(chip.getMicrotickFrequencyHz(), config.max_frequency_hz * 2);
+        const clock_half_period_microticks = util.divRound(chip.getMicrotickFrequencyHz(), config.max_frequency_hz * 2);
 
         chip.validation.pads.reserveAll(pad_ids, config.name);
 
