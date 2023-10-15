@@ -116,7 +116,7 @@ pub const StringID = enum (u8) {
 pub fn String(comptime utf8: []const u8) type {
     const utf16_len = (std.unicode.calcUtf16LeLen(utf8) catch unreachable);
     comptime var utf16: [utf16_len]u16 = undefined;
-    _ = comptime std.unicode.utf8ToUtf16Le(&utf16, utf8);
+    _ = comptime std.unicode.utf8ToUtf16Le(&utf16, utf8) catch unreachable;
 
     return extern struct {
         _len: u8 = @sizeOf(@This()),

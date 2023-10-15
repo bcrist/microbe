@@ -23,7 +23,7 @@ pub const hid = @import("usb/hid.zig");
 //     fn getEndpointDescriptor(configuration: u8, interface: u8, index: u8) descriptor.Endpoint
 //     fn getDescriptor(kind: descriptor.Kind, configuration: u8, index: u8) []const u8
 //     fn isEndpointReady(address: endpoint.Address) bool
-//     fn handleOutBuffer(ep: endpoint.Index, data: []const u8) void
+//     fn handleOutBuffer(ep: endpoint.Index, data: []volatile const u8) void
 //     fn fillInBuffer(ep: endpoint.Index, max_packet_size: usize) []const u8
 //
 // It may optionally also define:
@@ -270,6 +270,9 @@ pub fn Usb(comptime cfg: anytype) type {
                             if (self.ep_state[ep].halted) status |= 1;
                             if (debug) log.info("get endpoint {} status", .{ ep });
                         },
+                        else => {
+                            if (debug) log.err("get status for unrecognized target: {}", .{ @intFromEnum(setup.target) });
+                        },
                     }
                     self.setupTransferInData(setup.data_len, std.mem.asBytes(&status));
                     return;
@@ -280,10 +283,10 @@ pub fn Usb(comptime cfg: anytype) type {
                     switch (f.feature) {
                         .endpoint_halt => if (setup.target == .endpoint) {
                             const ep: endpoint.Index = @intCast(f.endpoint);
-                            self.ep_state[ep].halted = setup.kind == .set_feature;
+                            self.ep_state[ep].halted = setup.request == .set_feature;
                         },
                         .device_remote_wakeup => if (setup.target == .device) {
-                            self.allow_remote_wakeup = setup.kind == .set_feature;
+                            self.allow_remote_wakeup = setup.request == .set_feature;
                         },
                         else => {},
                     }
@@ -502,7 +505,7 @@ pub const SetupPacket = packed struct (u64) {
 
     pub const FeaturePayload = packed struct (u32) { feature: Feature, endpoint: u16 };
     pub fn getFeaturePayload(self: SetupPacket) FeaturePayload {
-        std.debug.assert(self.request == .get_feature or self.request == .set_feature);
+        std.debug.assert(self.request == .clear_feature or self.request == .set_feature);
         return @bitCast(self.payload);
     }
 
