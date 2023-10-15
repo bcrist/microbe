@@ -9,6 +9,7 @@ pub const Tick = timing.Tick;
 pub const Microtick = timing.Microtick;
 pub const CriticalSection = @import("CriticalSection.zig");
 pub const bus = @import("bus.zig");
+pub const usb = @import("usb.zig");
 pub const jtag = @import("jtag.zig");
 
 const validation = @import("resource_validation.zig");
