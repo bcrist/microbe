@@ -60,17 +60,26 @@ fn MmioRw(comptime T: type) type {
             }
         }
 
-        fn getBitMask(comptime fields: anytype) RawType {
+        pub fn getBitMask(comptime fields: anytype) RawType {
             return comptime bits: {
                 var ones = fromInt(Type, @as(RawType, 0));
-                var zeroes = fromInt(Type, ~@as(RawType, 0));
-                inline for (@typeInfo(@TypeOf(fields)).Struct.fields) |field| {
-                    @field(ones, field.name) = @field(fields, field.name);
-                    @field(zeroes, field.name) = @field(fields, field.name);
+                if (@TypeOf(fields) == Type) {
+                    ones = fields;
+                } else switch (@typeInfo(@TypeOf(fields))) {
+                    .Struct => |info| {
+                        inline for (info.fields) |field| {
+                            @field(ones, field.name) = @field(fields, field.name);
+                        }
+                    },
+                    .EnumLiteral => {
+                        const field = @tagName(fields);
+                        const FieldType = @TypeOf(@field(ones, field));
+                        const RawFieldType = std.meta.Int(.unsigned, @bitSizeOf(FieldType));
+                        @field(ones, field) = fromInt(FieldType, ~@as(RawFieldType, 0));
+                    },
+                    else => @compileError("Expected enum literal or struct"),
                 }
-                const a = toInt(RawType, ones);
-                const b = ~toInt(RawType, zeroes);
-                break :bits a | b;
+                break :bits toInt(RawType, ones);
             };
         }
 

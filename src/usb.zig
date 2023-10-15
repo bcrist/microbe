@@ -44,8 +44,8 @@ pub const hid = @import("usb/hid.zig");
 //     fn configureEndpoint(ed: descriptor.Endpoint) void
 //     fn bufferIterator() Iterator(endpoint.BufferInfo) // buffers of endpoints that have finished their transfer
 //     fn fillBufferIn(ep: endpoint.Index, offset: isize, data: []const u8) void
-//     fn startTransferIn(ep: endpoint.Index, len: usize, pid: PID) void
-//     fn startTransferOut(ep: endpoint.Index, len: usize, pid: PID) void
+//     fn startTransferIn(ep: endpoint.Index, len: usize, pid: PID, final_transfer: bool) void
+//     fn startTransferOut(ep: endpoint.Index, len: usize, pid: PID, final_transfer: bool) void
 //     fn startStall(address: endpoint.Address) void
 //     fn startNak(address: endpoint.Address) void
 pub fn Usb(comptime cfg: anytype) type {
@@ -104,7 +104,7 @@ pub fn Usb(comptime cfg: anytype) type {
 
             if (events.setup_request) self.handleSetup();
 
-            if (events.start_of_frame) {
+            if (events.buffer_ready) {
                 var iter = chip.usb.get.bufferIterator();
                 while (iter.next()) |info| {
                     self.updateBuffer(info);
@@ -160,7 +160,7 @@ pub fn Usb(comptime cfg: anytype) type {
                         } else {
                             // We've completed all the EP0 IN DATA packets needed for this control transfer.
                             // Set up for an empty EP0 OUT STATUS packet:
-                            chip.usb.startTransferOut(0, 0, state.next_pid);
+                            chip.usb.startTransferOut(0, 0, state.next_pid, true);
                         }
                     } else {
                         self.updateInState(ep);
@@ -193,7 +193,7 @@ pub fn Usb(comptime cfg: anytype) type {
             } else {
                 const data: []const u8 = config.fillInBuffer(ep, state.max_packet_size);
                 chip.usb.fillBufferIn(ep, 0, data);
-                chip.usb.startTransferIn(ep, data.len, state.next_pid);
+                chip.usb.startTransferIn(ep, data.len, state.next_pid, true);
                 self.ep_state[ep].in = .active;
                 self.ep_state[ep].next_pid = state.next_pid.next();
                 if (debug) log.info("ep{} in: {}", .{ std.fmt.fmtSliceHexLower(data) });
@@ -215,7 +215,7 @@ pub fn Usb(comptime cfg: anytype) type {
                     if (debug) log.debug("ep{} out waiting...", .{ ep });
                 }
             } else {
-                chip.usb.startTransferOut(ep, state.max_packet_size, state.next_pid);
+                chip.usb.startTransferOut(ep, state.max_packet_size, state.next_pid, true);
                 self.ep_state[ep].out = .active;
                 self.ep_state[ep].next_pid = state.next_pid.next();
                 if (debug) log.debug("ep{} out started", .{ ep });
@@ -228,14 +228,14 @@ pub fn Usb(comptime cfg: anytype) type {
             const setup: SetupPacket = chip.usb.getSetupPacket();
             switch (setup.request) {
                 .set_address => if (setup.direction == .out) {
-                    chip.usb.startTransferOut(0, 0, .data1);
+                    chip.usb.startTransferOut(0, 0, .data1, true);
                     const address: u7 = @truncate(setup.payload.set_address.address);
                     self.new_address = address;
                     if (debug) log.info("set address: {}", .{ address });
                     return;
                 },
                 .set_configuration => if (setup.direction == .out) {
-                    chip.usb.startTransferOut(0, 0, .data1);
+                    chip.usb.startTransferOut(0, 0, .data1, true);
                     const configuration = setup.payload.set_configuration.configuration;
                     self.configuration = configuration;
                     if (@hasDecl(config, "setConfiguration")) {
@@ -275,7 +275,7 @@ pub fn Usb(comptime cfg: anytype) type {
                     return;
                 },
                 .set_feature, .clear_feature => if (setup.direction == .out) {
-                    chip.usb.startTransferOut(0, 0, .data1);
+                    chip.usb.startTransferOut(0, 0, .data1, true);
                     const f = setup.payload.feature;
                     switch (f.feature) {
                         .endpoint_halt => if (setup.target == .endpoint) {
@@ -430,21 +430,21 @@ pub fn Usb(comptime cfg: anytype) type {
 
             const pid = self.ep_state[0].next_pid;
             const len = @min(requested_len, total_len);
-            chip.usb.startTransferIn(0, len, pid);
-            self.ep_state[0].next_pid = pid.next();
-
             if (len > self.ep_state[0].max_packet_size_bytes) {
+                chip.usb.startTransferIn(0, len, pid, false);
                 self.setup_data_offset += len;
             } else {
+                chip.usb.startTransferIn(0, len, pid, true);
                 self.setup_data_offset = 0;
             }
+            self.ep_state[0].next_pid = pid.next();
         }
 
     };
 }
 
 pub const Events = struct {
-    start_of_frame: bool = false,
+    buffer_ready: bool = false,
     bus_reset: bool = false,
     setup_request: bool = false,
 };
