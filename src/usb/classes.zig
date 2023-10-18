@@ -35,3 +35,19 @@ pub const Info = packed struct (u24) {
     subclass: Subclass,
     protocol: Protocol,
 };
+
+
+/// Device class info for composite devices where each function needs only a single interface
+pub const composite_device: Info = .{
+    .class = .device,
+    .subclass = .zero,
+    .protocol = .zero,
+};
+
+/// Device class info required when using interface association descriptors
+/// https://www.usb.org/sites/default/files/iadclasscode_r10.pdf
+pub const iad_device: Info = .{
+    .class = .miscellaneous,
+    .subclass = @enumFromInt(2), // common class
+    .protocol = @enumFromInt(1), // IAD
+};
