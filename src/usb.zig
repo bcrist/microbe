@@ -124,7 +124,7 @@ pub fn Usb(comptime Cfg: anytype) type {
             }
         }
 
-        fn start(self: *Self, configuration: descriptor.Configuration) void {
+        fn start(self: *Self, configuration: u8) void {
             const cd: descriptor.Configuration = Config.getConfigurationDescriptor(configuration);
             for (0..cd.interface_count) |i| {
                 const interface: u8 = @intCast(i);
@@ -171,7 +171,7 @@ pub fn Usb(comptime Cfg: anytype) type {
                     if (self.setup_data_bytes_remaining > 0) {
                         const setup = chip.usb.getSetupPacket();
                         if (setup.kind == .standard and setup.request == .get_descriptor) {
-                            self.handleGetDescriptor(setup.getDescriptorPayload(), setup.data_len);
+                            self.handleGetDescriptor(setup.getDescriptorPayload());
                         } else if (@hasDecl(Config, "fillSetupIn")) {
                             if (Config.fillSetupIn(setup)) {
                                 self.setupTransferIn(self.setup_data_offset + self.setup_data_bytes_remaining);
@@ -416,7 +416,7 @@ pub fn Usb(comptime Cfg: anytype) type {
                         offset = self.fillSetupIn(offset, std.mem.asBytes(&cd));
 
                         for (0..cd.interface_count) |i| {
-                            offset = self.fillInterfaceDescriptor(configuration, @intCast(i), offset);
+                            offset = self.fillInterfaceDescriptor(configuration, @intCast(i), @intCast(offset));
                         }
                         self.setupTransferIn(offset);
                     }
@@ -448,7 +448,7 @@ pub fn Usb(comptime Cfg: anytype) type {
             }
         }
 
-        fn fillInterfaceDescriptor(self: *Self, configuration: u8, interface: u8, data_offset: u16) isize {
+        fn fillInterfaceDescriptor(self: *Self, configuration: u8, interface: u8, data_offset: u16) u16 {
             var offset = data_offset;
 
             const id: descriptor.Interface = Config.getInterfaceDescriptor(configuration, interface);
@@ -477,7 +477,7 @@ pub fn Usb(comptime Cfg: anytype) type {
         }
 
         pub fn setupTransferInData(self: *Self, data: []const u8) void {
-            self.setupTransferIn(self.fillSetupIn(0, 0, data));
+            self.setupTransferIn(self.fillSetupIn(0, data));
         }
 
         pub fn setupTransferIn(self: *Self, total_len: u16) void {
