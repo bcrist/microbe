@@ -375,7 +375,6 @@ pub fn Uart(comptime UsbConfigType: type, comptime config: UartConfig) type {
                 requests.send_encapsulated_command => if (setup.direction == .out) {
                     log.info("send_gencapsulated_command", .{});
                     self.usb.setupTransferOut(setup.data_len);
-                    self.received_request = setup.request;
                     return true;
                 },
                 requests.get_encapsulated_response => if (setup.direction == .in) {
@@ -386,19 +385,21 @@ pub fn Uart(comptime UsbConfigType: type, comptime config: UartConfig) type {
                 requests.set_line_coding => if (setup.direction == .out) {
                     log.info("set_line_coding", .{});
                     self.usb.setupTransferOut(setup.data_len);
-                    self.received_request = setup.request;
                     return true;
                 },
                 requests.get_line_coding => if (setup.direction == .in) {
                     log.info("get_line_coding", .{});
-                    self.usb.fillSetupIn(0, std.mem.asBytes(&self.line_coding));
+                    _ = self.usb.fillSetupIn(0, std.mem.asBytes(&self.line_coding));
                     self.usb.setupTransferIn(@bitSizeOf(LineCoding) / 8);
                     return true;
                 },
                 requests.set_control_line_state => if (setup.direction == .out) {
-                    log.info("set_line_coding", .{});
-                    self.usb.setupTransferOut(setup.data_len);
-                    self.received_request = setup.request;
+                    log.info("set_control_line_state", .{});
+                    self.usb.setupTransferIn(0);
+                    const value: u16 = @truncate(setup.payload);
+                    const state: ControlLineState = @bitCast(value);
+                    self.dtr = state.dtr;
+                    self.rts = state.rts;
                     return true;
                 },
                 else => {},
@@ -406,22 +407,18 @@ pub fn Uart(comptime UsbConfigType: type, comptime config: UartConfig) type {
             return false;
         }
 
-        pub fn handleSetupOutBuffer(self: *Self, setup: usb.SetupPacket, offset: u16, data: []volatile const u8) bool {
+        pub fn handleSetupOutBuffer(self: *Self, setup: usb.SetupPacket, offset: u16, data: []volatile const u8, final_buffer: bool) bool {
+            if (setup.kind != .class) return false;
             switch (setup.request) {
                 requests.send_encapsulated_command => {
                     self.received_encapsulated_command = true;
                     return true;
                 },
                 requests.set_line_coding => {
-                    std.debug.assert(offset == 0);
-                    self.line_coding = std.mem.bytesToValue(LineCoding, data);
-                    return true;
-                },
-                requests.set_control_line_state => {
-                    std.debug.assert(offset == 0);
-                    const state = std.mem.bytesToValue(ControlLineState, data);
-                    self.dtr = state.dtr;
-                    self.rts = state.rts;
+                    if (offset == 0 and data.len == @bitSizeOf(LineCoding) / 8 and final_buffer == true) {
+                        @memcpy(std.mem.asBytes(&self.line_coding).ptr, @volatileCast(data));
+                        log.debug("line coding updated: {any}", .{ self.line_coding });
+                    }
                     return true;
                 },
                 else => return false,

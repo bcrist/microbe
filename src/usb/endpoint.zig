@@ -36,4 +36,5 @@ pub const Address = packed struct (u8) {
 pub const BufferInfo = struct {
     address: Address,
     buffer: []volatile u8,
+    final_buffer: bool,
 };
