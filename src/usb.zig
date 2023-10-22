@@ -60,7 +60,6 @@ pub fn Usb(comptime Cfg: anytype) type {
     return struct {
         const Self = @This();
         pub const Config = Cfg;
-        pub const debug = @hasDecl(Config, "enable_logging") and Config.enable_logging;
 
         setup_data_offset: u16 = 0,
         setup_data_bytes_remaining: u16 = 0,
@@ -157,15 +156,18 @@ pub fn Usb(comptime Cfg: anytype) type {
             if (@hasDecl(Config, "handleBusReset")) {
                 Config.handleBusReset();
             }
-            if (debug) log.info("bus reset", .{});
+            log.info("bus reset", .{});
         }
 
         fn updateBuffer(self: *Self, info: endpoint.BufferInfo) void {
             const ep = info.address.ep;
+            log.debug("ep{} {s} transfer complete", .{ ep, @tagName(info.address.dir) });
             switch (info.address.dir) {
                 .in => if (ep == 0) {
                     if (self.new_address) |addr| {
                         chip.usb.setAddress(addr);
+                        log.debug("address changed to {}", .{ addr });
+                        self.new_address = null;
                     }
 
                     if (self.setup_data_bytes_remaining > 0) {
@@ -177,27 +179,30 @@ pub fn Usb(comptime Cfg: anytype) type {
                                 self.setupTransferIn(self.setup_data_offset + self.setup_data_bytes_remaining);
                             } else {
                                 chip.usb.startStall(.{ .ep = ep, .dir = .in });
-                                if (debug) log.err("ep0 in stalled (no data to send)", .{});
+                                log.err("ep0 in stalled (no data to send)", .{});
                             }
                         } else {
                             chip.usb.startStall(.{ .ep = ep, .dir = .in });
-                            if (debug) log.err("ep0 in stalled (no fillSetupIn)", .{});
+                            log.err("ep0 in stalled (no fillSetupIn)", .{});
                         }
                     } else {
                         // empty status packet
+                        self.setup_data_offset = 0;
                         self.setupTransferOut(0);
                     }
                 } else {
                     self.updateInState(ep);
                 },
                 .out => if (ep == 0) {
-                    if (@hasDecl(Config, "handleSetupOutBuffer") and info.buffer.len > 0) {
-                        if (!Config.handleSetupOutBuffer(chip.usb.getSetupPacket(), self.setup_data_offset, info.buffer)) {
-                            if (debug) log.info("ep0 out not handled: {}", .{ std.fmt.fmtSliceHexLower(info.buffer) });
+                    if (info.buffer.len > 0) {
+                        log.debug("ep0 out data: {}", .{ std.fmt.fmtSliceHexLower(@volatileCast(info.buffer)) });
+                        if (@hasDecl(Config, "handleSetupOutBuffer") and !Config.handleSetupOutBuffer(chip.usb.getSetupPacket(), self.setup_data_offset, info.buffer)) {
+                            log.err("ep0 out not handled: {}", .{ std.fmt.fmtSliceHexLower(@volatileCast(info.buffer)) });
                         }
                     }
 
-                    const len = @min(self.setup_data_bytes_remaining, info.buffer.len);
+                    const expected = self.setup_data_bytes_remaining;
+                    const len = @min(expected, info.buffer.len);
                     self.setup_data_offset += len;
                     self.setup_data_bytes_remaining -= len;
 
@@ -205,12 +210,13 @@ pub fn Usb(comptime Cfg: anytype) type {
                         self.setupTransferOut(self.setup_data_offset + self.setup_data_bytes_remaining);
                     } else {
                         // empty status packet
+                        self.setup_data_offset = 0;
                         self.setupTransferIn(0);
                     }
                 } else {
                     if (info.buffer.len > 0) {
                         Config.handleOutBuffer(ep, info.buffer);
-                        if (debug) log.info("ep{} out: {}", .{ ep, std.fmt.fmtSliceHexLower(info.buffer) });
+                        log.info("ep{} out: {}", .{ ep, std.fmt.fmtSliceHexLower(@volatileCast(info.buffer)) });
                     }
                     self.updateOutState(ep);
                 },
@@ -223,26 +229,26 @@ pub fn Usb(comptime Cfg: anytype) type {
                 if (state.in != .stalled) {
                     chip.usb.startStall(.{ .ep = ep, .dir = .in });
                     self.ep_state[ep].in = .stalled;
-                    if (debug) log.info("ep{} in stalled...", .{ ep });
+                    log.info("ep{} in stalled...", .{ ep });
                 }
             } else if (!Config.isEndpointReady(.{ .ep = ep, .dir = .in })) {
                 if (state.in != .waiting) {
                     chip.usb.startNak(.{ .ep = ep, .dir = .in });
                     self.ep_state[ep].in = .waiting;
-                    if (debug) log.debug("ep{} in waiting...", .{ ep });
+                    log.debug("ep{} in waiting...", .{ ep });
                 }
             } else {
                 if (@hasDecl(Config, "getInBuffer")) {
                     const data: []const u8 = Config.getInBuffer(ep, state.in_max_packet_size_bytes);
                     chip.usb.fillBufferIn(ep, 0, data);
                     chip.usb.startTransferIn(ep, data.len, state.next_pid);
-                    if (debug) log.info("ep{} in: {}", .{ std.fmt.fmtSliceHexLower(data) });
+                    log.info("ep{} in: {}", .{ ep, std.fmt.fmtSliceHexLower(data) });
                 } else {
                     var data: [chip.usb.max_packet_size_bytes]u8 = undefined;
                     const len = Config.fillInBuffer(ep, data[0..state.in_max_packet_size_bytes]);
                     chip.usb.fillBufferIn(ep, 0, data[0..len]);
                     chip.usb.startTransferIn(ep, len, state.next_pid);
-                    if (debug) log.info("ep{} in: {}", .{ std.fmt.fmtSliceHexLower(data[0..len]) });
+                    log.info("ep{} in: {}", .{ ep, std.fmt.fmtSliceHexLower(data[0..len]) });
                 }
                 self.ep_state[ep].in = .active;
                 self.ep_state[ep].next_pid = state.next_pid.next();
@@ -255,50 +261,51 @@ pub fn Usb(comptime Cfg: anytype) type {
                 if (state.out != .stalled) {
                     chip.usb.startStall(.{ .ep = ep, .dir = .out });
                     self.ep_state[ep].out = .stalled;
-                    if (debug) log.info("ep{} out stalled...", .{ ep });
+                    log.info("ep{} out stalled...", .{ ep });
                 }
             } else if (!Config.isEndpointReady(.{ .ep = ep, .dir = .out })) {
                 if (state.out != .waiting) {
                     chip.usb.startNak(.{ .ep = ep, .dir = .out });
                     self.ep_state[ep].out = .waiting;
-                    if (debug) log.debug("ep{} out waiting...", .{ ep });
+                    log.debug("ep{} out waiting...", .{ ep });
                 }
             } else {
                 chip.usb.startTransferOut(ep, state.out_max_packet_size_bytes, state.next_pid);
                 self.ep_state[ep].out = .active;
                 self.ep_state[ep].next_pid = state.next_pid.next();
-                if (debug) log.debug("ep{} out started", .{ ep });
+                log.debug("ep{} out started", .{ ep });
             }
         }
 
         fn handleSetup(self: *Self) void {
             self.ep_state[0].next_pid = .data1;
             const setup: SetupPacket = chip.usb.getSetupPacket();
+            log.debug("{any}", .{ setup });
             self.setup_data_offset = 0;
             self.setup_data_bytes_remaining = setup.data_len;
             var handled = false;
             if (setup.kind == .standard) switch (setup.request) {
                 .set_address => if (setup.direction == .out) {
-                    self.setupTransferOut(0);
                     const address = setup.getAddressPayload();
                     self.new_address = address;
-                    if (debug) log.info("set address: {}", .{ address });
+                    log.info("set address: {}", .{ address });
+                    self.setupTransferIn(0);
                     handled = true;
                 },
                 .set_configuration => if (setup.direction == .out) {
-                    self.setupTransferOut(0);
                     const configuration = setup.getConfigurationNumberPayload();
                     self.configuration = configuration;
                     if (@hasDecl(Config, "setConfiguration")) {
                         Config.setConfiguration(configuration);
                     }
-                    if (debug) log.info("set configuration: {}", .{ configuration });
+                    log.info("set configuration: {}", .{ configuration });
+                    self.setupTransferIn(0);
                     handled = true;
                 },
                 .get_configuration => if (setup.direction == .in) {
                     const c: u16 = self.configuration orelse 0;
                     self.setupTransferInData(std.mem.asBytes(&c));
-                    if (debug) log.info("get configuration", .{});
+                    log.info("get configuration", .{});
                     handled = true;
                 },
                 .get_descriptor => if (setup.direction == .in) {
@@ -314,22 +321,22 @@ pub fn Usb(comptime Cfg: anytype) type {
                         },
                         .interface => {
                             const interface: u8 = setup.getInterfaceNumberPayload();
-                            if (debug) log.info("get interface {} status", .{ interface });
+                            log.info("get interface {} status", .{ interface });
                         },
                         .endpoint => {
                             const ep: endpoint.Index = @intCast(setup.getEndpointNumberPayload());
                             if (self.ep_state[ep].halted) status |= 1;
-                            if (debug) log.info("get endpoint {} status", .{ ep });
+                            log.info("get endpoint {} status", .{ ep });
                         },
                         else => {
-                            if (debug) log.err("get status for unrecognized target: {}", .{ @intFromEnum(setup.target) });
+                            log.err("get status for unrecognized target: {}", .{ @intFromEnum(setup.target) });
                         },
                     }
                     self.setupTransferInData(std.mem.asBytes(&status));
                     handled = true;
                 },
                 .set_feature, .clear_feature => if (setup.direction == .out) {
-                    self.setupTransferOut(0);
+                    self.setupTransferIn(0);
                     const f = setup.getFeaturePayload();
                     switch (f.feature) {
                         .endpoint_halt => if (setup.target == .endpoint) {
@@ -341,11 +348,10 @@ pub fn Usb(comptime Cfg: anytype) type {
                         },
                         else => {},
                     }
-                    if (debug) log.info("{s}: target = {s}, ep = {}, feature = {s} ({})", .{
+                    log.info("{s}: target = {s}, ep = {}, feature = {}", .{
                         @tagName(setup.kind),
                         @tagName(setup.target),
                         f.endpoint,
-                        @tagName(f.feature),
                         f.feature,
                     });
                     handled = true;
@@ -357,10 +363,9 @@ pub fn Usb(comptime Cfg: anytype) type {
                 if (Config.handleSetup(setup)) handled = true;
             }
 
-            if (debug and !handled) {
-                log.info("unrecognized setup: {s}, request = {s} ({})", .{
+            if (!handled) {
+                log.err("unrecognized setup: {s}, request = {}", .{
                     @tagName(setup.direction),
-                    @tagName(setup.request),
                     @intFromEnum(setup.request)
                 });
             }
@@ -369,14 +374,14 @@ pub fn Usb(comptime Cfg: anytype) type {
         fn handleGetDescriptor(self: *Self, which: SetupPacket.DescriptorPayload) void {
             switch (which.kind) {
                 .device => {
-                    if (debug and self.setup_data_offset == 0) {
+                    if (self.setup_data_offset == 0) {
                         log.info("get device descriptor {}B", .{ self.setup_data_bytes_remaining });
                     }
                     const d: descriptor.Device = Config.getDeviceDescriptor();
-                    self.setupTransferInData(std.mem.asBytes(&d));
+                    self.setupTransferInData(std.mem.asBytes(&d)[0..d._len]);
                 },
                 .device_qualifier => {
-                    if (debug and self.setup_data_offset == 0) {
+                    if (self.setup_data_offset == 0) {
                         log.info("get device qualifier {}B", .{ self.setup_data_bytes_remaining });
                     }
                     const d: descriptor.Device = Config.getDeviceDescriptor();
@@ -386,11 +391,11 @@ pub fn Usb(comptime Cfg: anytype) type {
                         .max_packet_size_bytes = d.max_packet_size_bytes,
                         .configuration_count = d.configuration_count,
                     };
-                    self.setupTransferInData(std.mem.asBytes(&dq));
+                    self.setupTransferInData(std.mem.asBytes(&dq)[0..dq._len]);
                 },
                 .string => {
                     const id: descriptor.StringID = @enumFromInt(which.index);
-                    if (debug and self.setup_data_offset == 0) {
+                    if (self.setup_data_offset == 0) {
                         log.info("get string {}B: id = {}, lang = {}", .{ self.setup_data_bytes_remaining, id, which.language });
                     }
                     self.setupTransferInData(Config.getStringDescriptor(id, which.language));
@@ -398,13 +403,13 @@ pub fn Usb(comptime Cfg: anytype) type {
                 .endpoint => {
                     // USB hosts should never ask for endpoint descriptors directly, because
                     // there's no way to know which interface it's querying, so we just ignore it.
-                    if (debug and self.setup_data_offset == 0) {
+                    if (self.setup_data_offset == 0) {
                         log.info("get endpoint descriptor {}B: index = {}", .{ self.setup_data_bytes_remaining, which.index });
                     }
                 },
                 .configuration => {
                     const configuration = self.configuration orelse 0;
-                    if (debug and self.setup_data_offset == 0) {
+                    if (self.setup_data_offset == 0) {
                         log.info("get configuration descriptor {}B: {}", .{ self.setup_data_bytes_remaining, configuration });
                     }
 
@@ -413,7 +418,7 @@ pub fn Usb(comptime Cfg: anytype) type {
                     } else {
                         var offset: u16 = 0;
                         const cd: descriptor.Configuration = Config.getConfigurationDescriptor(configuration);
-                        offset = self.fillSetupIn(offset, std.mem.asBytes(&cd));
+                        offset = self.fillSetupIn(offset, std.mem.asBytes(&cd)[0..cd._len]);
 
                         for (0..cd.interface_count) |i| {
                             offset = self.fillInterfaceDescriptor(configuration, @intCast(i), @intCast(offset));
@@ -423,7 +428,7 @@ pub fn Usb(comptime Cfg: anytype) type {
                 },
                 .interface => {
                     const configuration = self.configuration orelse 0;
-                    if (debug and self.setup_data_offset == 0) {
+                    if (self.setup_data_offset == 0) {
                         log.info("get interface descriptor {}B: config = {}, interface = {}", .{
                             self.setup_data_bytes_remaining,
                             configuration,
@@ -435,7 +440,7 @@ pub fn Usb(comptime Cfg: anytype) type {
                 },
                 else => {
                     const configuration = self.configuration orelse 0;
-                    if (debug and self.setup_data_offset == 0) {
+                    if (self.setup_data_offset == 0) {
                         log.info("get descriptor {}B: config = {}, kind = 0x{X}, index = {}", .{
                             self.setup_data_bytes_remaining,
                             configuration,
@@ -452,11 +457,11 @@ pub fn Usb(comptime Cfg: anytype) type {
             var offset = data_offset;
 
             const id: descriptor.Interface = Config.getInterfaceDescriptor(configuration, interface);
-            offset = self.fillSetupIn(offset, std.mem.asBytes(&id));
+            offset = self.fillSetupIn(offset, std.mem.asBytes(&id)[0..id._len]);
 
             for (0..id.endpoint_count) |e| {
                 const ed: descriptor.Endpoint = Config.getEndpointDescriptor(configuration, interface, @intCast(e));
-                offset = self.fillSetupIn(offset, std.mem.asBytes(&ed));
+                offset = self.fillSetupIn(offset, std.mem.asBytes(&ed)[0..ed._len]);
             }
 
             if (@hasDecl(Config, "getExtraConfigurationDescriptors")) {
@@ -473,6 +478,7 @@ pub fn Usb(comptime Cfg: anytype) type {
             const setup_offset_isize: isize = self.setup_data_offset;
             chip.usb.fillBufferIn(0, data_offset_isize - setup_offset_isize, data);
             const data_len_u16: u16 = @intCast(data.len);
+            log.debug("ep0 in data @{}: {}", .{ data_offset_isize - setup_offset_isize, std.fmt.fmtSliceHexLower(data) });
             return offset + data_len_u16;
         }
 
@@ -483,11 +489,15 @@ pub fn Usb(comptime Cfg: anytype) type {
         pub fn setupTransferIn(self: *Self, total_len: u16) void {
             const pid = self.ep_state[0].next_pid;
             const max_packet_size = self.ep_state[0].in_max_packet_size_bytes;
+            if (total_len < self.setup_data_bytes_remaining) {
+                self.setup_data_bytes_remaining = total_len;
+            }
             var len = @min(self.setup_data_bytes_remaining, total_len - self.setup_data_offset);
             if (len > max_packet_size) {
                 len = max_packet_size;
             }
             chip.usb.startTransferIn(0, len, pid);
+            log.debug("ep0 in {}B {s}", .{ len, @tagName(pid) });
             self.setup_data_offset += len;
             self.setup_data_bytes_remaining -= len;
             self.ep_state[0].next_pid = pid.next();
@@ -501,6 +511,7 @@ pub fn Usb(comptime Cfg: anytype) type {
                 len = max_packet_size;
             }
             chip.usb.startTransferOut(0, len, pid);
+            log.debug("ep0 out {}B {s}", .{ len, @tagName(pid) });
             self.ep_state[0].next_pid = pid.next();
         }
 
@@ -573,7 +584,17 @@ pub const SetupPacket = packed struct (u64) {
     }
 
     pub fn getConfigurationNumberPayload(self: SetupPacket) u8 {
-        std.debug.assert(self.request == .set_configuration);
+        std.debug.assert(switch(self.request) {
+            .set_configuration => true,
+
+            .clear_feature, .set_feature,
+            .get_descriptor, .set_descriptor,
+            .get_configuration, .get_status,
+            .get_interface, .set_interface,
+            .synch_frame, .set_address => false,
+
+            _ => true,
+        });
         const payload: packed struct (u32) {
             configuration: u16,
             _reserved: u16,
@@ -582,7 +603,17 @@ pub const SetupPacket = packed struct (u64) {
     }
 
     pub fn getInterfaceNumberPayload(self: SetupPacket) u8 {
-        std.debug.assert(self.request == .get_interface or self.request == .get_status and self.target == .interface);
+        std.debug.assert(switch(self.request) {
+            .get_interface => true,
+            .get_status => self.target == .interface,
+
+            .clear_feature, .set_feature,
+            .get_descriptor, .set_descriptor,
+            .get_configuration, .set_configuration,
+            .set_interface, .synch_frame, .set_address => false,
+
+            _ => true,
+        });
         const payload: packed struct (u32) {
             _reserved: u16,
             interface: u16,
@@ -597,6 +628,18 @@ pub const SetupPacket = packed struct (u64) {
     }
 
     pub fn getEndpointNumberPayload(self: SetupPacket) u8 {
+        std.debug.assert(switch(self.request) {
+            .synch_frame => true,
+            .get_status => self.target == .endpoint,
+
+            .clear_feature, .set_feature,
+            .get_descriptor, .set_descriptor,
+            .get_configuration, .set_configuration,
+            .get_interface, .set_interface, 
+            .set_address => false,
+
+            _ => true,
+        });
         std.debug.assert(self.request == .synch_frame or self.request == .get_status and self.target == .endpoint);
         const payload: packed struct (u32) {
             _reserved: u16,

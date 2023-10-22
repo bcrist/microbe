@@ -27,7 +27,7 @@ pub const UsbVersion = enum (u16) {
 };
 
 pub const Device = packed struct (u144) {
-    _len: u8 = @sizeOf(Device),
+    _len: u8 = @bitSizeOf(Device) / 8,
     _kind: Kind = .device,
 
     usb_version: UsbVersion,
@@ -44,7 +44,7 @@ pub const Device = packed struct (u144) {
 
 // A subset of the full device descriptor
 pub const DeviceQualifier = packed struct (u80) {
-    _len: u8 = @sizeOf(DeviceQualifier),
+    _len: u8 = @bitSizeOf(DeviceQualifier) / 8,
     _kind: Kind = .device_qualifier,
 
     usb_version: UsbVersion,
@@ -55,7 +55,7 @@ pub const DeviceQualifier = packed struct (u80) {
 };
 
 pub const Configuration = packed struct (u72) {
-    _len: u8 = @sizeOf(Configuration),
+    _len: u8 = @bitSizeOf(Configuration) / 8,
     _kind: Kind = .configuration,
 
     /// Total length of all descriptors in this configuration, concatenated.
@@ -73,8 +73,8 @@ pub const Configuration = packed struct (u72) {
 };
 
 // Note when using this, the device should use `classes.iad_device` instead of `classes.composite_device`
-pub const InterfaceAssociation = packed struct {
-    _len: u8 = @sizeOf(InterfaceAssociation),
+pub const InterfaceAssociation = packed struct (u64) {
+    _len: u8 = @bitSizeOf(InterfaceAssociation) / 8,
     _kind: Kind = .interface_association,
 
     first_interface: u8,
@@ -84,7 +84,7 @@ pub const InterfaceAssociation = packed struct {
 };
 
 pub const Interface = packed struct (u72) {
-    _len: u8 = @sizeOf(Interface),
+    _len: u8 = @bitSizeOf(Interface) / 8,
     _kind: Kind = .interface,
 
     number: u8,
@@ -98,7 +98,7 @@ pub const Interface = packed struct (u72) {
 };
 
 pub const Endpoint = packed struct (u56) {
-    _len: u8 = @sizeOf(Endpoint),
+    _len: u8 = @bitSizeOf(Endpoint) / 8,
     _kind: Kind = .endpoint,
 
     address: endpoint.Address,
@@ -116,7 +116,7 @@ pub const ID = struct {
 };
 
 pub const StringID = enum (u8) {
-    language = 0,
+    languages = 0,
     manufacturer_name = 1,
     product_name = 2,
     serial_number = 3,
@@ -131,7 +131,7 @@ pub fn String(comptime utf8: []const u8) type {
     _ = comptime std.unicode.utf8ToUtf16Le(&utf16, utf8) catch unreachable;
 
     return extern struct {
-        _len: u8 = @sizeOf(@This()),
+        _len: u8 = @bitSizeOf(@This()) / 8,
         _kind: Kind = .string,
         data: [utf16_len]u16 = utf16,
     };
@@ -143,7 +143,7 @@ pub fn SupportedLanguages(comptime languages: []const Language) type {
     const ptr: *const [len]Language = @ptrCast(languages);
 
     return extern struct {
-        _len: u8 = @sizeOf(@This()),
+        _len: u8 = @bitSizeOf(@This()) / 8,
         _kind: Kind = .string,
         data: [len]Language = ptr.*,
     };
