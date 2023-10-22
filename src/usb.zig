@@ -218,7 +218,7 @@ pub fn Usb(comptime Cfg: anytype) type {
                 } else {
                     if (info.buffer.len > 0) {
                         Config.handleOutBuffer(ep, info.buffer);
-                        log.info("ep{} out: {}", .{ ep, std.fmt.fmtSliceHexLower(@volatileCast(info.buffer)) });
+                        log.debug("ep{} out: {}", .{ ep, std.fmt.fmtSliceHexLower(@volatileCast(info.buffer)) });
                     }
                     self.updateOutState(ep);
                 },
@@ -244,13 +244,13 @@ pub fn Usb(comptime Cfg: anytype) type {
                     const data: []const u8 = Config.getInBuffer(ep, state.in_max_packet_size_bytes);
                     chip.usb.fillBufferIn(ep, 0, data);
                     chip.usb.startTransferIn(ep, data.len, state.next_pid, data.len < state.in_max_packet_size_bytes);
-                    log.info("ep{} in: {}", .{ ep, std.fmt.fmtSliceHexLower(data) });
+                    log.debug("ep{} in: {}", .{ ep, std.fmt.fmtSliceHexLower(data) });
                 } else {
                     var data: [chip.usb.max_packet_size_bytes]u8 = undefined;
                     const len = Config.fillInBuffer(ep, data[0..state.in_max_packet_size_bytes]);
                     chip.usb.fillBufferIn(ep, 0, data[0..len]);
                     chip.usb.startTransferIn(ep, len, state.next_pid, len < state.in_max_packet_size_bytes);
-                    log.info("ep{} in: {}", .{ ep, std.fmt.fmtSliceHexLower(data[0..len]) });
+                    log.debug("ep{} in: {}", .{ ep, std.fmt.fmtSliceHexLower(data[0..len]) });
                 }
                 self.ep_state[ep].in = .active;
                 self.ep_state[ep].next_pid = state.next_pid.next();
