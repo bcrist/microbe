@@ -70,10 +70,11 @@ pub fn Usb(comptime Cfg: anytype) type {
         ep_state: [16]struct {
             in_max_packet_size_bytes: u16 = chip.usb.max_packet_size_bytes,
             out_max_packet_size_bytes: u16 = chip.usb.max_packet_size_bytes,
-            next_pid: PID = .data0,
-            halted: bool = false,
+            next_in_pid: PID = .data0,
+            next_out_pid: PID = .data0,
             in: EndpointState = .stalled,
             out: EndpointState = .stalled,
+            halted: bool = false,
         } = undefined,
 
         const EndpointState = enum (u2) {
@@ -243,17 +244,17 @@ pub fn Usb(comptime Cfg: anytype) type {
                 if (@hasDecl(Config, "getInBuffer")) {
                     const data: []const u8 = Config.getInBuffer(ep, state.in_max_packet_size_bytes);
                     chip.usb.fillBufferIn(ep, 0, data);
-                    chip.usb.startTransferIn(ep, data.len, state.next_pid, data.len < state.in_max_packet_size_bytes);
+                    chip.usb.startTransferIn(ep, data.len, state.next_in_pid, data.len < state.in_max_packet_size_bytes);
                     log.debug("ep{} in: {}", .{ ep, std.fmt.fmtSliceHexLower(data) });
                 } else {
                     var data: [chip.usb.max_packet_size_bytes]u8 = undefined;
                     const len = Config.fillInBuffer(ep, data[0..state.in_max_packet_size_bytes]);
                     chip.usb.fillBufferIn(ep, 0, data[0..len]);
-                    chip.usb.startTransferIn(ep, len, state.next_pid, len < state.in_max_packet_size_bytes);
+                    chip.usb.startTransferIn(ep, len, state.next_in_pid, len < state.in_max_packet_size_bytes);
                     log.debug("ep{} in: {}", .{ ep, std.fmt.fmtSliceHexLower(data[0..len]) });
                 }
                 self.ep_state[ep].in = .active;
-                self.ep_state[ep].next_pid = state.next_pid.next();
+                self.ep_state[ep].next_in_pid = state.next_in_pid.next();
             }
         }
 
@@ -272,15 +273,16 @@ pub fn Usb(comptime Cfg: anytype) type {
                     log.debug("ep{} out waiting...", .{ ep });
                 }
             } else {
-                chip.usb.startTransferOut(ep, state.out_max_packet_size_bytes, state.next_pid, false);
+                chip.usb.startTransferOut(ep, state.out_max_packet_size_bytes, state.next_out_pid, false);
                 self.ep_state[ep].out = .active;
-                self.ep_state[ep].next_pid = state.next_pid.next();
+                self.ep_state[ep].next_in_pid = state.next_in_pid.next();
                 log.debug("ep{} out started", .{ ep });
             }
         }
 
         fn handleSetup(self: *Self) void {
-            self.ep_state[0].next_pid = .data1;
+            self.ep_state[0].next_in_pid = .data1;
+            self.ep_state[0].next_out_pid = .data1;
             const setup: SetupPacket = chip.usb.getSetupPacket();
             log.debug("{any}", .{ setup });
             self.setup_data_offset = 0;
@@ -489,7 +491,7 @@ pub fn Usb(comptime Cfg: anytype) type {
         }
 
         pub fn setupTransferIn(self: *Self, total_len: u16) void {
-            const pid = self.ep_state[0].next_pid;
+            const pid = self.ep_state[0].next_in_pid;
             const max_packet_size = self.ep_state[0].in_max_packet_size_bytes;
             if (total_len < self.setup_data_bytes_remaining) {
                 self.setup_data_bytes_remaining = total_len;
@@ -503,11 +505,11 @@ pub fn Usb(comptime Cfg: anytype) type {
             log.debug("ep0 in {}B {s}{s}", .{ len, @tagName(pid), final });
             self.setup_data_offset += len;
             self.setup_data_bytes_remaining -= len;
-            self.ep_state[0].next_pid = pid.next();
+            self.ep_state[0].next_in_pid = pid.next();
         }
 
         pub fn setupTransferOut(self: *Self, total_len: u16) void {
-            const pid = self.ep_state[0].next_pid;
+            const pid = self.ep_state[0].next_out_pid;
             const max_packet_size = self.ep_state[0].out_max_packet_size_bytes;
             var len = @min(self.setup_data_bytes_remaining, total_len - self.setup_data_offset);
             if (len > max_packet_size) {
@@ -516,20 +518,20 @@ pub fn Usb(comptime Cfg: anytype) type {
             chip.usb.startTransferOut(0, len, pid, len < max_packet_size);
             const final = if (len < max_packet_size) " (final)" else "";
             log.debug("ep0 out {}B {s}{s}", .{ len, @tagName(pid), final });
-            self.ep_state[0].next_pid = pid.next();
+            self.ep_state[0].next_out_pid = pid.next();
         }
 
         pub fn setupStatusIn(self: *Self) void {
             self.setup_data_offset = 0;
             self.setup_data_bytes_remaining = 0;
-            self.ep_state[0].next_pid = .data1;
+            self.ep_state[0].next_out_pid = .data1;
             @call(.always_inline, setupTransferIn, .{ self, 0 });
         }
 
         pub fn setupStatusOut(self: *Self) void {
             self.setup_data_offset = 0;
             self.setup_data_bytes_remaining = 0;
-            self.ep_state[0].next_pid = .data1;
+            self.ep_state[0].next_out_pid = .data1;
             @call(.always_inline, setupTransferOut, .{ self, 0 });
         }
 
