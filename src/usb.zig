@@ -381,7 +381,7 @@ pub fn Usb(comptime Cfg: anytype) type {
                             log.info("get configuration descriptor {}B: {}", .{ self.setup_data_bytes_remaining, which.index });
                         }
                         if (Config.getConfigurationDescriptorSet(which.index)) |data| {
-                            self.setupTransferInData(data[0..data[0]]);
+                            self.setupTransferInData(data);
                         } else if (self.setup_data_offset == 0) {
                             log.warn("request for invalid configuration descriptor: {}", .{ which.index });
                         }
@@ -391,7 +391,7 @@ pub fn Usb(comptime Cfg: anytype) type {
                             log.info("get descriptor {}B: descriptor = 0x{X} {}", .{ self.setup_data_bytes_remaining, @intFromEnum(which.kind), which.index });
                         }
                         if (Config.getDescriptor(which.kind, which.index)) |data| {
-                            self.setupTransferInData(data[0..data[0]]);
+                            self.setupTransferInData(data);
                         } else if (self.setup_data_offset == 0) {
                             log.warn("request for invalid descriptor: 0x{X} {}", .{ @intFromEnum(which.kind), which.index });
                         }
@@ -407,7 +407,7 @@ pub fn Usb(comptime Cfg: anytype) type {
                         });
                     }
                     if (Config.getInterfaceSpecificDescriptor(@intCast(@intFromEnum(which.language)), which.kind, which.index)) |data| {
-                        self.setupTransferInData(data[0..data[0]]);
+                        self.setupTransferInData(data);
                     } else if (self.setup_data_offset == 0) {
                         log.warn("request for invalid interface-specific descriptor: interface = {}, descriptor = 0x{X} {}", .{
                             which.language, // really interface
@@ -426,7 +426,7 @@ pub fn Usb(comptime Cfg: anytype) type {
                         });
                     }
                     if (Config.getEndpointSpecificDescriptor(@intCast(@intFromEnum(which.language)), which.kind, which.index)) |data| {
-                        self.setupTransferInData(data[0..data[0]]);
+                        self.setupTransferInData(data);
                     } else if (self.setup_data_offset == 0) {
                         log.warn("request for invalid endpoint-specific descriptor: endpoint = {}, descriptor = 0x{X} {}", .{
                             which.language, // really endpoint
