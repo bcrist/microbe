@@ -37,7 +37,8 @@ pub fn Usb(comptime Cfg: anytype) type {
             next_out_pid: PID = .data0,
             in: EndpointState = .stalled,
             out: EndpointState = .stalled,
-            halted: bool = false,
+            in_halted: bool = false,
+            out_halted: bool = false,
         } = undefined,
 
         const EndpointState = enum (u2) {
@@ -98,13 +99,14 @@ pub fn Usb(comptime Cfg: anytype) type {
                     const ed: descriptor.Endpoint = Config.getEndpointDescriptor(configuration, interface, @intCast(e));
                     chip.usb.configureEndpoint(ed);
                     const ep = ed.address.ep;
-                    self.ep_state[ep].halted = false;
                     switch (ed.address.dir) {
                         .out => {
+                            self.ep_state[ep].out_halted = false;
                             self.ep_state[ep].out_max_packet_size_bytes = ed.max_packet_size_bytes;
                             self.updateOutState(ep);
                         },
                         .in => {
+                            self.ep_state[ep].in_halted = false;
                             self.ep_state[ep].in_max_packet_size_bytes = ed.max_packet_size_bytes;
                             if (ep != 0) {
                                 self.updateInState(ep);
@@ -186,7 +188,7 @@ pub fn Usb(comptime Cfg: anytype) type {
 
         fn updateInState(self: *Self, ep: endpoint.Index) void {
             const state = self.ep_state[ep];
-            if (state.halted) {
+            if (state.in_halted) {
                 if (state.in != .stalled) {
                     chip.usb.startStall(.{ .ep = ep, .dir = .in });
                     self.ep_state[ep].in = .stalled;
@@ -218,7 +220,7 @@ pub fn Usb(comptime Cfg: anytype) type {
 
         fn updateOutState(self: *Self, ep: endpoint.Index) void {
             const state = self.ep_state[ep];
-            if (state.halted) {
+            if (state.out_halted) {
                 if (state.out != .stalled) {
                     chip.usb.startStall(.{ .ep = ep, .dir = .out });
                     self.ep_state[ep].out = .stalled;
@@ -284,9 +286,17 @@ pub fn Usb(comptime Cfg: anytype) type {
                             log.info("get interface {} status", .{ interface });
                         },
                         .endpoint => {
-                            const ep: endpoint.Index = @intCast(setup.getEndpointNumberPayload());
-                            if (self.ep_state[ep].halted) status |= 1;
-                            log.info("get endpoint {} status", .{ ep });
+                            const raw: u8 = @intCast(setup.getEndpointNumberPayload());
+                            const addr: endpoint.Address = @bitCast(raw);
+                            switch (addr.dir) {
+                                .in => {
+                                    if (self.ep_state[addr.ep].in_halted) status |= 1;
+                                },
+                                .out => {
+                                    if (self.ep_state[addr.ep].out_halted) status |= 1;
+                                },
+                            }
+                            log.info("get endpoint {} {} status", .{ addr.ep, @tagName(addr.dir) });
                         },
                         else => {
                             log.err("get status for unrecognized target: {}", .{ @intFromEnum(setup.target) });
@@ -300,8 +310,13 @@ pub fn Usb(comptime Cfg: anytype) type {
                     const f = setup.getFeaturePayload();
                     switch (f.feature) {
                         .endpoint_halt => if (setup.target == .endpoint) {
-                            const ep: endpoint.Index = @intCast(f.endpoint);
-                            self.ep_state[ep].halted = setup.request == .set_feature;
+                            const raw: u8 = @intCast(f.endpoint);
+                            const addr: endpoint.Address = @bitCast(raw);
+                            const halt = setup.request == .set_feature;
+                            switch (addr.dir) {
+                                .in => self.ep_state[addr.ep].in_halted = halt,
+                                .out => self.ep_state[addr.ep].out_halted = halt,
+                            }
                         },
                         .device_remote_wakeup => if (setup.target == .device) {
                             self.allow_remote_wakeup = setup.request == .set_feature;
@@ -309,7 +324,7 @@ pub fn Usb(comptime Cfg: anytype) type {
                         else => {},
                     }
                     log.info("{s}: target = {s}, ep = {}, feature = {}", .{
-                        @tagName(setup.kind),
+                        @tagName(setup.request),
                         @tagName(setup.target),
                         f.endpoint,
                         f.feature,
