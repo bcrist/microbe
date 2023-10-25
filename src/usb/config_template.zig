@@ -120,8 +120,8 @@ pub fn getConfigurationDescriptorSet(configuration_index: u8) ?[]const u8 {
 
 pub fn getInterfaceCount(configuration: u8) u8 {
     inline for (configurations) |cfg| {
-        if (cfg.number == configuration) {
-            return @intCast(configuration.interfaces.len);
+        if (cfg.descriptors.config.number == configuration) {
+            return @intCast(cfg.interfaces.len);
         }
     }
     return 0;
@@ -129,8 +129,8 @@ pub fn getInterfaceCount(configuration: u8) u8 {
 
 pub fn getEndpointCount(configuration: u8, interface_index: u8) u8 {
     inline for (configurations) |cfg| {
-        if (cfg.number == configuration) {
-            inline for (0.., configuration.interfaces) |j, interface| {
+        if (cfg.descriptors.config.number == configuration) {
+            inline for (0.., cfg.interfaces) |j, interface| {
                 if (j == interface_index) {
                     return @intCast(interface.endpoints.len);
                 }
@@ -144,8 +144,8 @@ pub fn getEndpointCount(configuration: u8, interface_index: u8) u8 {
 // the hardware configuration for each endpoint.
 pub fn getEndpointDescriptor(configuration: u8, interface_index: u8, endpoint_index: u8) descriptor.Endpoint {
     inline for (configurations) |cfg| {
-        if (cfg.number == configuration) {
-            inline for (0.., configuration.interfaces) |j, iface| {
+        if (cfg.descriptors.config.number == configuration) {
+            inline for (0.., cfg.interfaces) |j, iface| {
                 if (j == interface_index) {
                     inline for (0.., iface.endpoints) |k, ep| {
                         if (k == endpoint_index) {

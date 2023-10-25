@@ -98,7 +98,7 @@ pub fn Usb(comptime Cfg: anytype) type {
                 for (0..Config.getEndpointCount(configuration, interface)) |e| {
                     const ed: descriptor.Endpoint = Config.getEndpointDescriptor(configuration, interface, @intCast(e));
                     chip.usb.configureEndpoint(ed);
-                    std.log.info("initialized endpoint: ep{} {s}, {s}, {}B, {}ms", .{
+                    log.info("initialized endpoint: ep{} {s}, {s}, {}B, {}ms", .{
                         ed.address.ep,
                         @tagName(ed.address.dir),
                         @tagName(ed.transfer_kind),
@@ -243,7 +243,7 @@ pub fn Usb(comptime Cfg: anytype) type {
             } else {
                 chip.usb.startTransferOut(ep, state.out_max_packet_size_bytes, state.next_out_pid, false);
                 self.ep_state[ep].out = .active;
-                self.ep_state[ep].next_in_pid = state.next_in_pid.next();
+                self.ep_state[ep].next_out_pid = state.next_out_pid.next();
                 log.debug("ep{} out started", .{ ep });
             }
         }
