@@ -145,13 +145,16 @@ pub fn InputReporter(comptime UsbConfigType: type, comptime Report: type, compti
             return &self.queue.buf[last_index];
         }
 
+        pub fn handleStartOfFrame(self: *Self) void {
+            if (self.idle_interval == .infinite) return;
+            self.idle_timer += 1;
+        }
+
         pub fn isEndpointReady(self: *Self) bool {
             if (self.queue.readableLength() > 0) return true;
             const interval = self.idle_interval;
             if (interval == .infinite) return false;
-            const timer = self.idle_timer + 1;
-            self.idle_timer = timer;
-            return timer / 4 >= @intFromEnum(self.idle_interval);
+            return self.idle_timer / 4 >= @intFromEnum(interval);
         }
 
         pub fn getInBuffer(self: *Self) []const u8 {

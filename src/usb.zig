@@ -391,7 +391,7 @@ pub fn Usb(comptime Cfg: anytype) type {
                             log.info("get descriptor {}B: descriptor = 0x{X} {}", .{ self.setup_data_bytes_remaining, @intFromEnum(which.kind), which.index });
                         }
                         if (Config.getDescriptor(which.kind, which.index)) |data| {
-                            self.setupTransferInData(data[0..data[0]];
+                            self.setupTransferInData(data[0..data[0]]);
                         } else if (self.setup_data_offset == 0) {
                             log.warn("request for invalid descriptor: 0x{X} {}", .{ @intFromEnum(which.kind), which.index });
                         }
