@@ -95,6 +95,16 @@ pub const Interface = packed struct (u72) {
     endpoint_count: u8,
     class: classes.Info,
     name: StringID,
+
+    pub fn parse(comptime info: type) Interface {
+        return .{
+            .number = info.index,
+            .alternate_setting = if (@hasDecl(info, "alternate_setting")) info.alternate_setting else 0,
+            .endpoint_count = @intCast(info.endpoints.len),
+            .class = info.class,
+            .name = if (@hasDecl(info, "name")) info.name else @enumFromInt(0),
+        };
+    }
 };
 
 pub const Endpoint = packed struct (u56) {
@@ -108,6 +118,17 @@ pub const Endpoint = packed struct (u56) {
     _reserved: u2 = 0,
     max_packet_size_bytes: u16 = chip.usb.max_packet_size_bytes,
     poll_interval_ms: u8,
+
+    pub fn parse(comptime info: type) Endpoint {
+        return .{
+            .address = info.address,
+            .transfer_kind = info.kind,
+            .synchronization = if (info.kind == .isochronous) info.synchronization else .none,
+            .usage = if (info.kind == .isochronous) info.usage else .data,
+            .max_packet_size_bytes = if (@hasDecl(info, "max_packet_size_bytes")) info.max_packet_size_bytes else chip.usb.max_packet_size_bytes,
+            .poll_interval_ms = if (info.kind == .interrupt) info.poll_interval_ms else 0,
+        };
+    }
 };
 
 pub const ID = struct {

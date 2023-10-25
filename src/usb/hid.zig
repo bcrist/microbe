@@ -75,33 +75,41 @@ pub const IdleInterval = enum(u8) {
     _, // units of 4 ms
 };
 
-pub fn InputReporter(comptime UsbConfigType: type, comptime Report: type, comptime max_buffer_size: usize) type {
-    if (!std.math.isPowerOfTwo(max_buffer_size)) {
+pub const InputReporterConfig = struct {
+    max_buffer_size: usize,
+    interface_index: u8,
+    report_id: u8,
+    default_idle_interval: IdleInterval,
+};
+pub fn InputReporter(comptime UsbConfigType: type, comptime Report: type, comptime config: InputReporterConfig) type {
+    if (!std.math.isPowerOfTwo(config.max_buffer_size)) {
         @compileError("Buffer size must be a power of two!");
     }
     const report_bytes = @bitSizeOf(Report) / 8;
-    const Fifo = std.fifo.LinearFifo(Report, .{ .static = max_buffer_size });
+    const Fifo = std.fifo.LinearFifo(Report, .{ .static = config.max_buffer_size });
     return struct {
         const Self = @This();
 
         usb: *usb.Usb(UsbConfigType),
         queue: Fifo = Fifo.init(),
         last_report: Report,
-        interface: u8,
-        report_id: u8,
         idle_interval: IdleInterval,
         idle_timer: u8 = 0,
 
-        pub fn init(usb_ptr: *usb.Usb(UsbConfigType), interface: u8, report_id: u8, default_idle_interval: IdleInterval) Self {
+        pub fn init(usb_ptr: *usb.Usb(UsbConfigType)) Self {
             return .{
                 .usb = usb_ptr,
                 .queue = Fifo.init(),
                 .last_report = .{},
-                .interface = interface,
-                .report_id = report_id,
-                .idle_interval = default_idle_interval,
+                .idle_interval = config.default_idle_interval,
                 .idle_timer = 0,
             };
+        }
+
+        pub fn reset(self: *Self) void {
+            self.last_report = .{};
+            self.idle_interval = config.default_idle_interval;
+            self.idle_timer = 0;
         }
 
         pub fn pushAll(self: *Self, reports: []const Report) void {
@@ -159,7 +167,7 @@ pub fn InputReporter(comptime UsbConfigType: type, comptime Report: type, compti
             switch (setup.request) {
                 requests.set_idle => if (setup.direction == .out) {
                     const payload: requests.IdlePayload = @bitCast(setup.payload);
-                    if (payload.interface == self.interface and payload.report_id == self.report_id) {
+                    if (payload.interface == config.interface_index and payload.report_id == config.report_id) {
                         self.idle_interval = payload.interval;
                         self.usb.setupStatusIn();
                         return true;
@@ -167,14 +175,14 @@ pub fn InputReporter(comptime UsbConfigType: type, comptime Report: type, compti
                 },
                 requests.get_idle => if (setup.direction == .in) {
                     const payload: requests.IdlePayload = @bitCast(setup.payload);
-                    if (payload.interface == self.interface and payload.report_id == self.report_id) {
+                    if (payload.interface == config.interface_index and payload.report_id == config.report_id) {
                         self.usb.setupTransferInData(std.mem.asBytes(&self.idle_interval));
                         return true;
                     }
                 },
                 requests.get_report => if (setup.direction == .in) {
                     const payload: requests.ReportPayload = @bitCast(setup.payload);
-                    if (payload.interface == self.interface and payload.report_id == self.report_id and payload.report_type == .input) {
+                    if (payload.interface == config.interface_index and payload.report_id == config.report_id and payload.report_type == .input) {
                         self.usb.setupTransferInData(std.mem.asBytes(&self.last_report)[0..report_bytes]);
                         return true;
                     }
@@ -186,23 +194,23 @@ pub fn InputReporter(comptime UsbConfigType: type, comptime Report: type, compti
     };
 }
 
-pub fn OutputReporter(comptime UsbConfigType: type, comptime Report: type) type {
+pub const OutputReportConfig = struct {
+    interface_index: u8,
+    report_id: u8,
+};
+pub fn OutputReporter(comptime UsbConfigType: type, comptime Report: type, comptime config: OutputReportConfig) type {
     const report_bytes = @bitSizeOf(Report) / 8;
     return struct {
         const Self = @This();
 
         usb: *usb.Usb(UsbConfigType),
         current_report: Report,
-        interface: u8,
-        report_id: u8,
 
-        pub fn init(usb_ptr: *usb.Usb(UsbConfigType), interface: u8, report_id: u8) Self {
+        pub fn init(usb_ptr: *usb.Usb(UsbConfigType)) Self {
             return .{
                 .usb = usb_ptr,
                 .last_report = .{},
                 .next_report = .{},
-                .interface = interface,
-                .report_id = report_id,
             };
         }
 
@@ -211,14 +219,14 @@ pub fn OutputReporter(comptime UsbConfigType: type, comptime Report: type) type 
             switch (setup.request) {
                 requests.set_report => if (setup.direction == .out) {
                     const payload: requests.ReportPayload = @bitCast(setup.payload);
-                    if (payload.interface == self.interface and payload.report_id == self.report_id and payload.report_type == .output) {
+                    if (payload.interface == config.interface_index and payload.report_id == config.report_id and payload.report_type == .output) {
                         self.usb.setupTransferOut(setup.data_len);
                         return true;
                     }
                 },
                 requests.get_report => if (setup.direction == .in) {
                     const payload: requests.ReportPayload = @bitCast(setup.payload);
-                    if (payload.interface == self.interface and payload.report_id == self.report_id and payload.report_type == .output) {
+                    if (payload.interface == config.interface_index and payload.report_id == config.report_id and payload.report_type == .output) {
                         self.usb.setupTransferInData(std.mem.asBytes(&self.current_report)[0..report_bytes]);
                         return true;
                     }
@@ -231,7 +239,7 @@ pub fn OutputReporter(comptime UsbConfigType: type, comptime Report: type) type 
         pub fn handleSetupOutBuffer(self: *Self, setup: usb.SetupPacket, offset: u16, data: []volatile const u8) bool {
             if (setup.kind != .class or setup.request != requests.set_report) return false;
             const payload: requests.ReportPayload = @bitCast(setup.payload);
-            if (payload.interface == self.interface and payload.report_id == self.report_id and payload.report_type == .output) {
+            if (payload.interface == config.interface_index and payload.report_id == config.report_id and payload.report_type == .output) {
                 if (offset > report_bytes) return true;
 
                 var buf = std.mem.asBytes(&self.current_report)[offset..report_bytes];
@@ -242,7 +250,6 @@ pub fn OutputReporter(comptime UsbConfigType: type, comptime Report: type) type 
         }
     };
 }
-
 
 pub const Locale = enum(u8) {
     generic = 0,

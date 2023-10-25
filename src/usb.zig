@@ -17,45 +17,8 @@ pub const endpoint = @import("usb/endpoint.zig");
 pub const hid = @import("usb/hid.zig");
 pub const cdc_acm = @import("usb/cdc_acm.zig");
 
-// Takes a struct that defines these functions:
-//     fn getDeviceDescriptor() descriptor.Device
-//     fn getStringDescriptor(id: descriptor.StringID, language: u16) []const u8
-//     fn getConfigurationDescriptor(configuration: u8) descriptor.Configuration
-//     fn getInterfaceDescriptor(configuration: u8, interface: u8) descriptor.Interface
-//     fn getEndpointDescriptor(configuration: u8, interface: u8, index: u8) descriptor.Endpoint
-//     fn getDescriptor(kind: descriptor.Kind, configuration: u8, index: u8) []const u8
-//     fn isEndpointReady(address: endpoint.Address) bool
-//     fn handleOutBuffer(ep: endpoint.Index, data: []volatile const u8) void
-//
-// As well as one or the other of:
-//     fn getInBuffer(ep: endpoint.Index, max_packet_size: u16) []const u8
-//     fn fillInBuffer(ep: endpoint.Index, data: []const u8) u16
-//
-// It may optionally also define:
-//     fn handleBusReset() void
-//     fn handleSetup(setup: SetupPacket) bool
-//     fn getAllConfigurationDescriptors(configuration: u8) []const u8
-//     fn getExtraConfigurationDescriptors(configuration: u8, interface: u8) []const descriptor.ID
-//     fn setConfiguration(configuration: u8) void
-//     fn isDeviceSelfPowered() bool // if not defined, assumes false
-//     fn handleSetupOutBuffer(setup: SetupPacket, offset: u16, data: []volatile const u8, last_buffer: bool) bool
-//     fn fillSetupIn(setup: SetupPacket) bool
-//
-// Expects the following to be defined in chip.usb:
-//     const max_packet_size_bytes: u16
-//     fn init() void
-//     fn deinit() void
-//     fn handleBusReset() void
-//     fn pollEvents() Events
-//     fn getSetupPacket() SetupPacket
-//     fn setAddress(address: u7) void
-//     fn configureEndpoint(ed: descriptor.Endpoint) void
-//     fn bufferIterator() Iterator(endpoint.BufferInfo) // buffers of endpoints that have finished their transfer
-//     fn fillBufferIn(ep: endpoint.Index, offset: isize, data: []const u8) void
-//     fn startTransferIn(ep: endpoint.Index, len: u16, pid: PID, last_buffer: bool) void
-//     fn startTransferOut(ep: endpoint.Index, len: u16, pid: PID, last_buffer: bool) void
-//     fn startStall(address: endpoint.Address) void
-//     fn startNak(address: endpoint.Address) void
+/// See `usb/config_template.zig` for how to integrate USB in a project
+/// See `usb/chip_template.zig` for how to use this with new USB hardware
 pub fn Usb(comptime Cfg: anytype) type {
     return struct {
         const Self = @This();
@@ -106,6 +69,10 @@ pub fn Usb(comptime Cfg: anytype) type {
         pub fn update(self: *Self) void {
             const events: Events = chip.usb.pollEvents();
 
+            if (events.start_of_frame) {
+                Config.handleStartOfFrame();
+            }
+
             if (events.buffer_ready) {
                 var iter = chip.usb.bufferIterator();
                 while (iter.next()) |info| {
@@ -125,11 +92,9 @@ pub fn Usb(comptime Cfg: anytype) type {
         }
 
         fn start(self: *Self, configuration: u8) void {
-            const cd: descriptor.Configuration = Config.getConfigurationDescriptor(configuration);
-            for (0..cd.interface_count) |i| {
+            for (0..Config.getInterfaceCount(configuration)) |i| {
                 const interface: u8 = @intCast(i);
-                const id: descriptor.Interface = Config.getInterfaceDescriptor(configuration, interface);
-                for (0..id.endpoint_count) |e| {
+                for (0..Config.getEndpointCount(configuration, interface)) |e| {
                     const ed: descriptor.Endpoint = Config.getEndpointDescriptor(configuration, interface, @intCast(e));
                     chip.usb.configureEndpoint(ed);
                     const ep = ed.address.ep;
@@ -154,9 +119,7 @@ pub fn Usb(comptime Cfg: anytype) type {
         fn reset(self: *Self) void {
             self.initState();
             chip.usb.handleBusReset();
-            if (@hasDecl(Config, "handleBusReset")) {
-                Config.handleBusReset();
-            }
+            Config.handleBusReset();
             log.info("bus reset", .{});
         }
 
@@ -180,17 +143,12 @@ pub fn Usb(comptime Cfg: anytype) type {
                         } else {
                             const setup = chip.usb.getSetupPacket();
                             if (setup.kind == .standard and setup.request == .get_descriptor) {
-                                self.handleGetDescriptor(setup.getDescriptorPayload());
-                            } else if (@hasDecl(Config, "fillSetupIn")) {
-                                if (Config.fillSetupIn(setup)) {
-                                    self.setupTransferIn(self.setup_data_offset + self.setup_data_bytes_remaining);
-                                } else {
-                                    chip.usb.startStall(.{ .ep = ep, .dir = .in });
-                                    log.err("ep0 in stalled (no data to send)", .{});
-                                }
+                                self.handleGetDescriptor(setup);
+                            } else if (Config.fillSetupIn(setup)) {
+                                self.setupTransferIn(self.setup_data_offset + self.setup_data_bytes_remaining);
                             } else {
                                 chip.usb.startStall(.{ .ep = ep, .dir = .in });
-                                log.err("ep0 in stalled (no fillSetupIn)", .{});
+                                log.err("ep0 in stalled (no data to send)", .{});
                             }
                         }
                     }
@@ -201,7 +159,7 @@ pub fn Usb(comptime Cfg: anytype) type {
                     if (info.buffer.len > 0) {
                         const final = if (info.final_buffer) " (final)" else "";
                         log.debug("ep0 out data: {}{s}", .{ std.fmt.fmtSliceHexLower(@volatileCast(info.buffer)), final });
-                        if (@hasDecl(Config, "handleSetupOutBuffer") and !Config.handleSetupOutBuffer(chip.usb.getSetupPacket(), self.setup_data_offset, info.buffer, info.final_buffer)) {
+                        if (!Config.handleSetupOutBuffer(chip.usb.getSetupPacket(), self.setup_data_offset, info.buffer, info.final_buffer)) {
                             log.err("ep0 out not handled: {}", .{ std.fmt.fmtSliceHexLower(@volatileCast(info.buffer)) });
                         }
                     }
@@ -299,9 +257,7 @@ pub fn Usb(comptime Cfg: anytype) type {
                 .set_configuration => if (setup.direction == .out) {
                     const configuration = setup.getConfigurationNumberPayload();
                     self.configuration = configuration;
-                    if (@hasDecl(Config, "setConfiguration")) {
-                        Config.setConfiguration(configuration);
-                    }
+                    Config.handleConfigurationChanged(configuration);
                     log.info("set configuration: {}", .{ configuration });
                     self.setupStatusIn();
                     handled = true;
@@ -313,14 +269,14 @@ pub fn Usb(comptime Cfg: anytype) type {
                     handled = true;
                 },
                 .get_descriptor => if (setup.direction == .in) {
-                    self.handleGetDescriptor(setup.getDescriptorPayload());
+                    self.handleGetDescriptor(setup);
                     handled = true;
                 },
                 .get_status => if (setup.direction == .in) {
                     var status: u16 = 0;
                     switch (setup.target) {
                         .device => {
-                            if (@hasDecl(Config, "isDeviceSelfPowered") and Config.isDeviceSelfPowered()) status |= 1;
+                            if (Config.isDeviceSelfPowered()) status |= 1;
                             if (self.allow_remote_wakeup) status |= 2;
                         },
                         .interface => {
@@ -363,9 +319,7 @@ pub fn Usb(comptime Cfg: anytype) type {
                 else => {},
             };
 
-            if (@hasDecl(Config, "handleSetup")) {
-                if (Config.handleSetup(setup)) handled = true;
-            }
+            if (Config.handleSetup(setup)) handled = true;
 
             if (!handled) {
                 log.err("unrecognized setup: {s}, request = {}", .{
@@ -375,106 +329,124 @@ pub fn Usb(comptime Cfg: anytype) type {
             }
         }
 
-        fn handleGetDescriptor(self: *Self, which: SetupPacket.DescriptorPayload) void {
-            switch (which.kind) {
-                .device => {
-                    if (self.setup_data_offset == 0) {
-                        log.info("get device descriptor {}B", .{ self.setup_data_bytes_remaining });
-                    }
-                    const d: descriptor.Device = Config.getDeviceDescriptor();
-                    self.setupTransferInData(std.mem.asBytes(&d)[0..d._len]);
-                },
-                .device_qualifier => {
-                    if (self.setup_data_offset == 0) {
-                        log.info("get device qualifier {}B", .{ self.setup_data_bytes_remaining });
-                    }
-                    const d: descriptor.Device = Config.getDeviceDescriptor();
-                    const dq: descriptor.DeviceQualifier = .{
-                        .usb_version = d.usb_version,
-                        .class = d.class,
-                        .max_packet_size_bytes = d.max_packet_size_bytes,
-                        .configuration_count = d.configuration_count,
-                    };
-                    self.setupTransferInData(std.mem.asBytes(&dq)[0..dq._len]);
-                },
-                .string => {
-                    const id: descriptor.StringID = @enumFromInt(which.index);
-                    if (self.setup_data_offset == 0) {
-                        log.info("get string {}B: id = {}, lang = {}", .{ self.setup_data_bytes_remaining, id, which.language });
-                    }
-                    self.setupTransferInData(Config.getStringDescriptor(id, which.language));
-                },
-                .endpoint => {
-                    // USB hosts should never ask for endpoint descriptors directly, because
-                    // there's no way to know which interface it's querying, so we just ignore it.
-                    if (self.setup_data_offset == 0) {
-                        log.info("get endpoint descriptor {}B: index = {}", .{ self.setup_data_bytes_remaining, which.index });
-                    }
-                },
-                .configuration => {
-                    const configuration = self.configuration orelse 0;
-                    if (self.setup_data_offset == 0) {
-                        log.info("get configuration descriptor {}B: {}", .{ self.setup_data_bytes_remaining, configuration });
-                    }
-
-                    if (@hasDecl(Config, "getAllConfigurationDescriptors")) {
-                        self.setupTransferInData(Config.getAllConfigurationDescriptors(configuration));
-                    } else {
-                        var offset: u16 = 0;
-                        const cd: descriptor.Configuration = Config.getConfigurationDescriptor(configuration);
-                        offset = self.fillSetupIn(offset, std.mem.asBytes(&cd)[0..cd._len]);
-
-                        for (0..cd.interface_count) |i| {
-                            offset = self.fillInterfaceDescriptor(configuration, @intCast(i), @intCast(offset));
+        fn handleGetDescriptor(self: *Self, setup: SetupPacket) void {
+            const which = setup.getDescriptorPayload();
+            switch (setup.target) {
+                .device => switch (which.kind) {
+                    .device => {
+                        if (self.setup_data_offset == 0) {
+                            log.info("get device descriptor {}B", .{ self.setup_data_bytes_remaining });
                         }
-                        self.setupTransferIn(offset);
+                        const d: descriptor.Device = Config.getDeviceDescriptor();
+                        self.setupTransferInData(std.mem.asBytes(&d)[0..d._len]);
+                    },
+                    .device_qualifier => {
+                        if (self.setup_data_offset == 0) {
+                            log.info("get device qualifier {}B", .{ self.setup_data_bytes_remaining });
+                        }
+                        const d: descriptor.Device = Config.getDeviceDescriptor();
+                        const dq: descriptor.DeviceQualifier = .{
+                            .usb_version = d.usb_version,
+                            .class = d.class,
+                            .max_packet_size_bytes = d.max_packet_size_bytes,
+                            .configuration_count = d.configuration_count,
+                        };
+                        self.setupTransferInData(std.mem.asBytes(&dq)[0..dq._len]);
+                    },
+                    .string => {
+                        const id: descriptor.StringID = @enumFromInt(which.index);
+                        if (self.setup_data_offset == 0) {
+                            log.info("get string {}B: id = {}, lang = {}", .{ self.setup_data_bytes_remaining, id, which.language });
+                        }
+                        if (Config.getStringDescriptor(id, which.language)) |data| {
+                            self.setupTransferInData(data[0..data[0]]);
+                        } else if (self.setup_data_offset == 0) {
+                            log.warn("request for invalid string descriptor: id = {}, lang = {}", .{ id, which.language });
+                        }
+                    },
+                    .interface => {
+                        // USB hosts should always request interface descriptors indirectly as part of the configuration descriptor set.
+                        if (self.setup_data_offset == 0) {
+                            log.info("get interface descriptor {}B: index = {}", .{ self.setup_data_bytes_remaining, which.index });
+                        }
+                    },
+                    .endpoint => {
+                        // USB hosts should always request endpoint descriptors indirectly as part of the configuration descriptor set.
+                        if (self.setup_data_offset == 0) {
+                            log.info("get endpoint descriptor {}B: index = {}", .{ self.setup_data_bytes_remaining, which.index });
+                        }
+                    },
+                    .configuration => {
+                        if (self.setup_data_offset == 0) {
+                            log.info("get configuration descriptor {}B: {}", .{ self.setup_data_bytes_remaining, which.index });
+                        }
+                        if (Config.getConfigurationDescriptorSet(which.index)) |data| {
+                            self.setupTransferInData(data[0..data[0]]);
+                        } else if (self.setup_data_offset == 0) {
+                            log.warn("request for invalid configuration descriptor: {}", .{ which.index });
+                        }
+                    },
+                    else => {
+                        if (self.setup_data_offset == 0) {
+                            log.info("get descriptor {}B: descriptor = 0x{X} {}", .{ self.setup_data_bytes_remaining, @intFromEnum(which.kind), which.index });
+                        }
+                        if (Config.getDescriptor(which.kind, which.index)) |data| {
+                            self.setupTransferInData(data[0..data[0]];
+                        } else if (self.setup_data_offset == 0) {
+                            log.warn("request for invalid descriptor: 0x{X} {}", .{ @intFromEnum(which.kind), which.index });
+                        }
                     }
                 },
                 .interface => {
-                    const configuration = self.configuration orelse 0;
                     if (self.setup_data_offset == 0) {
-                        log.info("get interface descriptor {}B: config = {}, interface = {}", .{
+                        log.info("get interface-specific descriptor {}B: interface = {}, descriptor = 0x{X} {}", .{
                             self.setup_data_bytes_remaining,
-                            configuration,
+                            which.language, // really interface
+                            @intFromEnum(which.kind),
                             which.index,
                         });
                     }
-                    const offset = self.fillInterfaceDescriptor(configuration, @intCast(which.index), 0);
-                    self.setupTransferIn(offset);
+                    if (Config.getInterfaceSpecificDescriptor(which.language, which.kind, which.index)) |data| {
+                        self.setupTransferInData(data[0..data[0]]);
+                    } else if (self.setup_data_offset == 0) {
+                        log.warn("request for invalid interface-specific descriptor: interface = {}, descriptor = 0x{X} {}", .{
+                            which.language, // really interface
+                            @intFromEnum(which.kind),
+                            which.index,
+                        });
+                    }
+                },
+                .endpoint => {
+                    if (self.setup_data_offset == 0) {
+                        log.info("get endpoint-specific descriptor {}B: endpoint = {}, descriptor = 0x{X} {}", .{
+                            self.setup_data_bytes_remaining,
+                            which.language, // really endpoint
+                            @intFromEnum(which.kind),
+                            which.index,
+                        });
+                    }
+                    if (Config.getEndpointSpecificDescriptor(which.language, which.kind, which.index)) |data| {
+                        self.setupTransferInData(data[0..data[0]]);
+                    } else if (self.setup_data_offset == 0) {
+                        log.warn("request for invalid endpoint-specific descriptor: endpoint = {}, descriptor = 0x{X} {}", .{
+                            which.language, // really endpoint
+                            @intFromEnum(which.kind),
+                            which.index,
+                        });
+                    }
                 },
                 else => {
-                    const configuration = self.configuration orelse 0;
                     if (self.setup_data_offset == 0) {
-                        log.info("get descriptor {}B: config = {}, kind = 0x{X}, index = {}", .{
+                        log.warn("invalid get descriptor {}B: target = {}, target_index = {}, descriptor = 0x{X} {}", .{
                             self.setup_data_bytes_remaining,
-                            configuration,
+                            @intFromEnum(setup.target),
+                            which.language,
                             which.kind,
                             which.index,
                         });
                     }
-                    self.setupTransferInData(Config.getDescriptor(which.kind, configuration, which.index));
                 },
             }
-        }
-
-        fn fillInterfaceDescriptor(self: *Self, configuration: u8, interface: u8, data_offset: u16) u16 {
-            var offset = data_offset;
-
-            const id: descriptor.Interface = Config.getInterfaceDescriptor(configuration, interface);
-            offset = self.fillSetupIn(offset, std.mem.asBytes(&id)[0..id._len]);
-
-            for (0..id.endpoint_count) |e| {
-                const ed: descriptor.Endpoint = Config.getEndpointDescriptor(configuration, interface, @intCast(e));
-                offset = self.fillSetupIn(offset, std.mem.asBytes(&ed)[0..ed._len]);
-            }
-
-            if (@hasDecl(Config, "getExtraConfigurationDescriptors")) {
-                for (Config.getExtraConfigurationDescriptors(configuration, interface)) |desc| {
-                    offset = self.fillSetupIn(offset, Config.getDescriptor(desc.kind, configuration, desc.index));
-                }
-            }
-
-            return offset;
         }
 
         pub fn fillSetupIn(self: *Self, offset: u16, data: []const u8) u16 {
@@ -539,9 +511,25 @@ pub fn Usb(comptime Cfg: anytype) type {
 }
 
 pub const Events = struct {
+    start_of_frame: bool = false,
     buffer_ready: bool = false,
     bus_reset: bool = false,
     setup_request: bool = false,
+};
+
+pub const SetupTarget = enum (u5) {
+    device = 0,
+    interface = 1,
+    endpoint = 2,
+    other = 3,
+    _,
+};
+
+pub const SetupKind = enum (u2) {
+    standard = 0,
+    class = 1,
+    vendor = 2,
+    _,
 };
 
 pub const SetupRequestKind = enum (u8) {
@@ -560,19 +548,8 @@ pub const SetupRequestKind = enum (u8) {
 };
 
 pub const SetupPacket = packed struct (u64) {
-    target: enum(u5) {
-        device = 0,
-        interface = 1,
-        endpoint = 2,
-        other = 3,
-        _,
-    },
-    kind: enum (u2) {
-        standard = 0,
-        class = 1,
-        vendor = 2,
-        _,
-    },
+    target: SetupTarget,
+    kind: SetupKind,
     direction: endpoint.Direction,
     request: SetupRequestKind,
     payload: u32,
