@@ -296,7 +296,7 @@ pub fn Usb(comptime Cfg: anytype) type {
                                     if (self.ep_state[addr.ep].out_halted) status |= 1;
                                 },
                             }
-                            log.info("get endpoint {} {} status", .{ addr.ep, @tagName(addr.dir) });
+                            log.info("get endpoint {} {s} status", .{ addr.ep, @tagName(addr.dir) });
                         },
                         else => {
                             log.err("get status for unrecognized target: {}", .{ @intFromEnum(setup.target) });
