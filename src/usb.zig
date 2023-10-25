@@ -406,7 +406,7 @@ pub fn Usb(comptime Cfg: anytype) type {
                             which.index,
                         });
                     }
-                    if (Config.getInterfaceSpecificDescriptor(which.language, which.kind, which.index)) |data| {
+                    if (Config.getInterfaceSpecificDescriptor(@intCast(@intFromEnum(which.language)), which.kind, which.index)) |data| {
                         self.setupTransferInData(data[0..data[0]]);
                     } else if (self.setup_data_offset == 0) {
                         log.warn("request for invalid interface-specific descriptor: interface = {}, descriptor = 0x{X} {}", .{
@@ -425,7 +425,7 @@ pub fn Usb(comptime Cfg: anytype) type {
                             which.index,
                         });
                     }
-                    if (Config.getEndpointSpecificDescriptor(which.language, which.kind, which.index)) |data| {
+                    if (Config.getEndpointSpecificDescriptor(@intCast(@intFromEnum(which.language)), which.kind, which.index)) |data| {
                         self.setupTransferInData(data[0..data[0]]);
                     } else if (self.setup_data_offset == 0) {
                         log.warn("request for invalid endpoint-specific descriptor: endpoint = {}, descriptor = 0x{X} {}", .{
@@ -567,7 +567,7 @@ pub const SetupPacket = packed struct (u64) {
     pub const DescriptorPayload = packed struct (u32) {
         index: u8,
         kind: descriptor.Kind,
-        language: u16,
+        language: descriptor.Language,
     };
     pub fn getDescriptorPayload(self: SetupPacket) DescriptorPayload {
         std.debug.assert(self.request == .get_descriptor or self.request == .set_descriptor);

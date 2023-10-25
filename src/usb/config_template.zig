@@ -38,8 +38,8 @@ const strings = struct {
     // TODO add any additional strings needed
 };
 
-pub fn getStringDescriptor(id: descriptor.StringID, language: u16) ?[]const u8 {
-    if (id == .language) return std.mem.asBytes(&languages);
+pub fn getStringDescriptor(id: descriptor.StringID, language: descriptor.Language) ?[]const u8 {
+    if (id == .languages) return std.mem.asBytes(&languages);
     return switch (language) {
         .english_us => switch (id) {
             .manufacturer_name => std.mem.asBytes(&strings.mfr_name),
@@ -110,30 +110,32 @@ const configurations = .{
 
 pub fn getInterfaceCount(configuration_index: u8) u8 {
     inline for (0.., configurations) |i, configuration| {
-        if (i != configuration_index) continue;
-
-        return @intCast(configuration.interfaces.len);
+        if (i == configuration_index) {
+            return @intCast(configuration.interfaces.len);
+        }
     }
+    return 0;
 }
 
 pub fn getEndpointCount(configuration_index: u8, interface_index: u8) u8 {
     inline for (0.., configurations) |i, configuration| {
-        if (i != configuration_index) continue;
-
-        inline for (0.., configuration.interfaces) |j, interface| {
-            if (j != interface_index) continue;
-
-            return @intCast(interface.endpoints.len);
+        if (i == configuration_index) {
+            inline for (0.., configuration.interfaces) |j, interface| {
+                if (j == interface_index) {
+                    return @intCast(interface.endpoints.len);
+                }
+            }
         }
     }
+    return 0;
 }
 
 pub fn getConfigurationDescriptorSet(configuration_index: u8) ?[]const u8 {
     inline for (0.., configurations) |i, configuration| {
-        if (i != configuration_index) continue;
-
-        const bytes = @bitSizeOf(configuration.descriptors) / 8;
-        return std.mem.asBytes(&configuration.descriptors)[0..bytes];
+        if (i == configuration_index) {
+            const bytes = @bitSizeOf(@TypeOf(configuration.descriptors)) / 8;
+            return std.mem.asBytes(&configuration.descriptors)[0..bytes];
+        }
     }
     return null;
 }
@@ -142,19 +144,18 @@ pub fn getConfigurationDescriptorSet(configuration_index: u8) ?[]const u8 {
 // the hardware configuration for each endpoint.
 pub fn getEndpointDescriptor(configuration_index: u8, interface_index: u8, endpoint_index: u8) descriptor.Endpoint {
     inline for (0.., configurations) |i, configuration| {
-        if (i != configuration_index) continue;
-
-        inline for (0.., configuration.interfaces) |j, iface| {
-            if (j != interface_index) continue;
-
-            inline for (0, iface.endpoints) |k, ep| {
-                if (k != endpoint_index) continue;
-
-                return descriptor.Endpoint.parse(ep);
+        if (i == configuration_index) {
+            inline for (0.., configuration.interfaces) |j, iface| {
+                if (j == interface_index) {
+                    inline for (0.., iface.endpoints) |k, ep| {
+                        if (k == endpoint_index) {
+                            return descriptor.Endpoint.parse(ep);
+                        }
+                    }
+                }
             }
         }
     }
-
     unreachable;
 }
 
@@ -194,7 +195,7 @@ pub fn isEndpointReady(address: endpoint.Address) bool {
 
 /// The buffer returned from this function only needs to remain valid briefly; it will be copied to an internal buffer.
 /// If you don't have a buffer available, you can instead define:
-///     pub fn fillInBuffer(ep: endpoint.Index, data: []const u8) u16 { ... }
+///     pub fn fillInBuffer(ep: endpoint.Index, data: []u8) u16 { ... }
 pub fn getInBuffer(ep: endpoint.Index, max_packet_size: u16) []const u8 {
     _ = max_packet_size;
     _ = ep;

@@ -86,7 +86,7 @@ pub fn InputReporter(comptime UsbConfigType: type, comptime Report: type, compti
         @compileError("Buffer size must be a power of two!");
     }
     const report_bytes = @bitSizeOf(Report) / 8;
-    const Fifo = std.fifo.LinearFifo(Report, .{ .static = config.max_buffer_size });
+    const Fifo = std.fifo.LinearFifo(Report, .{ .Static = config.max_buffer_size });
     return struct {
         const Self = @This();
 
@@ -185,7 +185,7 @@ pub fn InputReporter(comptime UsbConfigType: type, comptime Report: type, compti
                 },
                 requests.get_report => if (setup.direction == .in) {
                     const payload: requests.ReportPayload = @bitCast(setup.payload);
-                    if (payload.interface == config.interface_index and payload.report_id == config.report_id and payload.report_type == .input) {
+                    if (payload.interface == config.interface_index and payload.report_id == config.report_id and payload.report_kind == .input) {
                         self.usb.setupTransferInData(std.mem.asBytes(&self.last_report)[0..report_bytes]);
                         return true;
                     }
@@ -212,8 +212,7 @@ pub fn OutputReporter(comptime UsbConfigType: type, comptime Report: type, compt
         pub fn init(usb_ptr: *usb.Usb(UsbConfigType)) Self {
             return .{
                 .usb = usb_ptr,
-                .last_report = .{},
-                .next_report = .{},
+                .current_report = .{},
             };
         }
 
@@ -222,14 +221,14 @@ pub fn OutputReporter(comptime UsbConfigType: type, comptime Report: type, compt
             switch (setup.request) {
                 requests.set_report => if (setup.direction == .out) {
                     const payload: requests.ReportPayload = @bitCast(setup.payload);
-                    if (payload.interface == config.interface_index and payload.report_id == config.report_id and payload.report_type == .output) {
+                    if (payload.interface == config.interface_index and payload.report_id == config.report_id and payload.report_kind == .output) {
                         self.usb.setupTransferOut(setup.data_len);
                         return true;
                     }
                 },
                 requests.get_report => if (setup.direction == .in) {
                     const payload: requests.ReportPayload = @bitCast(setup.payload);
-                    if (payload.interface == config.interface_index and payload.report_id == config.report_id and payload.report_type == .output) {
+                    if (payload.interface == config.interface_index and payload.report_id == config.report_id and payload.report_kind == .output) {
                         self.usb.setupTransferInData(std.mem.asBytes(&self.current_report)[0..report_bytes]);
                         return true;
                     }
@@ -242,7 +241,7 @@ pub fn OutputReporter(comptime UsbConfigType: type, comptime Report: type, compt
         pub fn handleSetupOutBuffer(self: *Self, setup: usb.SetupPacket, offset: u16, data: []volatile const u8) bool {
             if (setup.kind != .class or setup.request != requests.set_report) return false;
             const payload: requests.ReportPayload = @bitCast(setup.payload);
-            if (payload.interface == config.interface_index and payload.report_id == config.report_id and payload.report_type == .output) {
+            if (payload.interface == config.interface_index and payload.report_id == config.report_id and payload.report_kind == .output) {
                 if (offset > report_bytes) return true;
 
                 var buf = std.mem.asBytes(&self.current_report)[offset..report_bytes];
@@ -250,6 +249,7 @@ pub fn OutputReporter(comptime UsbConfigType: type, comptime Report: type, compt
                 @memcpy(buf[0..bytes], data[0..bytes]);
                 return true;
             }
+            return false;
         }
     };
 }
@@ -298,11 +298,11 @@ pub const boot_keyboard = struct {
     pub const HidDescriptor = Descriptor(.generic, .{ ReportDescriptor });
     pub const ReportDescriptor = report.Descriptor(.{
         report.UsagePage(.generic_desktop),
-        report.Usage(.keyboard),
+        report.Usage(page.GenericDesktop.keyboard),
         report.Collection(.application, .{
             report.BitCount(8),
             report.UsagePage(.keyboard),
-            report.UsageRange(page.keyboard.lcontrol, page.keyboard.rgui),
+            report.UsageRange(page.Keyboard.lcontrol, page.Keyboard.rgui),
             report.LogicalRange(0, 1),
             report.AbsoluteInput(.linear, .returns_to_preferred_state, .no_null_state),
             report.ByteCount(1),
@@ -330,7 +330,7 @@ pub const boot_keyboard = struct {
             right_shift: bool = false,
             right_alt: bool = false,
             right_gui: bool = false,
-        },
+        } = .{},
         _reserved: u8 = 0,
         keys: [6]page.Keyboard = std.mem.zeroes([6]page.Keyboard),
     };
@@ -391,28 +391,41 @@ pub fn Descriptor(comptime locale: Locale, comptime class_descriptors: anytype) 
         len: u16
     };
 
-    const infos = comptime blk: {
-        var infos: []SubDescriptorInfo = &.{};
-        inline for (class_descriptors) |desc| {
-            const info: SubDescriptorInfo = .{
+    const fields = comptime blk: {
+        var fields: []const std.builtin.Type.StructField = &.{};
+
+        for (0.., class_descriptors) |i, desc| {
+            const default: SubDescriptorInfo = .{
                 .kind = desc._kind,
                 .len = desc._len,
             };
-
-            infos = infos ++ .{ info };
+            const t: std.builtin.Type.StructField = .{
+                .name = std.fmt.comptimePrint("{}", .{ i }),
+                .type = SubDescriptorInfo,
+                .default_value = &default,
+                .is_comptime = false,
+                .alignment = 0,
+            };
+            fields = fields ++ .{ t };
         }
-        break :blk infos;
+
+        break :blk fields;
     };
 
-    const ptr: *const [infos.len]SubDescriptorInfo = @ptrCast(infos);
+    const SubDescriptorInfos = @Type(.{ .Struct = .{
+        .layout = .Packed,
+        .fields = fields,
+        .decls = &.{},
+        .is_tuple = false,
+    }});
 
     return packed struct {
         _len: u8 = @bitSizeOf(@This()) / 8,
         _kind: descriptor.Kind = hid_descriptor,
         hid_version: descriptor.Version = .{ .major = 1, .minor = 1, .rev = 1 },
         locale: Locale = locale,
-        num_descriptors: u8 = @intCast(infos.len),
-        descriptors: [infos.len]SubDescriptorInfo = ptr.*,
+        num_descriptors: u8 = @intCast(fields.len),
+        descriptors: SubDescriptorInfos = .{},
     };
 }
 
@@ -451,7 +464,7 @@ pub const report = struct {
 
     fn intOrEnum(comptime a: anytype) comptime_int {
         return switch (@typeInfo(@TypeOf(a))) {
-            .Enum => @enumFromInt(a),
+            .Enum => @intFromEnum(a),
             .Int, .ComptimeInt => a,
             else => @compileError("Expected enum or integer"),
         };
@@ -502,10 +515,10 @@ pub const report = struct {
     pub const ConstantInput = Input(.{ .disposition = .constant });
     pub const ConstantOutput = Output(.{ .disposition = .constant });
 
-    pub const ArrayInput = Input(.{ .disposition = .array, .has_null_state = true });
-    pub const ArrayOutput = Output(.{ .disposition = .array, .has_null_state = true });
+    pub const ArrayInput = Input(.{ .disposition = .array, .nullability = .has_null_state });
+    pub const ArrayOutput = Output(.{ .disposition = .array, .nullability = .has_null_state });
 
-    pub fn AbsoluteInput(linearity: IOFlags.Linearity, autonomy: IOFlags.Autonomy, nullability: IOFlags.Nullability) type {
+    pub fn AbsoluteInput(comptime linearity: IOFlags.Linearity, comptime autonomy: IOFlags.Autonomy, comptime nullability: IOFlags.Nullability) type {
         return Input(.{
             .disposition = .variable,
             .basis = .absolute,
@@ -514,7 +527,7 @@ pub const report = struct {
             .nullability = nullability,
         });
     }
-    pub fn AbsoluteOutput(linearity: IOFlags.Linearity, nullability: IOFlags.Nullability, volatility: IOFlags.Volatility) type {
+    pub fn AbsoluteOutput(comptime linearity: IOFlags.Linearity, comptime nullability: IOFlags.Nullability, comptime volatility: IOFlags.Volatility) type {
         return Output(.{
             .disposition = .variable,
             .basis = .absolute,
@@ -523,7 +536,7 @@ pub const report = struct {
             .volatility = volatility,
         });
     }
-    pub fn WrappedInput(linearity: IOFlags.Linearity, autonomy: IOFlags.Autonomy, nullability: IOFlags.Nullability) type {
+    pub fn WrappedInput(comptime linearity: IOFlags.Linearity, comptime autonomy: IOFlags.Autonomy, comptime nullability: IOFlags.Nullability) type {
         return Input(.{
             .disposition = .variable,
             .basis = .absolute_wrapped,
@@ -533,7 +546,7 @@ pub const report = struct {
         });
     }
     pub const RelativeInput = Input(.{ .disposition = .variable, .basis = .relative, .autonomy = .none });
-    pub fn RelativeOutput(volatility: IOFlags.Volatility) type {
+    pub fn RelativeOutput(comptime volatility: IOFlags.Volatility) type {
         return Output(.{
             .disposition = .variable,
             .basis = .relative,
@@ -612,14 +625,14 @@ pub const report = struct {
 
     fn Items(comptime contents: anytype) type {
         const types = comptime blk: {
-            var types: []std.builtin.Type.StructField = &.{};
+            var types: []const std.builtin.Type.StructField = &.{};
 
             for (0.., contents) |i, ItemType| {
                 const default: ItemType = .{};
                 const t: std.builtin.Type.StructField = .{
                     .name = std.fmt.comptimePrint("{}", .{ i }),
                     .type = ItemType,
-                    .default_value = default,
+                    .default_value = &default,
                     .is_comptime = false,
                     .alignment = 0,
                 };
@@ -986,6 +999,8 @@ pub const page = struct {
         rshift = 0xE5,
         ralt = 0xE6,
         rgui = 0xE7, // windows or apple key
+
+        _,
     };
 
     pub const Leds = enum(u8) {
@@ -995,6 +1010,8 @@ pub const page = struct {
         compose = 0x04,
         kana = 0x05,
         shift = 0x07,
+
+        _,
     };
 
 };
