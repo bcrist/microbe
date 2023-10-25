@@ -319,4 +319,6 @@ pub const Language = enum (u16) {
     hid_vendor_2 = 0xf4ff,
     hid_vendor_3 = 0xf8ff,
     hid_vendor_4 = 0xfcff,
+
+    _,
 };

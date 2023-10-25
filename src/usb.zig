@@ -98,7 +98,17 @@ pub fn Usb(comptime Cfg: anytype) type {
                 for (0..Config.getEndpointCount(configuration, interface)) |e| {
                     const ed: descriptor.Endpoint = Config.getEndpointDescriptor(configuration, interface, @intCast(e));
                     chip.usb.configureEndpoint(ed);
+                    std.log.info("initialized endpoint: ep{} {s}, {s}, {}B, {}ms", .{
+                        ed.address.ep,
+                        @tagName(ed.address.dir),
+                        @tagName(ed.transfer_kind),
+                        ed.max_packet_size_bytes,
+                        ed.poll_interval_ms,
+                    });
+
                     const ep = ed.address.ep;
+                    if (ep == 0) continue;
+
                     switch (ed.address.dir) {
                         .out => {
                             self.ep_state[ep].out_halted = false;
@@ -108,9 +118,7 @@ pub fn Usb(comptime Cfg: anytype) type {
                         .in => {
                             self.ep_state[ep].in_halted = false;
                             self.ep_state[ep].in_max_packet_size_bytes = ed.max_packet_size_bytes;
-                            if (ep != 0) {
-                                self.updateInState(ep);
-                            }
+                            self.updateInState(ep);
                         },
                     } 
                 }
@@ -314,8 +322,14 @@ pub fn Usb(comptime Cfg: anytype) type {
                             const addr: endpoint.Address = @bitCast(raw);
                             const halt = setup.request == .set_feature;
                             switch (addr.dir) {
-                                .in => self.ep_state[addr.ep].in_halted = halt,
-                                .out => self.ep_state[addr.ep].out_halted = halt,
+                                .in => {
+                                    self.ep_state[addr.ep].in_halted = halt;
+                                    self.updateInState(addr.ep);
+                                },
+                                .out => {
+                                    self.ep_state[addr.ep].out_halted = halt;
+                                    self.updateOutState(addr.ep);
+                                },
                             }
                         },
                         .device_remote_wakeup => if (setup.target == .device) {

@@ -108,28 +108,6 @@ const configurations = .{
     // TODO add any additional configuration structs here
 };
 
-pub fn getInterfaceCount(configuration_index: u8) u8 {
-    inline for (0.., configurations) |i, configuration| {
-        if (i == configuration_index) {
-            return @intCast(configuration.interfaces.len);
-        }
-    }
-    return 0;
-}
-
-pub fn getEndpointCount(configuration_index: u8, interface_index: u8) u8 {
-    inline for (0.., configurations) |i, configuration| {
-        if (i == configuration_index) {
-            inline for (0.., configuration.interfaces) |j, interface| {
-                if (j == interface_index) {
-                    return @intCast(interface.endpoints.len);
-                }
-            }
-        }
-    }
-    return 0;
-}
-
 pub fn getConfigurationDescriptorSet(configuration_index: u8) ?[]const u8 {
     inline for (0.., configurations) |i, configuration| {
         if (i == configuration_index) {
@@ -140,11 +118,33 @@ pub fn getConfigurationDescriptorSet(configuration_index: u8) ?[]const u8 {
     return null;
 }
 
+pub fn getInterfaceCount(configuration: u8) u8 {
+    inline for (configurations) |cfg| {
+        if (cfg.number == configuration) {
+            return @intCast(configuration.interfaces.len);
+        }
+    }
+    return 0;
+}
+
+pub fn getEndpointCount(configuration: u8, interface_index: u8) u8 {
+    inline for (configurations) |cfg| {
+        if (cfg.number == configuration) {
+            inline for (0.., configuration.interfaces) |j, interface| {
+                if (j == interface_index) {
+                    return @intCast(interface.endpoints.len);
+                }
+            }
+        }
+    }
+    return 0;
+}
+
 // Endpoint descriptors are not queried directly by hosts, but these are used to set up
 // the hardware configuration for each endpoint.
-pub fn getEndpointDescriptor(configuration_index: u8, interface_index: u8, endpoint_index: u8) descriptor.Endpoint {
-    inline for (0.., configurations) |i, configuration| {
-        if (i == configuration_index) {
+pub fn getEndpointDescriptor(configuration: u8, interface_index: u8, endpoint_index: u8) descriptor.Endpoint {
+    inline for (configurations) |cfg| {
+        if (cfg.number == configuration) {
             inline for (0.., configuration.interfaces) |j, iface| {
                 if (j == interface_index) {
                     inline for (0.., iface.endpoints) |k, ep| {
