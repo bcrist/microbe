@@ -39,7 +39,7 @@ pub fn Bus(comptime pad_ids: []const chip.PadID, comptime config: Config) type {
             }
 
             pub fn read() State {
-                var raw = RawInt{};
+                var raw: RawInt = 0;
                 inline for (ports) |port| {
                     const port_state = chip.gpio.readInputPort(port);
                     inline for (pad_ids, 0..) |pad, raw_bit| {
