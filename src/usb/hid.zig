@@ -433,6 +433,10 @@ pub fn Descriptor(comptime locale: Locale, comptime class_descriptors: anytype) 
         locale: Locale = locale,
         num_descriptors: u8 = @intCast(fields.len),
         descriptors: SubDescriptorInfos = .{},
+
+        pub fn asBytes(self: *const @This()) []const u8 {
+            return descriptor.asBytes(self);
+        }
     };
 }
 
@@ -627,6 +631,10 @@ pub const report = struct {
             _len: u8 = @bitSizeOf(@This()) / 8,
             _kind: descriptor.Kind = report_descriptor,
             contents: Items(contents) = .{},
+
+            pub fn asBytes(self: *const @This()) []const u8 {
+                return descriptor.asBytes(self);
+            }
         };
     }
 

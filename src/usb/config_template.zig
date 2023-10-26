@@ -39,14 +39,14 @@ const strings = struct {
 };
 
 pub fn getStringDescriptor(id: descriptor.StringID, language: descriptor.Language) ?[]const u8 {
-    if (id == .languages) return std.mem.asBytes(&languages);
+    if (id == .languages) return languages.asBytes();
     return switch (language) {
         .english_us => switch (id) {
-            .manufacturer_name => std.mem.asBytes(&strings.mfr_name),
-            .product_name => std.mem.asBytes(&strings.product_name),
-            .serial_number => std.mem.asBytes(&strings.serial_number),
-            .default_configuration_name => std.mem.asBytes(&strings.default_configuration_name),
-            .default_interface_name => std.mem.asBytes(&strings.default_interface_name),
+            .manufacturer_name => strings.mfr_name.asBytes(),
+            .product_name => strings.product_name.asBytes(),
+            .serial_number => strings.serial_number.asBytes(),
+            .default_configuration_name => strings.default_configuration_name.asBytes(),
+            .default_interface_name => strings.default_interface_name.asBytes(),
             // TODO hook up any additional strings to IDs
             else => null,
         },
@@ -111,8 +111,7 @@ const configurations = .{
 pub fn getConfigurationDescriptorSet(configuration_index: u8) ?[]const u8 {
     inline for (0.., configurations) |i, configuration| {
         if (i == configuration_index) {
-            const bytes = @bitSizeOf(@TypeOf(configuration.descriptors)) / 8;
-            return std.mem.asBytes(&configuration.descriptors)[0..bytes];
+            return descriptor.asBytes(&configuration.descriptors);
         }
     }
     return null;

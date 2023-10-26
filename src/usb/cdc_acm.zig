@@ -40,6 +40,10 @@ pub const HeaderDescriptor = packed struct (u40) {
     _kind: descriptor.Kind = interface_descriptor,
     _subkind: DescriptorSubkind = .header,
     cdc_version: descriptor.Version = .{ .major = 1, .minor = 2 },
+
+    pub fn asBytes(self: *const @This()) []const u8 {
+        return descriptor.asBytes(self);
+    }
 };
 
 pub const CallManagementDescriptor = packed struct (u40) {
@@ -50,6 +54,10 @@ pub const CallManagementDescriptor = packed struct (u40) {
     can_transfer_call_management_over_data_interface: bool = true,
     _reserved: u6 = 0,
     data_interface_index: u8, // zero-based index of the data interface within this configuration
+
+    pub fn asBytes(self: *const @This()) []const u8 {
+        return descriptor.asBytes(self);
+    }
 };
 
 pub const AbstractControlManagementDescriptor = packed struct (u32) {
@@ -61,6 +69,10 @@ pub const AbstractControlManagementDescriptor = packed struct (u32) {
     supports_send_break_request: bool = false,
     supports_network_connection_notification: bool = false,
     _reserved: u4 = 0,
+
+    pub fn asBytes(self: *const @This()) []const u8 {
+        return descriptor.asBytes(self);
+    }
 };
 
 pub const UnionDescriptor = packed struct (u40) {
@@ -69,6 +81,10 @@ pub const UnionDescriptor = packed struct (u40) {
     _subkind: DescriptorSubkind = .@"union",
     control_interface_index: u8, // zero-based index of the control interface within this configuration
     data_interface_index: u8, // zero-based index of the data interface within this configuration
+
+    pub fn asBytes(self: *const @This()) []const u8 {
+        return descriptor.asBytes(self);
+    }
 };
 
 const interface_descriptor: descriptor.Kind = @enumFromInt(0x24);
