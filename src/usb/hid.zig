@@ -683,33 +683,30 @@ pub const report = struct {
 
         _,
     };
-    pub fn ShortItem(comptime kind: ShortItemKind, comptime unsigned_data: comptime_int) type {
-        if (unsigned_data < 0) @compileError("Expected data >= 0");
-        if (unsigned_data == 0) {
+    pub fn ShortItem(comptime kind: ShortItemKind, comptime data: i32) type {
+        if (data == 0) {
             return packed struct (u8) {
                 _size: u2 = 0,
                 _kind: ShortItemKind = kind,
             };
-        } else if (unsigned_data < 0x100) {
+        } else if (@as(i8, @truncate(data)) == data) {
             return packed struct (u16) {
                 _size: u2 = 1,
                 _kind: ShortItemKind = kind,
-                data: u8 = unsigned_data,
+                data: i8 = @truncate(data),
             };
-        } else if (unsigned_data < 0x10000) {
+        } else if (@as(i16, @truncate(data)) == data) {
             return packed struct (u24) {
                 _size: u2 = 2,
                 _kind: ShortItemKind = kind,
-                data: u16 = unsigned_data,
+                data: i16 = @truncate(data),
             };
-        } else if (unsigned_data < 0x100000000) {
+        } else {
             return packed struct (u40) {
                 _size: u2 = 3,
                 _kind: ShortItemKind = kind,
-                data: u32 = unsigned_data,
+                data: i32 = data,
             };
-        } else {
-            @compileError("Data too large!");
         }
     }
 

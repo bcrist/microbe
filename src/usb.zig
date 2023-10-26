@@ -430,7 +430,7 @@ pub fn Usb(comptime Cfg: anytype) type {
                     if (self.setup_data_offset == 0) {
                         log.info("get interface-specific descriptor {}B: interface = {}, descriptor = 0x{X} {}", .{
                             self.setup_data_bytes_remaining,
-                            which.language, // really interface
+                            @intFromEnum(which.language), // really interface
                             @intFromEnum(which.kind),
                             which.index,
                         });
@@ -439,7 +439,7 @@ pub fn Usb(comptime Cfg: anytype) type {
                         self.setupTransferInData(data);
                     } else if (self.setup_data_offset == 0) {
                         log.warn("request for invalid interface-specific descriptor: interface = {}, descriptor = 0x{X} {}", .{
-                            which.language, // really interface
+                            @intFromEnum(which.language), // really interface
                             @intFromEnum(which.kind),
                             which.index,
                         });
@@ -449,7 +449,7 @@ pub fn Usb(comptime Cfg: anytype) type {
                     if (self.setup_data_offset == 0) {
                         log.info("get endpoint-specific descriptor {}B: endpoint = {}, descriptor = 0x{X} {}", .{
                             self.setup_data_bytes_remaining,
-                            which.language, // really endpoint
+                            @intFromEnum(which.language), // really endpoint
                             @intFromEnum(which.kind),
                             which.index,
                         });
@@ -458,7 +458,7 @@ pub fn Usb(comptime Cfg: anytype) type {
                         self.setupTransferInData(data);
                     } else if (self.setup_data_offset == 0) {
                         log.warn("request for invalid endpoint-specific descriptor: endpoint = {}, descriptor = 0x{X} {}", .{
-                            which.language, // really endpoint
+                            @intFromEnum(which.language), // really endpoint
                             @intFromEnum(which.kind),
                             which.index,
                         });
@@ -469,7 +469,7 @@ pub fn Usb(comptime Cfg: anytype) type {
                         log.warn("invalid get descriptor {}B: target = {}, target_index = {}, descriptor = 0x{X} {}", .{
                             self.setup_data_bytes_remaining,
                             @intFromEnum(setup.target),
-                            which.language,
+                            @intFromEnum(which.language),
                             which.kind,
                             which.index,
                         });
