@@ -395,15 +395,10 @@ pub fn Descriptor(comptime locale: Locale, comptime class_descriptors: anytype) 
         var fields: []const std.builtin.Type.StructField = &.{};
 
         for (0.., class_descriptors) |i, desc| {
-            const default: SubDescriptorInfo = if (@TypeOf(desc) == type) d: {
-                const class_descriptor_fields = @typeInfo(desc).Struct.fields;
-                break :d .{
-                    .kind = @as(*const descriptor.Kind, @ptrCast(class_descriptor_fields[1].default_value.?)).*,
-                    .len = @as(*const u8, @ptrCast(class_descriptor_fields[0].default_value.?)).*,
-                };
-            } else .{
-                .kind = desc._kind,
-                .len = desc._len,
+            const DescType = if (@TypeOf(desc) == type) desc else @TypeOf(desc);
+            const default: SubDescriptorInfo = .{
+                .kind = DescType._kind,
+                .len = DescType._len,
             };
 
             const t: std.builtin.Type.StructField = .{
@@ -450,8 +445,8 @@ pub const report = struct {
     }
     pub fn CountAndSize(comptime count: comptime_int, comptime size: comptime_int) type {
         return packed struct {
-            _count: ShortItem(.global_report_count, count) = .{},
             _size: ShortItem(.global_report_size, size) = .{},
+            _count: ShortItem(.global_report_count, count) = .{},
         };
     }
 
@@ -628,10 +623,10 @@ pub const report = struct {
 
     pub fn Descriptor(comptime contents: anytype) type {
         return packed struct {
-            _len: u8 = @bitSizeOf(@This()) / 8,
-            _kind: descriptor.Kind = report_descriptor,
             contents: Items(contents) = .{},
 
+            pub const _len: u8 = @bitSizeOf(@This()) / 8;
+            pub const _kind: descriptor.Kind = report_descriptor;
             pub fn asBytes(self: *const @This()) []const u8 {
                 return descriptor.asBytes(self);
             }
@@ -698,30 +693,63 @@ pub const report = struct {
 
         _,
     };
-    pub fn ShortItem(comptime kind: ShortItemKind, comptime data: i32) type {
-        if (data == 0) {
+    pub fn ShortItem(comptime kind: ShortItemKind, comptime data: comptime_int) type {
+        comptime var can_be_zero_bytes = false;
+        comptime var can_be_signed = false;
+
+        switch (@as(u2, @truncate(@intFromEnum(kind)))) {
+            0 => can_be_zero_bytes = true, // main item
+            1 => can_be_signed = true, // global item
+            else  => {}
+        }
+
+        if (can_be_zero_bytes and data == 0) {
             return packed struct (u8) {
                 _size: u2 = 0,
                 _kind: ShortItemKind = kind,
             };
-        } else if (@as(i8, @truncate(data)) == data) {
-            return packed struct (u16) {
-                _size: u2 = 1,
-                _kind: ShortItemKind = kind,
-                data: i8 = @truncate(data),
-            };
-        } else if (@as(i16, @truncate(data)) == data) {
-            return packed struct (u24) {
-                _size: u2 = 2,
-                _kind: ShortItemKind = kind,
-                data: i16 = @truncate(data),
-            };
+        } else if (can_be_signed) {
+            const idata: i32 = @intCast(data);
+            if (@as(i8, @truncate(idata)) == idata) {
+                return packed struct (u16) {
+                    _size: u2 = 1,
+                    _kind: ShortItemKind = kind,
+                    data: i8 = @truncate(idata),
+                };
+            } else if (@as(i16, @truncate(idata)) == idata) {
+                return packed struct (u24) {
+                    _size: u2 = 2,
+                    _kind: ShortItemKind = kind,
+                    data: i16 = @truncate(idata),
+                };
+            } else {
+                return packed struct (u40) {
+                    _size: u2 = 3,
+                    _kind: ShortItemKind = kind,
+                    data: i32 = idata,
+                };
+            }
         } else {
-            return packed struct (u40) {
-                _size: u2 = 3,
-                _kind: ShortItemKind = kind,
-                data: i32 = data,
-            };
+            const udata: u32 = @intCast(data);
+            if (@as(u8, @truncate(udata)) == udata) {
+                return packed struct (u16) {
+                    _size: u2 = 1,
+                    _kind: ShortItemKind = kind,
+                    data: u8 = @truncate(udata),
+                };
+            } else if (@as(u16, @truncate(udata)) == udata) {
+                return packed struct (u24) {
+                    _size: u2 = 2,
+                    _kind: ShortItemKind = kind,
+                    data: u16 = @truncate(udata),
+                };
+            } else {
+                return packed struct (u40) {
+                    _size: u2 = 3,
+                    _kind: ShortItemKind = kind,
+                    data: u32 = udata,
+                };
+            }
         }
     }
 
