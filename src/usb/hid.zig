@@ -395,10 +395,17 @@ pub fn Descriptor(comptime locale: Locale, comptime class_descriptors: anytype) 
         var fields: []const std.builtin.Type.StructField = &.{};
 
         for (0.., class_descriptors) |i, desc| {
-            const default: SubDescriptorInfo = .{
+            const default: SubDescriptorInfo = if (@TypeOf(desc) == type) d: {
+                const class_descriptor_fields = @typeInfo(desc).Struct.fields;
+                break :d .{
+                    .kind = @as(*const descriptor.Kind, @ptrCast(class_descriptor_fields[1].default_value.?)).*,
+                    .len = @as(*const u8, @ptrCast(class_descriptor_fields[0].default_value.?)).*,
+                };
+            } else .{
                 .kind = desc._kind,
                 .len = desc._len,
             };
+
             const t: std.builtin.Type.StructField = .{
                 .name = std.fmt.comptimePrint("{}", .{ i }),
                 .type = SubDescriptorInfo,

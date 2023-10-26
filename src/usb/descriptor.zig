@@ -40,6 +40,10 @@ pub const Device = packed struct (u144) {
     product_name: StringID = .product_name,
     serial_number: StringID = .serial_number,
     configuration_count: u8,
+
+    pub fn asBytes(self: *const @This()) []const u8 {
+        return bytes(self);
+    }
 };
 
 // A subset of the full device descriptor
@@ -52,6 +56,10 @@ pub const DeviceQualifier = packed struct (u80) {
     max_packet_size_bytes: u8 = chip.usb.max_packet_size_bytes,
     configuration_count: u8,
     _reserved: u8 = 0,
+
+    pub fn asBytes(self: *const @This()) []const u8 {
+        return bytes(self);
+    }
 };
 
 pub const Configuration = packed struct (u72) {
@@ -70,6 +78,10 @@ pub const Configuration = packed struct (u72) {
     remote_wakeup: bool, // device can signal for host to take it out of suspend
     _reserved: u5 = 0,
     max_current_ma_div2: u8,
+
+    pub fn asBytes(self: *const @This()) []const u8 {
+        return bytes(self);
+    }
 };
 
 // Note when using this, the device should use `classes.iad_device` instead of `classes.composite_device`
@@ -81,6 +93,10 @@ pub const InterfaceAssociation = packed struct (u64) {
     interface_count: u8,
     function_class: classes.Info,
     name: StringID,
+
+    pub fn asBytes(self: *const @This()) []const u8 {
+        return bytes(self);
+    }
 };
 
 pub const Interface = packed struct (u72) {
@@ -105,6 +121,10 @@ pub const Interface = packed struct (u72) {
             .name = if (@hasDecl(info, "name")) info.name else @enumFromInt(0),
         };
     }
+
+    pub fn asBytes(self: *const @This()) []const u8 {
+        return bytes(self);
+    }
 };
 
 pub const Endpoint = packed struct (u56) {
@@ -128,6 +148,10 @@ pub const Endpoint = packed struct (u56) {
             .max_packet_size_bytes = if (@hasDecl(info, "max_packet_size_bytes")) info.max_packet_size_bytes else chip.usb.max_packet_size_bytes,
             .poll_interval_ms = if (info.kind == .interrupt) info.poll_interval_ms else 0,
         };
+    }
+
+    pub fn asBytes(self: *const @This()) []const u8 {
+        return bytes(self);
     }
 };
 
@@ -155,6 +179,10 @@ pub fn String(comptime utf8: []const u8) type {
         _len: u8 = @bitSizeOf(@This()) / 8,
         _kind: Kind = .string,
         data: [utf16_len]u16 = utf16,
+
+        pub fn asBytes(self: *const @This()) []const u8 {
+            return bytes(self);
+        }
     };
 }
 
@@ -167,6 +195,10 @@ pub fn SupportedLanguages(comptime languages: []const Language) type {
         _len: u8 = @bitSizeOf(@This()) / 8,
         _kind: Kind = .string,
         data: [len]Language = ptr.*,
+
+        pub fn asBytes(self: *const @This()) []const u8 {
+            return bytes(self);
+        }
     };
 }
 
@@ -322,3 +354,19 @@ pub const Language = enum (u16) {
 
     _,
 };
+
+/// @sizeOf() and std.mem.asBytes() have some issues with
+/// packed structs...
+/// 
+/// They round the backing integer size up to a multiple of
+/// the native word size (usually 4 bytes) which often causes
+/// it to add extra bytes on the end.
+/// 
+/// This function makes sure those are sliced off.
+fn bytes(descriptor: anytype) []const u8 {
+    const bit_size = @bitSizeOf(@TypeOf(descriptor.*));
+    comptime std.debug.assert((bit_size & 7) == 0);
+    return std.mem.asBytes(descriptor)[0 .. bit_size / 8];
+}
+
+pub const asBytes = bytes;

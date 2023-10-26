@@ -367,7 +367,7 @@ pub fn Usb(comptime Cfg: anytype) type {
                             log.info("get device descriptor {}B", .{ self.setup_data_bytes_remaining });
                         }
                         const d: descriptor.Device = Config.getDeviceDescriptor();
-                        self.setupTransferInData(std.mem.asBytes(&d)[0..d._len]);
+                        self.setupTransferInData(d.asBytes());
                     },
                     .device_qualifier => {
                         if (self.setup_data_offset == 0) {
@@ -380,7 +380,7 @@ pub fn Usb(comptime Cfg: anytype) type {
                             .max_packet_size_bytes = d.max_packet_size_bytes,
                             .configuration_count = d.configuration_count,
                         };
-                        self.setupTransferInData(std.mem.asBytes(&dq)[0..dq._len]);
+                        self.setupTransferInData(dq.asBytes());
                     },
                     .string => {
                         const id: descriptor.StringID = @enumFromInt(which.index);
