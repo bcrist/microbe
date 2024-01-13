@@ -20,7 +20,7 @@ pub const Version = packed struct (u16) {
     major: u8,
 };
 
-pub const UsbVersion = enum (u16) {
+pub const USB_Version = enum (u16) {
     usb_1_1 = @bitCast(Version{ .major = 1, .minor = 1 }),
     usb_2_0 = @bitCast(Version{ .major = 2 }),
     _
@@ -30,34 +30,34 @@ pub const Device = packed struct (u144) {
     _len: u8 = @bitSizeOf(Device) / 8,
     _kind: Kind = .device,
 
-    usb_version: UsbVersion,
+    usb_version: USB_Version,
     class: classes.Info,
     max_packet_size_bytes: u8 = chip.usb.max_packet_size_bytes,
     vendor_id: u16,
     product_id: u16,
     version: Version,
-    manufacturer_name: StringID = .manufacturer_name,
-    product_name: StringID = .product_name,
-    serial_number: StringID = .serial_number,
+    manufacturer_name: String_ID = .manufacturer_name,
+    product_name: String_ID = .product_name,
+    serial_number: String_ID = .serial_number,
     configuration_count: u8,
 
-    pub fn asBytes(self: *const @This()) []const u8 {
+    pub fn as_bytes(self: *const @This()) []const u8 {
         return bytes(self);
     }
 };
 
 // A subset of the full device descriptor
-pub const DeviceQualifier = packed struct (u80) {
-    _len: u8 = @bitSizeOf(DeviceQualifier) / 8,
+pub const Device_Qualifier = packed struct (u80) {
+    _len: u8 = @bitSizeOf(Device_Qualifier) / 8,
     _kind: Kind = .device_qualifier,
 
-    usb_version: UsbVersion,
+    usb_version: USB_Version,
     class: classes.Info,
     max_packet_size_bytes: u8 = chip.usb.max_packet_size_bytes,
     configuration_count: u8,
     _reserved: u8 = 0,
 
-    pub fn asBytes(self: *const @This()) []const u8 {
+    pub fn as_bytes(self: *const @This()) []const u8 {
         return bytes(self);
     }
 };
@@ -72,29 +72,29 @@ pub const Configuration = packed struct (u72) {
     length_bytes: u16,
     interface_count: u8,
     number: u8,
-    name: StringID,
+    name: String_ID,
     _bus_powered: bool = true, // must be set even if self_powered is set.
     self_powered: bool,
     remote_wakeup: bool, // device can signal for host to take it out of suspend
     _reserved: u5 = 0,
     max_current_ma_div2: u8,
 
-    pub fn asBytes(self: *const @This()) []const u8 {
+    pub fn as_bytes(self: *const @This()) []const u8 {
         return bytes(self);
     }
 };
 
 // Note when using this, the device should use `classes.iad_device` instead of `classes.composite_device`
-pub const InterfaceAssociation = packed struct (u64) {
-    _len: u8 = @bitSizeOf(InterfaceAssociation) / 8,
+pub const Interface_Association = packed struct (u64) {
+    _len: u8 = @bitSizeOf(Interface_Association) / 8,
     _kind: Kind = .interface_association,
 
     first_interface: u8,
     interface_count: u8,
     function_class: classes.Info,
-    name: StringID,
+    name: String_ID,
 
-    pub fn asBytes(self: *const @This()) []const u8 {
+    pub fn as_bytes(self: *const @This()) []const u8 {
         return bytes(self);
     }
 };
@@ -110,7 +110,7 @@ pub const Interface = packed struct (u72) {
     alternate_setting: u8 = 0,
     endpoint_count: u8,
     class: classes.Info,
-    name: StringID,
+    name: String_ID,
 
     pub fn parse(comptime info: type) Interface {
         return .{
@@ -122,7 +122,7 @@ pub const Interface = packed struct (u72) {
         };
     }
 
-    pub fn asBytes(self: *const @This()) []const u8 {
+    pub fn as_bytes(self: *const @This()) []const u8 {
         return bytes(self);
     }
 };
@@ -132,7 +132,7 @@ pub const Endpoint = packed struct (u56) {
     _kind: Kind = .endpoint,
 
     address: endpoint.Address,
-    transfer_kind: endpoint.TransferKind,
+    transfer_kind: endpoint.Transfer_Kind,
     synchronization: endpoint.Synchronization = .none,
     usage: endpoint.Usage = .data,
     _reserved: u2 = 0,
@@ -150,7 +150,7 @@ pub const Endpoint = packed struct (u56) {
         };
     }
 
-    pub fn asBytes(self: *const @This()) []const u8 {
+    pub fn as_bytes(self: *const @This()) []const u8 {
         return bytes(self);
     }
 };
@@ -160,7 +160,7 @@ pub const ID = struct {
     index: u8,
 };
 
-pub const StringID = enum (u8) {
+pub const String_ID = enum (u8) {
     languages = 0,
     manufacturer_name = 1,
     product_name = 2,
@@ -180,14 +180,14 @@ pub fn String(comptime utf8: []const u8) type {
         _kind: Kind = .string,
         data: [utf16_len]u16 = utf16,
 
-        pub fn asBytes(self: *const @This()) []const u8 {
+        pub fn as_bytes(self: *const @This()) []const u8 {
             return bytes(self);
         }
     };
 }
 
 /// StringID 0 should map to this
-pub fn SupportedLanguages(comptime languages: []const Language) type {
+pub fn Supported_Languages(comptime languages: []const Language) type {
     const len = languages.len;
     const ptr: *const [len]Language = @ptrCast(languages);
 
@@ -196,7 +196,7 @@ pub fn SupportedLanguages(comptime languages: []const Language) type {
         _kind: Kind = .string,
         data: [len]Language = ptr.*,
 
-        pub fn asBytes(self: *const @This()) []const u8 {
+        pub fn as_bytes(self: *const @This()) []const u8 {
             return bytes(self);
         }
     };
@@ -369,4 +369,4 @@ fn bytes(descriptor: anytype) []const u8 {
     return std.mem.asBytes(descriptor)[0 .. bit_size / 8];
 }
 
-pub const asBytes = bytes;
+pub const as_bytes = bytes;

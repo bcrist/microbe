@@ -35,10 +35,10 @@ pub const class = struct {
     };
 };
 
-pub const HeaderDescriptor = packed struct (u40) {
+pub const Header_Descriptor = packed struct (u40) {
     _len: u8 = @bitSizeOf(@This()) / 8,
     _kind: descriptor.Kind = interface_descriptor,
-    _subkind: DescriptorSubkind = .header,
+    _subkind: Descriptor_Subkind = .header,
     cdc_version: descriptor.Version = .{ .major = 1, .minor = 2 },
 
     pub fn asBytes(self: *const @This()) []const u8 {
@@ -46,10 +46,10 @@ pub const HeaderDescriptor = packed struct (u40) {
     }
 };
 
-pub const CallManagementDescriptor = packed struct (u40) {
+pub const Call_Management_Descriptor = packed struct (u40) {
     _len: u8 = @bitSizeOf(@This()) / 8,
     _kind: descriptor.Kind = interface_descriptor,
-    _subkind: DescriptorSubkind = .call_management,
+    _subkind: Descriptor_Subkind = .call_management,
     device_handles_call_management: bool = false,
     can_transfer_call_management_over_data_interface: bool = true,
     _reserved: u6 = 0,
@@ -60,10 +60,10 @@ pub const CallManagementDescriptor = packed struct (u40) {
     }
 };
 
-pub const AbstractControlManagementDescriptor = packed struct (u32) {
+pub const Abstract_Control_Management_Descriptor = packed struct (u32) {
     _len: u8 = @bitSizeOf(@This()) / 8,
     _kind: descriptor.Kind = interface_descriptor,
-    _subkind: DescriptorSubkind = .abstract_control_management,
+    _subkind: Descriptor_Subkind = .abstract_control_management,
     supports_feature_requests: bool = false,
     supports_line_requests: bool = true,
     supports_send_break_request: bool = false,
@@ -75,10 +75,10 @@ pub const AbstractControlManagementDescriptor = packed struct (u32) {
     }
 };
 
-pub const UnionDescriptor = packed struct (u40) {
+pub const Union_Descriptor = packed struct (u40) {
     _len: u8 = @bitSizeOf(@This()) / 8,
     _kind: descriptor.Kind = interface_descriptor,
-    _subkind: DescriptorSubkind = .@"union",
+    _subkind: Descriptor_Subkind = .@"union",
     control_interface_index: u8, // zero-based index of the control interface within this configuration
     data_interface_index: u8, // zero-based index of the data interface within this configuration
 
@@ -89,14 +89,14 @@ pub const UnionDescriptor = packed struct (u40) {
 
 const interface_descriptor: descriptor.Kind = @enumFromInt(0x24);
 
-pub const DescriptorSubkind = enum (u8) {
+pub const Descriptor_Subkind = enum (u8) {
     header = 0,
     call_management = 1,
     abstract_control_management = 2,
     @"union" = 6,
 };
 
-pub const LineCoding = packed struct (u56) {
+pub const Line_Coding = packed struct (u56) {
     baud_rate: u32,
     stop_bits: enum (u8) {
         one = 0,
@@ -119,13 +119,13 @@ pub const LineCoding = packed struct (u56) {
     },
 };
 
-pub const ControlLineState = packed struct (u16) {
+pub const Control_Line_State = packed struct (u16) {
     dtr: bool,
     rts: bool,
     _reserved: u14 = 0,
 };
 
-pub const SerialState = packed struct (u16) {
+pub const Serial_State = packed struct (u16) {
     dcd: bool = false,
     dsr: bool = false,
     break_detected: bool = false,
@@ -147,7 +147,7 @@ pub const requests = struct {
     pub const set_control_line_state = request(0x22);
     pub const send_break = request(0x23);
 
-    fn request(comptime num: comptime_int) usb.SetupRequestKind {
+    fn request(comptime num: comptime_int) usb.Setup_Request_Kind {
         return @enumFromInt(num);
     }
 };
@@ -155,7 +155,7 @@ pub const requests = struct {
 pub const notifications = struct {
     // These are sent on the communications interface's in endpoint
 
-    pub fn networkConnection(interface_index: u8, connected: bool) usb.SetupPacket {
+    pub fn networkConnection(interface_index: u8, connected: bool) usb.Setup_Packet {
         var payload: u32 = interface_index;
         payload <<= 16;
         payload |= @intFromBool(connected);
@@ -168,7 +168,7 @@ pub const notifications = struct {
             .data_len = 0,
         };
     }
-    pub fn responseAvailable(interface_index: u8) usb.SetupPacket {
+    pub fn responseAvailable(interface_index: u8) usb.Setup_Packet {
         var payload: u32 = interface_index;
         payload <<= 16;
         return .{
@@ -181,7 +181,7 @@ pub const notifications = struct {
         };
     }
 
-    pub fn serialState(interface_index: u8, state: SerialState) SerialStateNotification {
+    pub fn serialState(interface_index: u8, state: Serial_State) Serial_State_Notification {
         var payload: u32 = interface_index;
         payload <<= 16;
         return .{
@@ -196,20 +196,20 @@ pub const notifications = struct {
             .state = state,
         };
     }
-    pub const SerialStateNotification = packed struct (u80) {
-        setup: usb.SetupPacket,
-        state: SerialState,
+    pub const Serial_State_Notification = packed struct (u80) {
+        setup: usb.Setup_Packet,
+        state: Serial_State,
     };
 
 };
 
-pub const UartConfig = struct {
+pub const UART_Config = struct {
     communications_interface_index: u8,
     rx_packet_size: comptime_int,
     tx_buffer_size: comptime_int = 256,
     rx_buffer_size: comptime_int = 128,
 };
-pub fn Uart(comptime UsbConfigType: type, comptime config: UartConfig) type {
+pub fn UART(comptime USB_Config: type, comptime config: UART_Config) type {
     if (!std.math.isPowerOfTwo(config.tx_buffer_size)) {
         @compileError("UART Tx buffer size must be a power of two!");
     }
@@ -219,47 +219,47 @@ pub fn Uart(comptime UsbConfigType: type, comptime config: UartConfig) type {
 
     const log = std.log.scoped(.usb);
 
-    const TxFifo = std.fifo.LinearFifo(u8, .{ .Static = config.tx_buffer_size });
-    const RxFifo = std.fifo.LinearFifo(u8, .{ .Static = config.rx_buffer_size });
+    const Tx_FIFO = std.fifo.LinearFifo(u8, .{ .Static = config.tx_buffer_size });
+    const Rx_FIFO = std.fifo.LinearFifo(u8, .{ .Static = config.rx_buffer_size });
 
     const Errors = struct {
         const Read            = error {};
-        const ReadNonBlocking = error { WouldBlock };
+        const ReadNonBlocking = error { Would_Block };
 
         const Write            = error {};
-        const WriteNonBlocking = error { WouldBlock };
+        const write_nonblocking = error { Would_Block };
     };
 
     return struct {
 
         const Self = @This();
-        pub const DataType = u8;
+        pub const Data_Type = u8;
 
-        pub const ReadError = Errors.Read;
-        pub const Reader = std.io.Reader(*Self, ReadError, Self.readBlocking);
+        pub const Read_Error = Errors.Read;
+        pub const Reader = std.io.Reader(*Self, Read_Error, Self.read_blocking);
 
-        pub const ReadErrorNonBlocking = Errors.ReadNonBlocking;
-        pub const ReaderNonBlocking = std.io.Reader(*Self, ReadErrorNonBlocking, Self.readNonBlocking);
+        pub const Read_Error_Nonblocking = Errors.ReadNonBlocking;
+        pub const Reader_Nonblocking = std.io.Reader(*Self, Read_Error_Nonblocking, Self.read_nonblocking);
 
-        pub const WriteError = Errors.Write;
-        pub const Writer = std.io.Writer(*Self, WriteError, Self.writeBlocking);
+        pub const Write_Error = Errors.Write;
+        pub const Writer = std.io.Writer(*Self, Write_Error, Self.write_blocking);
 
-        pub const WriteErrorNonBlocking = Errors.WriteNonBlocking;
-        pub const WriterNonBlocking = std.io.Writer(*Self, WriteErrorNonBlocking, Self.writeNonBlocking);
+        pub const Write_Error_Nonblocking = Errors.write_nonblocking;
+        pub const Writer_Nonblocking = std.io.Writer(*Self, Write_Error_Nonblocking, Self.write_nonblocking);
 
-        usb: *usb.Usb(UsbConfigType),
-        tx: TxFifo,
-        rx: RxFifo,
+        usb: *usb.USB(USB_Config),
+        tx: Tx_FIFO,
+        rx: Rx_FIFO,
         received_encapsulated_command: bool,
         dtr: bool,
         rts: bool,
-        line_coding: LineCoding,
+        line_coding: Line_Coding,
 
-        pub fn init(usb_ptr: *usb.Usb(UsbConfigType)) Self {
+        pub fn init(usb_ptr: *usb.USB(USB_Config)) Self {
             return .{
                 .usb = usb_ptr,
-                .tx = TxFifo.init(),
-                .rx = RxFifo.init(),
+                .tx = Tx_FIFO.init(),
+                .rx = Rx_FIFO.init(),
                 .received_encapsulated_command = false,
                 .dtr = false,
                 .rts = false,
@@ -280,19 +280,19 @@ pub fn Uart(comptime UsbConfigType: type, comptime config: UartConfig) type {
             self.rx.deinit();
         }
 
-        pub fn isRxFull(self: *Self) bool {
+        pub fn is_rx_full(self: *Self) bool {
             return self.rx.writableLength() < config.rx_packet_size;
         }
 
-        pub fn getRxAvailableCount(self: *Self) usize {
+        pub fn get_rx_available_count(self: *Self) usize {
             return self.rx.readableLength();
         }
 
-        pub fn canRead(self: *Self) bool {
+        pub fn can_read(self: *Self) bool {
             return self.rx.readableLength() > 0;
         }
 
-        pub fn peek(self: *Self, buffer: []DataType) []const DataType {
+        pub fn peek(self: *Self, buffer: []Data_Type) []const Data_Type {
             if (buffer.len == 0) return buffer[0..0];
             var bytes = self.rx.readableSlice(0);
             if (bytes.len > buffer.len) {
@@ -302,7 +302,7 @@ pub fn Uart(comptime UsbConfigType: type, comptime config: UartConfig) type {
             return buffer[0..bytes.len];
         }
 
-        pub fn peekOne(self: *Self) ?DataType {
+        pub fn peek_one(self: *Self) ?Data_Type {
             if (self.rx.count > 0) self.rx.peekItem(0) else null;
         }
 
@@ -310,19 +310,19 @@ pub fn Uart(comptime UsbConfigType: type, comptime config: UartConfig) type {
             return .{ .context = self };
         }
 
-        pub fn readerNonBlocking(self: *Self) ReaderNonBlocking {
+        pub fn reader_nonblocking(self: *Self) Reader_Nonblocking {
             return .{ .context = self };
         }
 
-        pub fn isTxIdle(self: *Self) bool {
+        pub fn is_tx_idle(self: *Self) bool {
             return self.tx.readableLength() == 0;
         }
 
-        pub fn getTxAvailableCount(self: *Self) usize {
+        pub fn get_tx_available_count(self: *Self) usize {
             return self.tx.writableLength();
         }
 
-        pub fn canWrite(self: *Self) bool {
+        pub fn can_write(self: *Self) bool {
             return self.tx.writableLength() > 0;
         }
 
@@ -330,11 +330,11 @@ pub fn Uart(comptime UsbConfigType: type, comptime config: UartConfig) type {
             return .{ .context = self };
         }
 
-        pub fn writerNonBlocking(self: *Self) WriterNonBlocking {
+        pub fn writer_nonblocking(self: *Self) Writer_Nonblocking {
             return .{ .context = self };
         }
 
-        fn readBlocking(self: *Self, out: []DataType) ReadError!usize {
+        fn read_blocking(self: *Self, out: []Data_Type) Read_Error!usize {
             var remaining = out;
             while (remaining.len > 0) {
                 while (self.rx.readableLength() == 0) {
@@ -348,13 +348,13 @@ pub fn Uart(comptime UsbConfigType: type, comptime config: UartConfig) type {
             return out.len;
         }
 
-        fn readNonBlocking(self: *Self, out: []DataType) ReadErrorNonBlocking!usize {
+        fn read_nonblocking(self: *Self, out: []Data_Type) Read_Error_Nonblocking!usize {
             if (out.len == 0) return 0;
             const bytes_read = self.rx.read(out);
-            return if (bytes_read == 0) error.WouldBlock else bytes_read;
+            return if (bytes_read == 0) error.Would_Block else bytes_read;
         }
 
-        fn writeBlocking(self: *Self, data_to_write: []const DataType) WriteError!usize {
+        fn write_blocking(self: *Self, data_to_write: []const Data_Type) Write_Error!usize {
             var remaining = data_to_write;
             while (remaining.len > 0) {
                 var bytes_to_write = self.tx.writableLength();
@@ -374,46 +374,46 @@ pub fn Uart(comptime UsbConfigType: type, comptime config: UartConfig) type {
             return data_to_write.len;
         }
 
-        fn writeNonBlocking(self: *Self, data_to_write: []const DataType) WriteErrorNonBlocking!usize {
+        fn write_nonblocking(self: *Self, data_to_write: []const Data_Type) Write_Error_Nonblocking!usize {
             if (data_to_write.len == 0) return 0;
             const len = self.tx.writableLength();
-            if (len == 0) return error.WouldBlock;
+            if (len == 0) return error.Would_Block;
             self.tx.writeAssumeCapacity(data_to_write[0..len]);
             return len;
         }
 
         /// Note this implementation ignores all the optional requests.
         /// The response available notification can be sent when the received_encapsulated_command field is set (then unset it)
-        pub fn handleSetup(self: *Self, setup: usb.SetupPacket) bool {
+        pub fn handle_setup(self: *Self, setup: usb.Setup_Packet) bool {
             if (setup.kind != .class or setup.target != .interface) return false;
-            if (setup.getInterfaceNumberPayload() != config.communications_interface_index) return false;
+            if (setup.get_interface_number_payload() != config.communications_interface_index) return false;
             switch (setup.request) {
                 requests.send_encapsulated_command => if (setup.direction == .out) {
                     log.info("send_gencapsulated_command", .{});
-                    self.usb.setupTransferOut(setup.data_len);
+                    self.usb.setup_transfer_out(setup.data_len);
                     return true;
                 },
                 requests.get_encapsulated_response => if (setup.direction == .in) {
                     log.info("Ignoring get_gencapsulated_response", .{});
-                    self.usb.setupTransferIn(0);
+                    self.usb.setup_transfer_in(0);
                     return true;
                 },
                 requests.set_line_coding => if (setup.direction == .out) {
                     log.info("set_line_coding", .{});
-                    self.usb.setupTransferOut(setup.data_len);
+                    self.usb.setup_transfer_out(setup.data_len);
                     return true;
                 },
                 requests.get_line_coding => if (setup.direction == .in) {
                     log.info("get_line_coding", .{});
-                    _ = self.usb.fillSetupIn(0, std.mem.asBytes(&self.line_coding));
-                    self.usb.setupTransferIn(@bitSizeOf(LineCoding) / 8);
+                    _ = self.usb.fill_setup_in(0, std.mem.asBytes(&self.line_coding));
+                    self.usb.setup_transfer_in(@bitSizeOf(Line_Coding) / 8);
                     return true;
                 },
                 requests.set_control_line_state => if (setup.direction == .out) {
                     log.info("set_control_line_state", .{});
-                    self.usb.setupTransferIn(0);
+                    self.usb.setup_transfer_in(0);
                     const value: u16 = @truncate(setup.payload);
-                    const state: ControlLineState = @bitCast(value);
+                    const state: Control_Line_State = @bitCast(value);
                     self.dtr = state.dtr;
                     self.rts = state.rts;
                     return true;
@@ -423,7 +423,7 @@ pub fn Uart(comptime UsbConfigType: type, comptime config: UartConfig) type {
             return false;
         }
 
-        pub fn handleSetupOutBuffer(self: *Self, setup: usb.SetupPacket, offset: u16, data: []volatile const u8, final_buffer: bool) bool {
+        pub fn handle_setup_out_buffer(self: *Self, setup: usb.Setup_Packet, offset: u16, data: []volatile const u8, final_buffer: bool) bool {
             if (setup.kind != .class) return false;
             switch (setup.request) {
                 requests.send_encapsulated_command => {
@@ -431,7 +431,7 @@ pub fn Uart(comptime UsbConfigType: type, comptime config: UartConfig) type {
                     return true;
                 },
                 requests.set_line_coding => {
-                    if (offset == 0 and data.len == @bitSizeOf(LineCoding) / 8 and final_buffer == true) {
+                    if (offset == 0 and data.len == @bitSizeOf(Line_Coding) / 8 and final_buffer == true) {
                         @memcpy(std.mem.asBytes(&self.line_coding).ptr, @volatileCast(data));
                         log.debug("line coding updated: {any}", .{ self.line_coding });
                     }
@@ -441,10 +441,10 @@ pub fn Uart(comptime UsbConfigType: type, comptime config: UartConfig) type {
             }
         }
 
-        pub fn handleOutBuffer(self: *Self, data: []volatile const u8) void {
+        pub fn handle_out_buffer(self: *Self, data: []volatile const u8) void {
             self.rx.writeAssumeCapacity(@volatileCast(data));
         }
-        pub fn fillInBuffer(self: *Self, data: []u8) u16 {
+        pub fn fill_in_buffer(self: *Self, data: []u8) u16 {
             return @intCast(self.tx.read(data));
         }
 

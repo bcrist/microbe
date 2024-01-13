@@ -3,7 +3,8 @@ const usb = @import("microbe").usb;
 const descriptor = usb.descriptor;
 const endpoint = usb.endpoint;
 const classes = usb.classes;
-const SetupPacket = usb.SetupPacket;
+const Setup_Packet = usb.Setup_Packet;
+const PID = usb.PID;
 
 pub const max_packet_size_bytes = 64;
 
@@ -15,64 +16,72 @@ pub fn deinit() void {
     // TODO
 }
 
-pub fn handleBusReset() void {
+pub fn handle_bus_reset() void {
     // TODO
 }
 
-pub fn pollEvents() usb.Events {
+pub fn poll_events() usb.Events {
     // TODO
 }
 
-pub fn getSetupPacket() SetupPacket {
+pub fn get_setup_packet() Setup_Packet {
     // TODO
 }
 
-pub fn setAddress(address: u7) void {
-    _ = address;
+pub fn set_address(address: u7) void {
+    _ = address; // autofix
     // TODO
 }
 
-pub fn configureEndpoint(ed: descriptor.Endpoint) void {
-    _ = ed;
+pub fn configure_endpoint(ed: descriptor.Endpoint) void {
+    _ = ed; // autofix
     // TODO
 }
 
-pub const BufferIterator = struct {
+pub const Buffer_Iterator = struct {
     // TODO
 
-    pub fn next(self: *BufferIterator) ?endpoint.BufferInfo {
-        _ = self;
+    pub fn next(self: *Buffer_Iterator) ?endpoint.Buffer_Info {
+        _ = self; // autofix
         // TODO
         return null;
     }
 };
-pub fn bufferIterator() BufferIterator { // buffers of endpoints that have finished their transfer
+pub fn buffer_iterator() Buffer_Iterator { // buffers of endpoints that have finished their transfer
     return .{
         // TODO
     };
 }
 
-pub fn fillBufferIn(ep: endpoint.Index, offset: isize, data: []const u8) void {
-    _ = data;
-    _ = offset;
-    _ = ep;
+pub fn fill_buffer_in(ep: endpoint.Index, offset: isize, data: []const u8) void {
+    _ = ep; // autofix
+    _ = offset; // autofix
+    _ = data; // autofix
     // TODO
 }
 
-pub fn startTransferIn(ep: endpoint.Index, len: u16, pid: PID, last_buffer: bool) void {
+pub fn start_transfer_in(ep: endpoint.Index, len: u16, pid: PID, last_buffer: bool) void {
+    _ = ep; // autofix
+    _ = len; // autofix
+    _ = pid; // autofix
+    _ = last_buffer; // autofix
     // TODO
 }
 
-pub fn startTransferOut(ep: endpoint.Index, len: u16, pid: PID, last_buffer: bool) void {
+pub fn start_transfer_out(ep: endpoint.Index, len: u16, pid: PID, last_buffer: bool) void {
+    _ = ep; // autofix
+    _ = len; // autofix
+    _ = pid; // autofix
+    _ = last_buffer; // autofix
     // TODO
 }
 
-pub fn startStall(address: endpoint.Address) void {
-    _ = address;
+pub fn start_stall(address: endpoint.Address) void {
+    _ = address; // autofix
     // TODO
 }
 
-pub fn startNak(address: endpoint.Address) void {
+pub fn start_nak(address: endpoint.Address) void {
     _ = address;
     // TODO
 }

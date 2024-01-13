@@ -8,9 +8,9 @@ const usb = @import("microbe").usb;
 const descriptor = usb.descriptor;
 const endpoint = usb.endpoint;
 const classes = usb.classes;
-const SetupPacket = usb.SetupPacket;
+const Setup_Packet = usb.Setup_Packet;
 
-pub fn getDeviceDescriptor() descriptor.Device {
+pub fn get_device_descriptor() descriptor.Device {
     return .{
         .usb_version = .usb_2_0,
         .class = undefined, // TODO
@@ -24,7 +24,7 @@ pub fn getDeviceDescriptor() descriptor.Device {
     };
 }
 
-const languages: descriptor.SupportedLanguages(&.{
+const languages: descriptor.Supported_Languages(&.{
     .english_us,
     // TODO add any additonal languages here
 }) = .{};
@@ -38,15 +38,15 @@ const strings = struct {
     // TODO add any additional strings needed
 };
 
-pub fn getStringDescriptor(id: descriptor.StringID, language: descriptor.Language) ?[]const u8 {
-    if (id == .languages) return languages.asBytes();
+pub fn get_string_descriptor(id: descriptor.String_ID, language: descriptor.Language) ?[]const u8 {
+    if (id == .languages) return languages.as_bytes();
     return switch (language) {
         .english_us => switch (id) {
-            .manufacturer_name => strings.mfr_name.asBytes(),
-            .product_name => strings.product_name.asBytes(),
-            .serial_number => strings.serial_number.asBytes(),
-            .default_configuration_name => strings.default_configuration_name.asBytes(),
-            .default_interface_name => strings.default_interface_name.asBytes(),
+            .manufacturer_name => strings.mfr_name.as_bytes(),
+            .product_name => strings.product_name.as_bytes(),
+            .serial_number => strings.serial_number.as_bytes(),
+            .default_configuration_name => strings.default_configuration_name.as_bytes(),
+            .default_interface_name => strings.default_interface_name.as_bytes(),
             // TODO hook up any additional strings to IDs
             else => null,
         },
@@ -59,7 +59,7 @@ const default_configuration = struct {
     pub const default_interface = struct {
         pub const index = 0;
         // pub const alternate_setting: u8 = 0; // optional
-        pub const class: classes.ClassInfo = undefined; // TODO
+        pub const class: classes.Class_Info = undefined; // TODO
         // pub const name: StringID = .default_interface_name; // optional
 
         pub const default_endpoint = struct {
@@ -67,7 +67,7 @@ const default_configuration = struct {
                 .ep = 1, // TODO
                 .dir = .in, // TODO
             };
-            pub const kind: endpoint.TransferKind = .bulk; // TODO
+            pub const kind: endpoint.Transfer_Kind = .bulk; // TODO
             // pub const poll_interval_ms: u8 = 16; // only for .interrupt endpoints
         };
 
@@ -86,15 +86,15 @@ const default_configuration = struct {
         // TODO add any additional interfaces here
     };
 
-    pub const descriptors: DescriptorSet = .{};
-    pub const DescriptorSet = packed struct {
+    pub const descriptors: Descriptor_Set = .{};
+    pub const Descriptor_Set = packed struct {
         config: descriptor.Configuration = .{
             .number = 1, // TODO
             .name = .default_configuration_name, // TODO
             .self_powered = false, // TODO
             .remote_wakeup = false, // TODO
             .max_current_ma_div2 = 50, // TODO
-            .length_bytes = @bitSizeOf(DescriptorSet) / 8,
+            .length_bytes = @bitSizeOf(Descriptor_Set) / 8,
             .interface_count = @intCast(interfaces.len),
         },
         interface: descriptor.Interface = descriptor.Interface.parse(default_interface),
@@ -108,7 +108,7 @@ const configurations = .{
     // TODO add any additional configuration structs here
 };
 
-pub fn getConfigurationDescriptorSet(configuration_index: u8) ?[]const u8 {
+pub fn get_configuration_descriptor_set(configuration_index: u8) ?[]const u8 {
     inline for (0.., configurations) |i, configuration| {
         if (i == configuration_index) {
             return descriptor.asBytes(&configuration.descriptors);
@@ -117,7 +117,7 @@ pub fn getConfigurationDescriptorSet(configuration_index: u8) ?[]const u8 {
     return null;
 }
 
-pub fn getInterfaceCount(configuration: u8) u8 {
+pub fn get_interface_count(configuration: u8) u8 {
     inline for (configurations) |cfg| {
         if (cfg.descriptors.config.number == configuration) {
             return @intCast(cfg.interfaces.len);
@@ -126,7 +126,7 @@ pub fn getInterfaceCount(configuration: u8) u8 {
     return 0;
 }
 
-pub fn getEndpointCount(configuration: u8, interface_index: u8) u8 {
+pub fn get_endpoint_count(configuration: u8, interface_index: u8) u8 {
     inline for (configurations) |cfg| {
         if (cfg.descriptors.config.number == configuration) {
             inline for (0.., cfg.interfaces) |j, interface| {
@@ -141,7 +141,7 @@ pub fn getEndpointCount(configuration: u8, interface_index: u8) u8 {
 
 // Endpoint descriptors are not queried directly by hosts, but these are used to set up
 // the hardware configuration for each endpoint.
-pub fn getEndpointDescriptor(configuration: u8, interface_index: u8, endpoint_index: u8) descriptor.Endpoint {
+pub fn get_endpoint_descriptor(configuration: u8, interface_index: u8, endpoint_index: u8) descriptor.Endpoint {
     inline for (configurations) |cfg| {
         if (cfg.descriptors.config.number == configuration) {
             inline for (0.., cfg.interfaces) |j, iface| {
@@ -159,7 +159,7 @@ pub fn getEndpointDescriptor(configuration: u8, interface_index: u8, endpoint_in
 }
 
 /// This function can be used to provide class-specific descriptors associated with the device
-pub fn getDescriptor(kind: descriptor.Kind, descriptor_index: u8) ?[]const u8 {
+pub fn get_descriptor(kind: descriptor.Kind, descriptor_index: u8) ?[]const u8 {
     _ = descriptor_index;
     _ = kind;
     // TODO
@@ -167,7 +167,7 @@ pub fn getDescriptor(kind: descriptor.Kind, descriptor_index: u8) ?[]const u8 {
 }
 
 /// This function can be used to provide class-specific descriptors associated with a particular interface, e.g. HID report descriptors
-pub fn getInterfaceSpecificDescriptor(interface: u8, kind: descriptor.Kind, descriptor_index: u8) ?[]const u8 {
+pub fn get_interface_specific_descriptor(interface: u8, kind: descriptor.Kind, descriptor_index: u8) ?[]const u8 {
     _ = descriptor_index;
     _ = kind;
     _ = interface;
@@ -176,7 +176,7 @@ pub fn getInterfaceSpecificDescriptor(interface: u8, kind: descriptor.Kind, desc
 }
 
 /// This function can be used to provide class-specific descriptors associated with a particular endpoint
-pub fn getEndpointSpecificDescriptor(ep: endpoint.Index, kind: descriptor.Kind, descriptor_index: u8) ?[]const u8 {
+pub fn get_endpoint_specific_descriptor(ep: endpoint.Index, kind: descriptor.Kind, descriptor_index: u8) ?[]const u8 {
     _ = descriptor_index;
     _ = kind;
     _ = ep;
@@ -187,65 +187,65 @@ pub fn getEndpointSpecificDescriptor(ep: endpoint.Index, kind: descriptor.Kind, 
 /// This function determines whether the USB engine should reply to non-control transactions with ACK or NAK
 /// For .in endpoints, this should return true when we have some data to send.
 /// For .out endpoints, this should return true when we can handle at least the max packet size of data for this endpoint.
-pub fn isEndpointReady(address: endpoint.Address) bool {
-    _ = address;
+pub fn is_endpoint_ready(address: endpoint.Address) bool {
+    _ = address; // autofix
     // TODO
 }
 
 /// The buffer returned from this function only needs to remain valid briefly; it will be copied to an internal buffer.
 /// If you don't have a buffer available, you can instead define:
-///     pub fn fillInBuffer(ep: endpoint.Index, data: []u8) u16 { ... }
-pub fn getInBuffer(ep: endpoint.Index, max_packet_size: u16) []const u8 {
-    _ = max_packet_size;
-    _ = ep;
+///     pub fn fill_in_buffer(ep: endpoint.Index, data: []u8) u16 { ... }
+pub fn get_in_buffer(ep: endpoint.Index, max_packet_size: u16) []const u8 {
+    _ = ep; // autofix
+    _ = max_packet_size; // autofix
     // TODO
 }
 
-pub fn handleOutBuffer(ep: endpoint.Index, data: []volatile const u8) void {
-    _ = data;
-    _ = ep;
+pub fn handle_out_buffer(ep: endpoint.Index, data: []volatile const u8) void {
+    _ = ep; // autofix
+    _ = data; // autofix
     // TODO
 }
 
 /// Called when a SOF packet is received
-pub fn handleStartOfFrame() void {
+pub fn handle_start_of_frame() void {
     // TODO
 }
 
 /// Called when the host resets the bus
-pub fn handleBusReset() void {
+pub fn handle_bus_reset() void {
    // TODO
 }
 
 /// Called when a set_configuration setup request is processed
-pub fn handleConfigurationChanged(configuration: u8) void {
-    _ = configuration;
+pub fn handle_configuration_changed(configuration: u8) void {
+    _ = configuration; // autofix
     // TODO
 }
 
 /// Used to respond to the get_status setup request
-pub fn isDeviceSelfPowered() bool {
+pub fn is_device_self_powered() bool {
     return false;
 }
 
 /// Handle any class/device-specific setup requests here.
 /// Return true if the setup request is recognized and handled.
 ///
-/// Requests where setup.data_len == 0 should call `device.setupStatusIn()`.
+/// Requests where setup.data_len == 0 should call `device.setup_status_in()`.
 /// Note this is regardless of whether setup.direction is .in or .out.
 ///
-/// .in requests with a non-zero length should make one or more calls to `device.fillSetupIn(offset, data)`,
-/// followed by a call to `device.setupTransferIn(total_length)`, or just a single
-/// call to `device.setupTransferInData(data)`.  The data may be larger than the maximum EP0 transfer size.
-/// In that case the data will need to be provided again using the `fillSetupIn` function below.
+/// .in requests with a non-zero length should make one or more calls to `device.fill_setup_in(offset, data)`,
+/// followed by a call to `device.setup_transfer_in(total_length)`, or just a single
+/// call to `device.setup_transfer_in_data(data)`.  The data may be larger than the maximum EP0 transfer size.
+/// In that case the data will need to be provided again using the `fill_setup_in` function below.
 ///
-/// .out requests with a non-zero length should call `device.setupTransferOut(setup.data_len)`.
-/// The data will then be provided later via `handleSetupOutBuffer`
+/// .out requests with a non-zero length should call `device.setup_transfer_out(setup.data_len)`.
+/// The data will then be provided later via `handle_setup_out_buffer`
 ///
 /// Note that this gets called even for standard requests that are normally handled internally.
 /// You _must_ check that the packet matches what you're looking for specifically.
-fn handleSetup(setup: SetupPacket) bool {
-    _ = setup;
+fn handle_setup(setup: Setup_Packet) bool {
+    _ = setup; // autofix
     // TODO
 }
 
@@ -255,21 +255,21 @@ fn handleSetup(setup: SetupPacket) bool {
 /// Otherwise, it is assumed that the entire remaining data, or the entire buffer (whichever is smaller)
 /// will be filled with data to send.
 /// 
-/// Normally this function should make one or more calls to `device.fillSetupIn(offset, data)`,
+/// Normally this function should make one or more calls to `device.fill_setup_in(offset, data)`,
 /// corresponding to the entire data payload, including parts that have already been sent.  The
 /// parts outside the current buffer will automatically be ignored.
-pub fn fillSetupIn(setup: SetupPacket) bool {
-    _ = setup;
+pub fn fill_setup_in(setup: Setup_Packet) bool {
+    _ = setup; // autofix
     // TODO
     return false;
 }
 
 /// Return true if the setup request is recognized and the data buffer was processed.
-fn handleSetupOutBuffer(setup: SetupPacket, offset: u16, data: []volatile const u8, last_buffer: bool) bool {
-    _ = last_buffer;
-    _ = data;
-    _ = offset;
-    _ = setup;
+fn handle_setup_out_buffer(setup: Setup_Packet, offset: u16, data: []volatile const u8, last_buffer: bool) bool {
+    _ = setup; // autofix
+    _ = offset; // autofix
+    _ = data; // autofix
+    _ = last_buffer; // autofix
     // TODO
     return false;
 }
@@ -283,5 +283,5 @@ pub fn update() void {
     device.update();
 }
 
-var device: usb.Usb(@This()) = .{};
+var device: usb.USB(@This()) = .{};
 // TODO add any additional global state needed

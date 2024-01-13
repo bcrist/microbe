@@ -41,9 +41,9 @@ Where `E` is an enum type, or optional-wrapped enum type, giving the options tha
 
 On reset, chip implementations should initialize the chip's clocks based on a `clocks` constant (of type `chip.clocks.Config`) declared in the root source file.  If no such declaration exists, the chip's default clock configuration should be used.
 
-Chip implementations should also provide `chip.clocks.applyConfig(...)` to allow dynamic clock changes.  Peripherals that are sensitive to clock frequencies (UARTs, PWMs etc.) will generally assume the clocks they use do not change, so care must be taken when using this.
+Chip implementations should also provide `chip.clocks.apply_config(...)` to allow dynamic clock changes.  Peripherals that are sensitive to clock frequencies (UARTs, PWMs etc.) will generally assume the clocks they use do not change, so care must be taken when using this.
 
-Chip implementations may also provide `chip.clocks.getConfig()` to provide a version of the configuration with additional details and defaults filled in.  This should be comptime callable.  If it does not return a `chip.clocks.Config` struct, it should return a `chip.clocks.ParsedConfig` struct.
+Chip implementations may also provide `chip.clocks.get_config()` to provide a version of the configuration with additional details and defaults filled in.  This should be comptime callable.  If it does not return a `chip.clocks.Config` struct, it should return a `chip.clocks.Parsed_Config` struct.
 
 The clock config struct may also contain fields for configuring low-power modes or other power-related features.
 
@@ -63,13 +63,13 @@ The recommended names and types for some common configuration options are:
 - `which: ?enum`
     - If the chip has multiple UART peripherals, allows selection of which one to use
     - If set to null, select automatically based on rx/tx pins specified
-- `rx: ?PadID`
+- `rx: ?Pad_ID`
     - The input pin to use for receiving, or null to disable receiving
-- `tx: ?PadID`
+- `tx: ?Pad_ID`
     - The output pin to use for transmitting, or null to disable transmitting
-- `cts: ?PadID`
+- `cts: ?Pad_ID`
     - The input pin to use for RTS/CTS bidirectional flow control
-- `rts: ?PadID`
+- `rts: ?Pad_ID`
     - The output pin to use for RTS/CTS bidirectional flow control
 - `tx_buffer_size: comptime_int`
     - The size of the internal software transmit FIFO buffer
@@ -103,7 +103,7 @@ Implementations that have reception capability should provide:
     const Reader // usually std.io.Reader(..., ReadError, ...)
     fn reader(*Self) Reader
 
-    const ReadErrorNonBlocking
+    const Read_Error_Nonblocking
     const ReaderNonBlocking
     fn readerNonBlocking(*Self) ReaderNonBlocking
 
@@ -137,10 +137,10 @@ Implementations that have transmission capability should provide:
     const Writer // usually std.io.Writer(..., WriteError, ...)
     fn writer(*Self) Writer
 
-    const WriteErrorNonBlocking
+    const Write_Error_Nonblocking
     const WriterNonBlocking
     fn writerNonBlocking(*Self) WriterNonBlocking
 
-The `ReadErrorNonBlocking` and `WriteErrorNonBlocking` should generally match include everything from the blocking variants, as well as `error.WouldBlock`, which is returned when the buffer is empty/full and no more data can be read or written.  Ideally, when reading or writing multiple words, either the entire operation succeeds, or it has no effect if `WouldBlock` is returned, except for functions that give feedback on how much work they accomplished (e.g. `Writer.write`).  This precludes the use of `std.io.Reader`/`Writer` for the non-blocking variants.
+The `Read_Error_Nonblocking` and `Write_Error_Nonblocking` should generally match include everything from the blocking variants, as well as `error.Would_Block`, which is returned when the buffer is empty/full and no more data can be read or written.  Ideally, when reading or writing multiple words, either the entire operation succeeds, or it has no effect if `Would_Block` is returned, except for functions that give feedback on how much work they accomplished (e.g. `Writer.write`).  This precludes the use of `std.io.Reader`/`Writer` for the non-blocking variants.
 
 Some implementations may require additional functions, e.g. to handle interrupts.

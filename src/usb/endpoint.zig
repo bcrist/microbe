@@ -5,14 +5,14 @@ pub const Direction = enum (u1) {
     in = 1, // device to host
 };
 
-pub const TransferKind = enum (u2) {
+pub const Transfer_Kind = enum (u2) {
     control = 0,
     isochronous = 1,
     bulk = 2,
     interrupt = 3,
 };
 
-// Only applies to TransferKind.isochronous; otherwise use .none
+// Only applies to Transfer_Kind.isochronous; otherwise use .none
 pub const Synchronization = enum (u2) {
     none = 0,
     asynchronous = 1,
@@ -33,7 +33,7 @@ pub const Address = packed struct (u8) {
     dir: Direction,
 };
 
-pub const BufferInfo = struct {
+pub const Buffer_Info = struct {
     address: Address,
     buffer: []volatile u8,
     final_buffer: bool,

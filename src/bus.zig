@@ -1,89 +1,83 @@
-const std = @import("std");
-const chip = @import("chip_interface.zig");
-const util = @import("util.zig");
-
-pub const PadID = chip.PadID;
-
 pub const Config = struct {
     name: [:0]const u8 = "Bus",
     gpio_config: ?chip.gpio.Config = null,
 };
 
-pub fn Bus(comptime pad_ids: []const chip.PadID, comptime config: Config) type {
+pub fn Bus(comptime pad_ids: []const chip.Pad_ID, comptime config: Config) type {
     comptime {
-        var RawInt = std.meta.Int(.unsigned, pad_ids.len);
+        const Raw_Int = std.meta.Int(.unsigned, pad_ids.len);
 
-        chip.validation.pads.reserveAll(pad_ids, config.name);
+        chip.validation.pads.reserve_all(pad_ids, config.name);
 
-        const ports = chip.gpio.getPorts(pad_ids);
+        const ports = chip.gpio.get_ports(pad_ids);
 
         return struct {
-            pub const State = RawInt;
+            pub const State = Raw_Int;
 
             pub fn init() void {
-                chip.gpio.ensureInit(pad_ids);
+                chip.gpio.ensure_init(pad_ids);
                 if (config.gpio_config) |gpio_config| {
                     chip.gpio.configure(pad_ids, gpio_config);
                 }
             }
 
-            pub fn setOutputEnable(oe: bool) void {
+            pub fn set_output_enable(oe: bool) void {
                 if (oe) {
-                    chip.gpio.setOutputEnables(pad_ids);
+                    chip.gpio.set_output_enables(pad_ids);
                 } else {
-                    chip.gpio.clearOutputEnables(pad_ids);
+                    chip.gpio.clear_output_enables(pad_ids);
                 }
             }
-            pub inline fn setOutputEnableInline(comptime oe: bool) void {
-                @call(.always_inline, setOutputEnable, .{ oe });
+            pub inline fn set_output_enable_inline(comptime oe: bool) void {
+                @call(.always_inline, set_output_enable, .{ oe });
             }
 
             pub fn read() State {
-                var raw: RawInt = 0;
+                var raw: Raw_Int = 0;
                 inline for (ports) |port| {
-                    const port_state = chip.gpio.readInputPort(port);
+                    const port_state = chip.gpio.read_input_port(port);
                     inline for (pad_ids, 0..) |pad, raw_bit| {
-                        if (comptime chip.gpio.getPort(pad) == port) {
-                            const port_bit = 1 << comptime chip.gpio.getOffset(pad);
+                        if (comptime chip.gpio.get_port(pad) == port) {
+                            const port_bit = 1 << comptime chip.gpio.get_offset(pad);
                             if (0 != (port_state & port_bit)) {
                                 raw |= 1 << raw_bit;
                             }
                         }
                     }
                 }
-                return util.fromInt(State, raw);
+                return util.from_int(State, raw);
             }
-            pub inline fn readInline() State {
+            pub inline fn read_inline() State {
                 return @call(.always_inline, read, .{});
             }
 
             pub fn get() State {
-                var raw: RawInt = 0;
+                var raw: Raw_Int = 0;
                 inline for (ports) |port| {
-                    const port_state = chip.gpio.readOutputPort(port);
+                    const port_state = chip.gpio.read_output_port(port);
                     inline for (pad_ids, 0..) |pad, raw_bit| {
-                        if (comptime chip.gpio.getPort(pad) == port) {
-                            const port_bit = 1 << comptime chip.gpio.getOffset(pad);
+                        if (comptime chip.gpio.get_port(pad) == port) {
+                            const port_bit = 1 << comptime chip.gpio.get_offset(pad);
                             if (0 != (port_state & port_bit)) {
                                 raw |= 1 << raw_bit;
                             }
                         }
                     }
                 }
-                return util.fromInt(State, raw);
+                return util.from_int(State, raw);
             }
-            pub inline fn getInline() State {
+            pub inline fn get_inline() State {
                 return @call(.always_inline, get, .{});
             }
 
             pub fn modify(state: State) void {
-                const raw = util.toInt(RawInt, state);
+                const raw = util.to_int(Raw_Int, state);
                 inline for (ports) |port| {
-                    var to_clear: chip.gpio.PortDataType = 0;
-                    var to_set: chip.gpio.PortDataType = 0;
+                    var to_clear: chip.gpio.Port_Data_Type = 0;
+                    var to_set: chip.gpio.Port_Data_Type = 0;
                     inline for (pad_ids, 0..) |pad, raw_bit| {
-                        if (comptime chip.gpio.getPort(pad) == port) {
-                            const port_bit = 1 << comptime chip.gpio.getOffset(pad);
+                        if (comptime chip.gpio.get_port(pad) == port) {
+                            const port_bit = 1 << comptime chip.gpio.get_offset(pad);
                             if (0 == (raw & (1 << raw_bit))) {
                                 to_clear |= port_bit;
                             } else {
@@ -91,48 +85,53 @@ pub fn Bus(comptime pad_ids: []const chip.PadID, comptime config: Config) type {
                             }
                         }
                     }
-                    chip.gpio.modifyOutputPort(port, to_clear, to_set);
+                    chip.gpio.modify_output_port(port, to_clear, to_set);
                 }
             }
-            pub inline fn modifyInline(state: State) void {
+            pub inline fn modify_inline(state: State) void {
                 @call(.always_inline, modify, .{ state });
             }
 
-            pub fn setBits(state: State) void {
-                const raw = util.toInt(RawInt, state);
+            pub fn set_bits(state: State) void {
+                const raw = util.to_int(Raw_Int, state);
                 inline for (ports) |port| {
-                    var to_set: chip.gpio.PortDataType = 0;
+                    var to_set: chip.gpio.Port_Data_Type = 0;
                     inline for (pad_ids, 0..) |pad, raw_bit| {
-                        if (comptime chip.gpio.getPort(pad) == port) {
+                        if (comptime chip.gpio.get_port(pad) == port) {
                             if (0 != (raw & (1 << raw_bit))) {
-                                to_set |= (1 << comptime chip.gpio.getOffset(pad));
+                                to_set |= (1 << comptime chip.gpio.get_offset(pad));
                             }
                         }
                     }
-                    chip.gpio.setOutputPortBits(port, to_set);
+                    chip.gpio.set_output_port_bits(port, to_set);
                 }
             }
-            pub inline fn setBitsInline(state: State) void {
-                @call(.always_inline, setBits, .{ state });
+            pub inline fn set_bits_inline(state: State) void {
+                @call(.always_inline, set_bits, .{ state });
             }
 
-            pub fn clearBits(state: State) void {
-                const raw = util.toInt(state);
+            pub fn clear_bits(state: State) void {
+                const raw = util.to_int(state);
                 inline for (ports) |port| {
-                    var to_clear: chip.gpio.PortDataType = 0;
+                    var to_clear: chip.gpio.Port_Data_Type = 0;
                     inline for (pad_ids, 0..) |pad, raw_bit| {
-                        if (comptime chip.gpio.getPort(pad) == port) {
+                        if (comptime chip.gpio.get_port(pad) == port) {
                             if (0 != (raw & (1 << raw_bit))) {
-                                to_clear |= (1 << comptime chip.gpio.getOffset(pad));
+                                to_clear |= (1 << comptime chip.gpio.get_offset(pad));
                             }
                         }
                     }
-                    chip.gpio.clearOutputPortBits(port, to_clear);
+                    chip.gpio.clear_output_port_bits(port, to_clear);
                 }
             }
-            pub inline fn clearBitsInline(state: State) void {
-                @call(.always_inline, clearBits, .{ state });
+            pub inline fn clear_bits_inline(state: State) void {
+                @call(.always_inline, clear_bits, .{ state });
             }
         };
     }
 }
+
+pub const Pad_ID = chip.Pad_ID;
+const chip = @import("chip_interface.zig");
+const util = @import("util.zig");
+const std = @import("std");

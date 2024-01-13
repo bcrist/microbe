@@ -1,9 +1,9 @@
-pub fn configureInterruptEnables(comptime config: anytype) void {
+pub fn configure_interrupt_enables(comptime config: anytype) void {
     const info = @typeInfo(@TypeOf(config));
     switch (info) {
         .Struct => |struct_info| {
             for (struct_info.fields) |field| {
-                chip.interrupts.setEnabled(std.enums.nameCast(chip.interrupts.Interrupt, field.name), @field(config, field.name));
+                chip.interrupts.set_enabled(std.enums.nameCast(chip.interrupts.Interrupt, field.name), @field(config, field.name));
             }
         },
         else => {
@@ -12,12 +12,12 @@ pub fn configureInterruptEnables(comptime config: anytype) void {
     }
 }
 
-pub fn configureInterruptPriorities(comptime config: anytype) void {
+pub fn configure_interrupt_priorities(comptime config: anytype) void {
     const info = @typeInfo(@TypeOf(config));
     switch (info) {
         .Struct => |struct_info| {
             for (struct_info.fields) |field| {
-                chip.interrupts.setPriority(std.enums.nameCast(chip.interrupts.Exception, field.name), @field(config, field.name));
+                chip.interrupts.set_priority(std.enums.nameCast(chip.interrupts.Exception, field.name), @field(config, field.name));
             }
         },
         else => {
@@ -26,11 +26,11 @@ pub fn configureInterruptPriorities(comptime config: anytype) void {
     }
 }
 
-pub fn fmtFrequency(freq: u64) std.fmt.Formatter(formatFrequency) {
+pub fn fmt_frequency(freq: u64) std.fmt.Formatter(format_frequency) {
     return .{ .data = freq };
 }
 
-fn formatFrequency(frequency: u64, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
+fn format_frequency(frequency: u64, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
     _ = fmt;
     _ = options;
 
@@ -55,17 +55,17 @@ fn formatFrequency(frequency: u64, comptime fmt: []const u8, options: std.fmt.Fo
     }
 }
 
-pub fn divRound(comptime dividend: comptime_int, comptime divisor: comptime_int) comptime_int {
+pub fn div_round(comptime dividend: comptime_int, comptime divisor: comptime_int) comptime_int {
     return @divTrunc(dividend + @divTrunc(divisor, 2), divisor);
 }
 
 // This intentionally converts to strings and looks for equality there, so that you can check a
-// PadID against a tuple of enum literals, some of which might not be valid PadIDs.  That's
-// useful when writing generic chip code, where some packages will be missing some PadIDs that
+// Pad_ID against a tuple of enum literals, some of which might not be valid Pad_IDs.  That's
+// useful when writing generic chip code, where some packages will be missing some Pad_IDs that
 // other related chips do have.
-pub fn isPadInSet(comptime pad: chip.PadID, comptime set: anytype) bool {
+pub fn is_pad_in_set(comptime pad: chip.Pad_ID, comptime set: anytype) bool {
     comptime {
-        inline for (set) |p| {
+        for (set) |p| {
             switch (@typeInfo(@TypeOf(p))) {
                 .EnumLiteral => {
                     if (std.mem.eql(u8, @tagName(p), @tagName(pad))) {
@@ -84,7 +84,7 @@ pub fn isPadInSet(comptime pad: chip.PadID, comptime set: anytype) bool {
     }
 }
 
-pub fn errorSetContainsAny(comptime Haystack: type, comptime Needle: type) bool {
+pub fn error_set_contains_any(comptime Haystack: type, comptime Needle: type) bool {
     const haystack_set = @typeInfo(Haystack).ErrorSet orelse &.{};
     const needle_set = @typeInfo(Needle).ErrorSet orelse &.{};
 
@@ -98,7 +98,7 @@ pub fn errorSetContainsAny(comptime Haystack: type, comptime Needle: type) bool 
     return false;
 }
 
-pub fn errorSetContainsAll(comptime Haystack: type, comptime Needle: type) bool {
+pub fn error_set_contains_all(comptime Haystack: type, comptime Needle: type) bool {
     const haystack_set = @typeInfo(Haystack).ErrorSet orelse &.{};
     const needle_set = @typeInfo(Needle).ErrorSet orelse &.{};
 
@@ -113,7 +113,7 @@ pub fn errorSetContainsAll(comptime Haystack: type, comptime Needle: type) bool 
     return true;
 }
 
-pub inline fn toInt(comptime T: type, value: anytype) T {
+pub inline fn to_int(comptime T: type, value: anytype) T {
     return switch (@typeInfo(@TypeOf(value))) {
         .Enum => @intFromEnum(value),
         .Pointer => @intFromPtr(value),
@@ -121,7 +121,7 @@ pub inline fn toInt(comptime T: type, value: anytype) T {
     };
 }
 
-pub inline fn fromInt(comptime T: type, int_value: anytype) T {
+pub inline fn from_int(comptime T: type, int_value: anytype) T {
     return switch (@typeInfo(T)) {
         .Enum => @enumFromInt(int_value),
         .Pointer => @ptrFromInt(int_value),

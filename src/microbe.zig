@@ -4,21 +4,23 @@ const builtin = @import("builtin");
 const config = @import("config");
 
 pub const util = @import("util.zig");
-pub const Mmio = @import("mmio.zig").Mmio;
+pub const MMIO = @import("mmio.zig").MMIO;
 const timing = @import("timing.zig");
 pub const Tick = timing.Tick;
 pub const Microtick = timing.Microtick;
-pub const CriticalSection = @import("CriticalSection.zig");
+pub const Critical_Section = @import("Critical_Section.zig");
 pub const bus = @import("bus.zig");
+pub const Bus = bus.Bus;
 pub const usb = @import("usb.zig");
+pub const USB = usb.USB;
 pub const jtag = @import("jtag.zig");
 
 const validation = @import("resource_validation.zig");
-pub const RuntimeResourceValidator = if (config.runtime_resource_validation)
-    validation.RuntimeResourceValidator else validation.NullResourceValidator;
-pub const ComptimeResourceValidator = validation.ComptimeResourceValidator;
+pub const Runtime_Resource_Validator = if (config.runtime_resource_validation)
+    validation.Runtime_Resource_Validator else validation.Null_Resource_Validator;
+pub const Comptime_Resource_Validator = validation.Comptime_Resource_Validator;
 
-fn defaultLogPrefix(comptime message_level: std.log.Level, comptime scope: @Type(.EnumLiteral)) void {
+fn default_log_prefix(comptime message_level: std.log.Level, comptime scope: @Type(.EnumLiteral)) void {
     const scope_name = if (std.mem.eql(u8, @tagName(scope), "default")) "" else @tagName(scope);
     const level_prefix = switch (message_level) {
         .err =>   "E",
@@ -32,25 +34,25 @@ fn defaultLogPrefix(comptime message_level: std.log.Level, comptime scope: @Type
     }) catch unreachable;
 }
 
-pub fn defaultLog(
+pub fn default_log(
     comptime message_level: std.log.Level,
     comptime scope: @Type(.EnumLiteral),
     comptime format: []const u8,
     args: anytype,
 ) void {
     if (@hasDecl(root, "debug_uart")) {
-        defaultLogPrefix(message_level, scope);
+        default_log_prefix(message_level, scope);
         var writer = root.debug_uart.writer();
         writer.print(format, args) catch unreachable;
         writer.writeByte('\n') catch unreachable;
     }
 }
 
-pub fn defaultPanic(message: []const u8, trace: ?*std.builtin.StackTrace, _: ?usize) noreturn {
+pub fn default_panic(message: []const u8, trace: ?*std.builtin.StackTrace, _: ?usize) noreturn {
     @setCold(true);
 
     std.log.err("PANIC: {s}", .{message});
-    dumpTrace(trace);
+    dump_trace(trace);
 
     if (@import("builtin").mode == .Debug) {
         // attach a breakpoint, this might trigger another
@@ -67,7 +69,7 @@ pub fn hang() noreturn {
     }
 }
 
-fn dumpTrace(trace: ?*std.builtin.StackTrace) void {
+fn dump_trace(trace: ?*std.builtin.StackTrace) void {
     if (trace) |stack_trace| {
         var frame_index: usize = 0;
         var frames_left: usize = @min(stack_trace.index, stack_trace.instruction_addresses.len);

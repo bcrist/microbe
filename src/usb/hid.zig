@@ -63,7 +63,7 @@ pub const requests = struct {
         interface: u16,
     };
 
-    fn request(comptime num: comptime_int) usb.SetupRequestKind {
+    fn request(comptime num: comptime_int) usb.Setup_Request_Kind {
         return @enumFromInt(num);
     }
 };
@@ -75,13 +75,13 @@ pub const IdleInterval = enum(u8) {
     _, // units of 4 ms
 };
 
-pub const InputReporterConfig = struct {
+pub const Input_ReporterConfig = struct {
     max_buffer_size: usize,
     interface_index: u8,
     report_id: u8,
     default_idle_interval: IdleInterval,
 };
-pub fn InputReporter(comptime UsbConfigType: type, comptime Report: type, comptime config: InputReporterConfig) type {
+pub fn Input_Reporter(comptime UsbConfigType: type, comptime Report: type, comptime config: Input_ReporterConfig) type {
     if (!std.math.isPowerOfTwo(config.max_buffer_size)) {
         @compileError("Buffer size must be a power of two!");
     }
@@ -145,12 +145,12 @@ pub fn InputReporter(comptime UsbConfigType: type, comptime Report: type, compti
             return &self.queue.buf[last_index];
         }
 
-        pub fn handleStartOfFrame(self: *Self) void {
+        pub fn handle_start_of_frame(self: *Self) void {
             if (self.idle_interval == .infinite) return;
             self.idle_timer += 1;
         }
 
-        pub fn isEndpointReady(self: *Self) bool {
+        pub fn is_endpoint_ready(self: *Self) bool {
             if (self.queue.readableLength() > 0) return true;
             const interval = self.idle_interval;
             if (interval == .infinite) return false;
@@ -165,28 +165,28 @@ pub fn InputReporter(comptime UsbConfigType: type, comptime Report: type, compti
             return std.mem.asBytes(&self.last_report)[0..report_bytes];
         }
 
-        pub fn handleSetup(self: *Self, setup: usb.SetupPacket) bool {
+        pub fn handle_setup(self: *Self, setup: usb.Setup_Packet) bool {
             if (setup.kind != .class) return false;
             switch (setup.request) {
                 requests.set_idle => if (setup.direction == .out) {
                     const payload: requests.IdlePayload = @bitCast(setup.payload);
                     if (payload.interface == config.interface_index and payload.report_id == config.report_id) {
                         self.idle_interval = payload.interval;
-                        self.usb.setupStatusIn();
+                        self.usb.setup_status_in();
                         return true;
                     }
                 },
                 requests.get_idle => if (setup.direction == .in) {
                     const payload: requests.IdlePayload = @bitCast(setup.payload);
                     if (payload.interface == config.interface_index and payload.report_id == config.report_id) {
-                        self.usb.setupTransferInData(std.mem.asBytes(&self.idle_interval));
+                        self.usb.setup_transfer_in_data(std.mem.asBytes(&self.idle_interval));
                         return true;
                     }
                 },
                 requests.get_report => if (setup.direction == .in) {
                     const payload: requests.ReportPayload = @bitCast(setup.payload);
                     if (payload.interface == config.interface_index and payload.report_id == config.report_id and payload.report_kind == .input) {
-                        self.usb.setupTransferInData(std.mem.asBytes(&self.last_report)[0..report_bytes]);
+                        self.usb.setup_transfer_in_data(std.mem.asBytes(&self.last_report)[0..report_bytes]);
                         return true;
                     }
                 },
@@ -201,7 +201,7 @@ pub const OutputReportConfig = struct {
     interface_index: u8,
     report_id: u8,
 };
-pub fn OutputReporter(comptime UsbConfigType: type, comptime Report: type, comptime config: OutputReportConfig) type {
+pub fn Output_Reporter(comptime UsbConfigType: type, comptime Report: type, comptime config: OutputReportConfig) type {
     const report_bytes = @bitSizeOf(Report) / 8;
     return struct {
         const Self = @This();
@@ -216,20 +216,20 @@ pub fn OutputReporter(comptime UsbConfigType: type, comptime Report: type, compt
             };
         }
 
-        pub fn handleSetup(self: *Self, setup: usb.SetupPacket) bool {
+        pub fn handle_setup(self: *Self, setup: usb.Setup_Packet) bool {
             if (setup.kind != .class) return false;
             switch (setup.request) {
                 requests.set_report => if (setup.direction == .out) {
                     const payload: requests.ReportPayload = @bitCast(setup.payload);
                     if (payload.interface == config.interface_index and payload.report_id == config.report_id and payload.report_kind == .output) {
-                        self.usb.setupTransferOut(setup.data_len);
+                        self.usb.setup_transfer_out(setup.data_len);
                         return true;
                     }
                 },
                 requests.get_report => if (setup.direction == .in) {
                     const payload: requests.ReportPayload = @bitCast(setup.payload);
                     if (payload.interface == config.interface_index and payload.report_id == config.report_id and payload.report_kind == .output) {
-                        self.usb.setupTransferInData(std.mem.asBytes(&self.current_report)[0..report_bytes]);
+                        self.usb.setup_transfer_in_data(std.mem.asBytes(&self.current_report)[0..report_bytes]);
                         return true;
                     }
                 },
@@ -238,7 +238,7 @@ pub fn OutputReporter(comptime UsbConfigType: type, comptime Report: type, compt
             return false;
         }
 
-        pub fn handleSetupOutBuffer(self: *Self, setup: usb.SetupPacket, offset: u16, data: []volatile const u8) bool {
+        pub fn handle_setup_out_buffer(self: *Self, setup: usb.Setup_Packet, offset: u16, data: []volatile const u8) bool {
             if (setup.kind != .class or setup.request != requests.set_report) return false;
             const payload: requests.ReportPayload = @bitCast(setup.payload);
             if (payload.interface == config.interface_index and payload.report_id == config.report_id and payload.report_kind == .output) {
