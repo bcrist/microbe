@@ -12,7 +12,8 @@
         "Linker_Script_Step.zig",
         "Memory_Region.zig",
         "Section.zig",
-        "src"
+        "src",
+        "license",
     },
     .dependencies = .{},
 }
