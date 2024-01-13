@@ -1,9 +1,3 @@
-const std = @import("std");
-const Chip = @import("Chip.zig");
-const Core = @import("Core.zig");
-
-const Section = @This();
-
 name: []const u8,
 contents: []const []const u8,
 start_alignment_bytes: ?u32 = 4,
@@ -15,7 +9,7 @@ ram_address: ?u32 = null,
 init_value: ?u8 = null,
 skip_init: bool = false, // used by RP2040 boot2 section (it gets loaded by the built-in ROM instead)
 
-pub fn keepRomSection(comptime name: []const u8, comptime rom_region: []const u8) Section {
+pub fn keep_rom_section(comptime name: []const u8, comptime rom_region: []const u8) Section {
     return .{
         .name = name,
         .contents = &.{
@@ -25,7 +19,7 @@ pub fn keepRomSection(comptime name: []const u8, comptime rom_region: []const u8
     };
 }
 
-pub fn romSection(comptime name: []const u8, comptime rom_region: []const u8) Section {
+pub fn rom_section(comptime name: []const u8, comptime rom_region: []const u8) Section {
     return .{
         .name = name,
         .contents = &.{
@@ -35,7 +29,7 @@ pub fn romSection(comptime name: []const u8, comptime rom_region: []const u8) Se
     };
 }
 
-pub fn initializedRamSection(comptime name: []const u8, comptime rom_region: []const u8, comptime ram_region: []const u8) Section {
+pub fn initialized_ram_section(comptime name: []const u8, comptime rom_region: []const u8, comptime ram_region: []const u8) Section {
     return .{
         .name = name,
         .contents = &.{
@@ -46,7 +40,7 @@ pub fn initializedRamSection(comptime name: []const u8, comptime rom_region: []c
     };
 }
 
-pub fn uninitializedRamSection(comptime name: []const u8, comptime ram_region: []const u8) Section {
+pub fn uninitialized_ram_section(comptime name: []const u8, comptime ram_region: []const u8) Section {
     return .{
         .name = name,
         .contents = &.{
@@ -56,7 +50,7 @@ pub fn uninitializedRamSection(comptime name: []const u8, comptime ram_region: [
     };
 }
 
-pub fn zeroedRamSection(comptime name: []const u8, comptime ram_region: []const u8) Section {
+pub fn zeroed_ram_section(comptime name: []const u8, comptime ram_region: []const u8) Section {
     return .{
         .name = name,
         .contents = &.{
@@ -67,40 +61,40 @@ pub fn zeroedRamSection(comptime name: []const u8, comptime ram_region: []const 
     };
 }
 
-pub fn defaultVectorTableSection() Section {
-    return keepRomSection("vector_table", "flash");
+pub fn default_vector_table_section() Section {
+    return keep_rom_section("vector_table", "flash");
 }
 
-pub fn defaultTextSection() Section {
-    return romSection("text", "flash");
+pub fn default_text_section() Section {
+    return rom_section("text", "flash");
 }
 
-pub fn defaultRoDataSection() Section {
-    return romSection("rodata", "flash");
+pub fn default_rodata_section() Section {
+    return rom_section("rodata", "flash");
 }
 
-pub fn defaultNvmSection() Section {
-    return romSection("nvm", "flash");
+pub fn default_nvm_section() Section {
+    return rom_section("nvm", "flash");
 }
 
-pub fn defaultDataSection() Section {
-    return initializedRamSection("data", "flash", "ram");
+pub fn default_data_section() Section {
+    return initialized_ram_section("data", "flash", "ram");
 }
 
-pub fn defaultBssSection() Section {
-    return zeroedRamSection("bss", "ram");
+pub fn default_bss_section() Section {
+    return zeroed_ram_section("bss", "ram");
 }
 
-pub fn defaultUDataSection() Section {
-    return uninitializedRamSection("udata", "ram");
+pub fn default_udata_section() Section {
+    return uninitialized_ram_section("udata", "ram");
 }
 
-pub fn defaultHeapSection() Section {
-    return uninitializedRamSection("heap", "ram");
+pub fn default_heap_section() Section {
+    return uninitialized_ram_section("heap", "ram");
 }
 
-pub fn stackSection(comptime name: []const u8, comptime ram_region: []const u8, comptime stack_size: usize) Section {
-    var aligned_stack_size = std.mem.alignForward(usize, stack_size, 8);
+pub fn stack_section(comptime name: []const u8, comptime ram_region: []const u8, comptime stack_size: usize) Section {
+    const aligned_stack_size = std.mem.alignForward(usize, stack_size, 8);
     return .{
         .name = name,
         .contents = &.{
@@ -112,11 +106,11 @@ pub fn stackSection(comptime name: []const u8, comptime ram_region: []const u8, 
     };
 }
 
-pub fn defaultStackSection(comptime stack_size: usize) Section {
-    return stackSection("stack", "ram", stack_size);
+pub fn default_stack_section(comptime stack_size: usize) Section {
+    return stack_section("stack", "ram", stack_size);
 }
 
-pub fn defaultArmExtabSection() Section {
+pub fn default_arm_extab_section() Section {
     return .{
         .name = "ARM.extab",
         .contents = &.{
@@ -128,7 +122,7 @@ pub fn defaultArmExtabSection() Section {
     };
 }
 
-pub fn defaultArmExidxSection() Section {
+pub fn default_arm_exidx_section() Section {
     return .{
         .name = "ARM.exidx",
         .contents = &.{
@@ -140,30 +134,33 @@ pub fn defaultArmExidxSection() Section {
     };
 }
 
-pub fn defaultArmSections(comptime stack_size: usize) []const Section {
+pub fn default_arm_sections(comptime stack_size: usize) []const Section {
     return comptime &.{
         // FLASH only:
-        defaultVectorTableSection(),
-        defaultTextSection(),
-        defaultArmExtabSection(),
-        defaultArmExidxSection(),
-        defaultRoDataSection(),
+        default_vector_table_section(),
+        default_text_section(),
+        default_arm_extab_section(),
+        default_arm_exidx_section(),
+        default_rodata_section(),
 
         // RAM only:
         // Stack goes first to avoid overflows silently corrupting data; instead
         // they'll generally cause a fault when trying to write outside of ram.
         // Note this assumes the usual downward-growing stack convention.
-        defaultStackSection(stack_size),
+        default_stack_section(stack_size),
 
         // FLASH + RAM:
-        defaultDataSection(),
+        default_data_section(),
 
         // RAM only:
-        defaultBssSection(),
-        defaultUDataSection(),
-        defaultHeapSection(),
+        default_bss_section(),
+        default_udata_section(),
+        default_heap_section(),
 
         // FLASH only:
-        defaultNvmSection(),
+        default_nvm_section(),
     };
 }
+
+const Section = @This();
+const std = @import("std");

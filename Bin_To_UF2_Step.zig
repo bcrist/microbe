@@ -1,17 +1,3 @@
-const std = @import("std");
-const BinToUf2Step = @This();
-
-const Allocator = std.mem.Allocator;
-const ArenaAllocator = std.heap.ArenaAllocator;
-const ArrayListUnmanaged = std.ArrayListUnmanaged;
-const File = std.fs.File;
-const InstallDir = std.Build.InstallDir;
-const Step = std.Build.Step;
-const elf = std.elf;
-const fs = std.fs;
-const io = std.io;
-const sort = std.sort;
-
 step: Step,
 input_file: std.Build.LazyPath,
 base_address: u32,
@@ -31,9 +17,9 @@ pub fn create(
     owner: *std.Build,
     input_file: std.Build.LazyPath,
     options: Options,
-) *BinToUf2Step {
-    const self = owner.allocator.create(BinToUf2Step) catch @panic("OOM");
-    self.* = BinToUf2Step{
+) *Bin_To_UF2_Step {
+    const self = owner.allocator.create(Bin_To_UF2_Step) catch @panic("OOM");
+    self.* = Bin_To_UF2_Step{
         .step = Step.init(.{
             .id = .custom,
             .name = owner.fmt("bin_to_uf2 {s}", .{input_file.getDisplayName()}),
@@ -51,23 +37,21 @@ pub fn create(
     return self;
 }
 
-/// deprecated: use getOutput
-pub const getOutputSource = getOutput;
 
-pub fn getOutput(self: *const BinToUf2Step) std.Build.LazyPath {
+pub fn get_output(self: *const Bin_To_UF2_Step) std.Build.LazyPath {
     return .{ .generated = &self.output_file };
 }
 
 fn make(step: *Step, prog_node: *std.Progress.Node) !void {
     _ = prog_node;
     const b = step.owner;
-    const self = @fieldParentPtr(BinToUf2Step, "step", step);
+    const self = @fieldParentPtr(Bin_To_UF2_Step, "step", step);
 
     var man = b.cache.obtain();
     defer man.deinit();
 
-    // Random bytes to make BinToUf2Step unique. Refresh this with new random
-    // bytes when BinToUf2Step implementation is modified incompatibly.
+    // Random bytes to make Bin_To_UF2_Step unique. Refresh this with new random
+    // bytes when Bin_To_UF2_Step implementation is modified incompatibly.
     man.hash.add(@as(u32, 0x4dd3f2c8));
 
     const full_src_path = self.input_file.getPath(b);
@@ -83,7 +67,7 @@ fn make(step: *Step, prog_node: *std.Progress.Node) !void {
     }
 
     const digest = man.final();
-    const cache_path = "o" ++ fs.path.sep_str ++ digest;
+    const cache_path = "o" ++ std.fs.path.sep_str ++ digest;
     const full_dest_path = try b.cache_root.join(b.allocator, &.{ cache_path, self.basename });
     b.cache_root.handle.makePath(cache_path) catch |err| {
         return step.fail("unable to make path {s}: {s}", .{ cache_path, @errorName(err) });
@@ -124,19 +108,19 @@ fn make(step: *Step, prog_node: *std.Progress.Node) !void {
             block = block[0..block_size];
         }
 
-        try writer.writeIntLittle(u32, 0x0A324655);
-        try writer.writeIntLittle(u32, 0x9E5D5157);
-        try writer.writeIntLittle(u32, flags);
-        try writer.writeIntLittle(u32, address);
-        try writer.writeIntLittle(u32, block_size);
-        try writer.writeIntLittle(u32, @intCast(block_num));
-        try writer.writeIntLittle(u32, @intCast(num_blocks));
-        try writer.writeIntLittle(u32, file_size_or_family_id);
+        try writer.writeInt(u32, 0x0A324655, .little);
+        try writer.writeInt(u32, 0x9E5D5157, .little);
+        try writer.writeInt(u32, flags, .little);
+        try writer.writeInt(u32, address, .little);
+        try writer.writeInt(u32, block_size, .little);
+        try writer.writeInt(u32, @intCast(block_num), .little);
+        try writer.writeInt(u32, @intCast(num_blocks), .little);
+        try writer.writeInt(u32, file_size_or_family_id, .little);
         try writer.writeAll(block);
         if (block.len < 476) {
             try writer.writeByteNTimes(0, 476 - block.len);
         }
-        try writer.writeIntLittle(u32, 0x0AB16F30);
+        try writer.writeInt(u32, 0x0AB16F30, .little);
 
         address += block_size;
     }
@@ -144,3 +128,7 @@ fn make(step: *Step, prog_node: *std.Progress.Node) !void {
     self.output_file.path = full_dest_path;
     try man.writeManifest();
 }
+
+const Bin_To_UF2_Step = @This();
+const Step = std.Build.Step;
+const std = @import("std");

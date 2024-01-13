@@ -1,8 +1,4 @@
-const std = @import("std");
-const Chip = @import("Chip.zig");
-const Section = @import("Section.zig");
-
-pub fn addChipAndSections(hash: *std.Build.Cache.HashHelper, chip: Chip, sections: []const Section) void {
+pub fn add_chip_and_sections(hash: *std.Build.Cache.HashHelper, chip: Chip, sections: []const Section) void {
     hash.addBytes(chip.name);
     hash.addBytes(chip.core.name);
 
@@ -31,3 +27,7 @@ pub fn addChipAndSections(hash: *std.Build.Cache.HashHelper, chip: Chip, section
         hash.addBytes(if (section.init_value) |v| std.mem.asBytes(&v) else "~");
     }
 }
+
+const Chip = @import("Chip.zig");
+const Section = @import("Section.zig");
+const std = @import("std");

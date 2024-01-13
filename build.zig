@@ -1,13 +1,66 @@
-const std = @import("std");
-pub const Core = @import("Core.zig");
-pub const Chip = @import("Chip.zig");
-pub const Section = @import("Section.zig");
-pub const MemoryRegion = @import("MemoryRegion.zig");
-pub const BinToUf2Step = @import("BinToUf2Step.zig");
-pub const ConfigStep = @import("ConfigStep.zig");
-pub const LinkerScriptStep = @import("LinkerScriptStep.zig");
+pub fn build(b: *std.Build) void {
+    _ = b.addModule("microbe", .{ .root_source_file = .{ .path = "src/microbe.zig" } });
+}
 
-pub const ExecutableOptions = struct {
+pub fn add_bin_to_uf2(b: *std.Build, input_file: std.Build.LazyPath, options: Bin_To_UF2_Step.Options) *Bin_To_UF2_Step {
+    return Bin_To_UF2_Step.create(b, input_file, options);
+}
+
+pub fn addExecutable(b: *std.Build, options: Executable_Options) *std.Build.Step.Compile {
+    const optimize = options.optimize orelse b.standardOptimizeOption(.{});
+    const enable_runtime_resource_validation = options.enable_runtime_resource_validation orelse switch (optimize) {
+        .Debug => true,
+        else => false,
+    };
+
+    const config_step = Config_Step.create(b, options.chip, options.sections, enable_runtime_resource_validation);
+    const linkerscript_step = Linker_Script_Step.create(b, options.chip, options.sections);
+
+    const microbe_module = clone_module(b, "microbe", "microbe");
+    const chip_module = clone_module(b, options.chip.dependency_name, options.chip.module_name);
+    const config_module = b.createModule(.{ .root_source_file = config_step.get_output() });
+
+    config_module.addImport("microbe", microbe_module);
+    config_module.addImport("chip", chip_module);
+
+    microbe_module.addImport("chip", chip_module);
+    microbe_module.addImport("config", config_module);
+    microbe_module.addImport("microbe", microbe_module);
+
+    chip_module.addImport("chip", chip_module);
+    chip_module.addImport("config", config_module);
+    chip_module.addImport("microbe", microbe_module);
+
+    var exe = b.addExecutable(.{
+        .name = options.name,
+        .target = options.chip.core.target,
+        .root_source_file = options.root_source_file,
+        .version = options.version,
+        .optimize = optimize,
+        .linkage = .static,
+        .max_rss = options.max_rss,
+        .link_libc = options.link_libc,
+        .single_threaded = options.chip.single_threaded,
+        .pic = options.pic,
+        .strip = options.strip,
+        .unwind_tables = options.unwind_tables,
+        .omit_frame_pointer = options.omit_frame_pointer,
+        .sanitize_thread = options.sanitize_thread,
+        .error_tracing = options.error_tracing,
+        .use_llvm = options.use_llvm,
+        .use_lld = options.use_lld,
+        .zig_lib_dir = options.zig_lib_dir,
+    });
+    exe.bundle_compiler_rt = options.chip.core.bundle_compiler_rt;
+    exe.setLinkerScriptPath(linkerscript_step.get_output());
+    exe.root_module.addImport("microbe", microbe_module);
+    exe.root_module.addImport("config", config_module);
+    exe.root_module.addImport("chip", chip_module);
+
+    return exe;
+}
+
+pub const Executable_Options = struct {
     name: []const u8,
     root_source_file: ?std.Build.LazyPath = null,
     chip: Chip,
@@ -17,82 +70,36 @@ pub const ExecutableOptions = struct {
     optimize: ?std.builtin.Mode = null,
     max_rss: usize = 0,
     link_libc: ?bool = null,
+    pic: ?bool = null,
+    strip: ?bool = null,
+    unwind_tables: ?bool = null,
+    omit_frame_pointer: ?bool = null,
+    sanitize_thread: ?bool = null,
+    error_tracing: ?bool = null,
     use_llvm: ?bool = null,
     use_lld: ?bool = null,
+    zig_lib_dir: ?std.Build.LazyPath = null,
 };
 
-pub fn addExecutable(b: *std.Build, options: ExecutableOptions) *std.Build.Step.Compile {
-    const optimize = options.optimize orelse b.standardOptimizeOption(.{});
-    const enable_runtime_resource_validation = options.enable_runtime_resource_validation orelse switch (optimize) {
-        .Debug => true,
-        else => false,
-    };
-
-    const config_step = ConfigStep.create(b, options.chip, options.sections, enable_runtime_resource_validation);
-    const linkerscript_step = LinkerScriptStep.create(b, options.chip, options.sections);
-
-    const microbe_module = cloneModule(b, "microbe", "microbe");
-    const chip_module = cloneModule(b, options.chip.dependency_name, options.chip.module_name);
-
-    const config_module = b.createModule(.{
-        .source_file = config_step.getOutput(),
-        .dependencies = &.{
-            .{ .name = "microbe", .module = microbe_module },
-            .{ .name = "chip", .module = chip_module },
-        },
-    });
-
-    microbe_module.dependencies.put("chip", chip_module) catch @panic("OOM");
-    microbe_module.dependencies.put("config", config_module) catch @panic("OOM");
-    microbe_module.dependencies.put("microbe", microbe_module) catch @panic("OOM");
-
-    chip_module.dependencies.put("chip", chip_module) catch @panic("OOM");
-    chip_module.dependencies.put("config", config_module) catch @panic("OOM");
-    chip_module.dependencies.put("microbe", microbe_module) catch @panic("OOM");
-
-    var exe = b.addExecutable(.{
-        .name = options.name,
-        .root_source_file = options.root_source_file,
-        .version = options.version,
-        .optimize = optimize,
-        .max_rss = options.max_rss,
-        .link_libc = options.link_libc,
-        .use_llvm = options.use_llvm,
-        .use_lld = options.use_lld,
-        .target = options.chip.core.target,
-        .single_threaded = options.chip.single_threaded,
-        .linkage = .static,
-    });
-    exe.strip = false;
-    exe.bundle_compiler_rt = options.chip.core.bundle_compiler_rt;
-    exe.setLinkerScriptPath(linkerscript_step.getOutput());
-    exe.addModule("microbe", microbe_module);
-    exe.addModule("config", config_module);
-    exe.addModule("chip", chip_module);
-
-    return exe;
-}
-
-fn cloneModule(b: *std.Build, dependency_name: []const u8, module_name: []const u8) *std.Build.Module {
+fn clone_module(b: *std.Build, dependency_name: []const u8, module_name: []const u8) *std.Build.Module {
     const module = b.dependency(dependency_name, .{}).module(module_name);
-    const clone = module.builder.createModule(.{
-        .source_file = module.source_file,
+    const clone = module.owner.createModule(.{
+        .root_source_file = module.root_source_file
     });
 
-    var iter = module.dependencies.iterator();
+    var iter = module.import_table.iterator();
     while (iter.next()) |entry| {
-        clone.dependencies.put(entry.key_ptr.*, entry.value_ptr.*) catch @panic("OOM");
+        clone.addImport(entry.key_ptr.*, entry.value_ptr.*) catch @panic("OOM");
     }
 
     return clone;
 }
 
-pub fn addBinToUf2(b: *std.Build, input_file: std.Build.LazyPath, options: BinToUf2Step.Options) *BinToUf2Step {
-    return BinToUf2Step.create(b, input_file, options);
-}
-
-pub fn build(b: *std.Build) void {
-    _ = b.addModule("microbe", .{
-        .source_file = .{ .path = "src/microbe.zig" },
-    });
-}
+pub const Core = @import("Core.zig");
+pub const Chip = @import("Chip.zig");
+pub const Section = @import("Section.zig");
+pub const Memory_Region = @import("Memory_Region.zig");
+pub const Bin_To_UF2_Step = @import("Bin_To_UF2_Step.zig");
+pub const Config_Step = @import("Config_Step.zig");
+pub const Linker_Script_Step = @import("Linker_Script_Step.zig");
+const std = @import("std");

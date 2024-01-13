@@ -1,21 +1,11 @@
-const std = @import("std");
-const Section = @import("Section.zig");
-const Chip = @import("Chip.zig");
-const hash = @import("hash.zig");
-const Step = std.build.Step;
-const Build = std.Build;
-const GeneratedFile = std.build.GeneratedFile;
-
-const LinkerScriptStep = @This();
-
 step: Step,
-output_file: std.build.GeneratedFile,
+output_file: GeneratedFile,
 chip: Chip,
 sections: []Section,
 
-pub fn create(owner: *Build, chip: Chip, sections: []const Section) *LinkerScriptStep {
-    var self = owner.allocator.create(LinkerScriptStep) catch @panic("OOM");
-    self.* = LinkerScriptStep{
+pub fn create(owner: *Build, chip: Chip, sections: []const Section) *Linker_Script_Step {
+    var self = owner.allocator.create(Linker_Script_Step) catch @panic("OOM");
+    self.* = Linker_Script_Step{
         .step = Step.init(.{
             .id = .custom,
             .name = "linkerscript",
@@ -31,38 +21,35 @@ pub fn create(owner: *Build, chip: Chip, sections: []const Section) *LinkerScrip
     return self;
 }
 
-/// deprecated: use getOutput
-pub const getOutputSource = getOutput;
-
-pub fn getOutput(self: *const LinkerScriptStep) std.Build.LazyPath {
+pub fn get_output(self: *const Linker_Script_Step) std.Build.LazyPath {
     return .{ .generated = &self.output_file };
 }
 
-fn findMemoryRegionIndex(region_name: []const u8, chip: Chip) !usize {
+fn find_memory_region_index(region_name: []const u8, chip: Chip) !usize {
     for (chip.memory_regions, 0..) |region, i| {
         if (std.mem.eql(u8, region_name, region.name)) {
             return i;
         }
     }
     std.log.err("chip {s} does not have a memory region named {any}", .{ chip.name, region_name });
-    return error.MissingMemoryRegion;
+    return error.Missing_Memory_Region;
 }
 
-fn findMemoryRegionIndexByAddress(address: u32, chip: Chip) !usize {
+fn find_memory_region_index_by_address(address: u32, chip: Chip) !usize {
     for (chip.memory_regions, 0..) |region, i| {
         if (address >= region.offset and address < region.offset + region.length) {
             return i;
         }
     }
     std.log.err("chip {s} does not have a memory region containing address 0x{X}", .{ chip.name, address });
-    return error.MissingMemoryRegion;
+    return error.Missing_Memory_Region;
 }
 
 fn make(step: *Step, progress: *std.Progress.Node) !void {
     _ = progress;
 
     const b = step.owner;
-    const self = @fieldParentPtr(LinkerScriptStep, "step", step);
+    const self = @fieldParentPtr(Linker_Script_Step, "step", step);
     const chip = self.chip;
     const target = chip.core.target;
 
@@ -72,7 +59,7 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
     // Random bytes to make hash unique. Change this if linker script implementation is modified.
     man.hash.add(@as(u32, 0x36e1_27bc));
 
-    hash.addChipAndSections(&man.hash, chip, self.sections);
+    hash.add_chip_and_sections(&man.hash, chip, self.sections);
 
     if (try step.cacheHit(&man)) {
         // Cache hit, skip subprocess execution.
@@ -98,7 +85,7 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
 
     if (target.cpu_arch == null) {
         std.log.err("target does not have 'cpu_arch'", .{});
-        return error.NoCpuArch;
+        return error.No_CPU_Arch;
     }
 
     var contents = std.ArrayList(u8).init(b.allocator);
@@ -133,30 +120,30 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
 
     for (self.sections, 0..) |section, i| {
         if (section.ram_region) |ram| {
-            var r = try findMemoryRegionIndex(ram, chip);
+            const r = try find_memory_region_index(ram, chip);
             final_sections[r] = i;
             if (section.rom_region) |rom| {
                 // just make sure the rom region exists
-                _ = try findMemoryRegionIndex(rom, chip);
+                _ = try find_memory_region_index(rom, chip);
             } else if (section.rom_address) |addr| {
                 // just make sure the rom region exists
-                _ = try findMemoryRegionIndexByAddress(addr, chip);
+                _ = try find_memory_region_index_by_address(addr, chip);
             }
         } else if (section.ram_address) |ram_addr| {
-            var r = try findMemoryRegionIndexByAddress(ram_addr, chip);
+            const r = try find_memory_region_index_by_address(ram_addr, chip);
             final_sections[r] = i;
             if (section.rom_region) |rom| {
                 // just make sure the rom region exists
-                _ = try findMemoryRegionIndex(rom, chip);
+                _ = try find_memory_region_index(rom, chip);
             } else if (section.rom_address) |addr| {
                 // just make sure the rom region exists
-                _ = try findMemoryRegionIndexByAddress(addr, chip);
+                _ = try find_memory_region_index_by_address(addr, chip);
             }
         } else if (section.rom_region) |rom| {
-            var r = try findMemoryRegionIndex(rom, chip);
+            const r = try find_memory_region_index(rom, chip);
             final_sections[r] = i;
         } else if (section.rom_address) |rom_addr| {
-            var r = try findMemoryRegionIndexByAddress(rom_addr, chip);
+            const r = try find_memory_region_index_by_address(rom_addr, chip);
             final_sections[r] = i;
         }
     }
@@ -174,17 +161,17 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
         const has_ram_assignment = section.ram_region != null or section.ram_address != null;
 
         if (has_ram_assignment) {
-            const r = if (section.ram_region) |region| try findMemoryRegionIndex(region, chip) else try findMemoryRegionIndexByAddress(section.ram_address.?, chip);
+            const r = if (section.ram_region) |region| try find_memory_region_index(region, chip) else try find_memory_region_index_by_address(section.ram_address.?, chip);
             const is_final_section = final_sections[r] == section_index;
             if (has_rom_assignment) {
-                try writeSectionLoad(writer, section, is_final_section);
+                try write_section_load(writer, section, is_final_section);
             } else {
-                try writeSectionRam(writer, section, is_final_section);
+                try write_section_ram(writer, section, is_final_section);
             }
         } else if (has_rom_assignment) {
-            const r = if (section.rom_region) |region| try findMemoryRegionIndex(region, chip) else try findMemoryRegionIndexByAddress(section.rom_address.?, chip);
+            const r = if (section.rom_region) |region| try find_memory_region_index(region, chip) else try find_memory_region_index_by_address(section.rom_address.?, chip);
             const is_final_section = final_sections[r] == section_index;
-            try writeSectionRom(writer, section, is_final_section);
+            try write_section_rom(writer, section, is_final_section);
         } else {
             std.log.err("Section {s} must be assigned to a ROM or RAM memory range, or both!", .{ section.name });
             return error.InvalidSection;
@@ -198,7 +185,7 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
 
     for (chip.memory_regions, 0..) |region, region_index| {
         if (final_sections[region_index]) |section_index| {
-            var section = self.sections[section_index];
+            const section = self.sections[section_index];
             try writer.print(
                 \\_{s}_end = ORIGIN({s}) + LENGTH({s});
                 \\
@@ -213,13 +200,13 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
     try man.writeManifest();
 }
 
-fn writeSectionRam(writer: anytype, section: Section, is_final_section: bool) !void {
+fn write_section_ram(writer: anytype, section: Section, is_final_section: bool) !void {
     try writer.print("  .{s}", .{ section.name });
     if (section.ram_address) |addr| {
         try writer.print(" 0x{X}", .{ addr });
     }
     try writer.writeAll(" (NOLOAD) : {\n");
-    try writeSectionContents(writer, section, is_final_section);
+    try write_section_contents(writer, section, is_final_section);
     try writer.writeAll("  }");
     if (section.ram_region) |region| {
         try writer.print(" > {s}", .{ region });
@@ -227,13 +214,13 @@ fn writeSectionRam(writer: anytype, section: Section, is_final_section: bool) !v
     try writer.writeAll("\n\n");
 }
 
-fn writeSectionRom(writer: anytype, section: Section, is_final_section: bool) !void {
+fn write_section_rom(writer: anytype, section: Section, is_final_section: bool) !void {
     try writer.print("  .{s}", .{ section.name });
     if (section.rom_address) |addr| {
         try writer.print(" 0x{X}", .{ addr });
     }
     try writer.writeAll(" : {\n");
-    try writeSectionContents(writer, section, is_final_section);
+    try write_section_contents(writer, section, is_final_section);
     try writer.writeAll("  }");
     if (section.rom_region) |region| {
         try writer.print(" > {s}", .{ region });
@@ -241,7 +228,7 @@ fn writeSectionRom(writer: anytype, section: Section, is_final_section: bool) !v
     try writer.writeAll("\n\n");
 }
 
-fn writeSectionLoad(writer: anytype, section: Section, is_final_section: bool) !void {
+fn write_section_load(writer: anytype, section: Section, is_final_section: bool) !void {
     try writer.print("  .{s}", .{ section.name });
     if (section.ram_address) |addr| {
         try writer.print(" 0x{X}", .{ addr });
@@ -251,7 +238,7 @@ fn writeSectionLoad(writer: anytype, section: Section, is_final_section: bool) !
         try writer.print(" AT(0x{X})", .{ addr });
     }
     try writer.writeAll(" {\n");
-    try writeSectionContents(writer, section, is_final_section);
+    try write_section_contents(writer, section, is_final_section);
     try writer.writeAll(" }");
     if (section.ram_region) |region| {
         try writer.print(" > {s}", .{ region });
@@ -267,9 +254,9 @@ fn writeSectionLoad(writer: anytype, section: Section, is_final_section: bool) !
     , .{ section.name, section.name });
 }
 
-fn writeSectionContents(writer: anytype, section: Section, is_final_section: bool) !void {
+fn write_section_contents(writer: anytype, section: Section, is_final_section: bool) !void {
     var buf: [64]u8 = undefined;
-    var clean_name = try std.fmt.bufPrint(&buf, "{s}", .{ section.name });
+    const clean_name = try std.fmt.bufPrint(&buf, "{s}", .{ section.name });
     for (clean_name) |*c| {
         switch (c.*) {
             'a'...'z', 'A'...'Z', '0'...'9' => {},
@@ -312,3 +299,12 @@ fn writeSectionContents(writer: anytype, section: Section, is_final_section: boo
         , .{ clean_name });
     }
 }
+
+const Linker_Script_Step = @This();
+const Section = @import("Section.zig");
+const Chip = @import("Chip.zig");
+const hash = @import("hash.zig");
+const GeneratedFile = Build.GeneratedFile;
+const Step = Build.Step;
+const Build = std.Build;
+const std = @import("std");

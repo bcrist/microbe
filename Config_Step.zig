@@ -1,22 +1,12 @@
-const std = @import("std");
-const Section = @import("Section.zig");
-const Chip = @import("Chip.zig");
-const hash = @import("hash.zig");
-const Step = std.build.Step;
-const Build = std.Build;
-const GeneratedFile = std.build.GeneratedFile;
-
-const ConfigStep = @This();
-
 step: Step,
-output_file: std.build.GeneratedFile,
+output_file: GeneratedFile,
 chip: Chip,
 sections: []const Section,
 runtime_resource_validation: bool,
 
-pub fn create(owner: *Build, chip: Chip, sections: []const Section, enable_runtime_resource_validation: bool) *ConfigStep {
-    var self = owner.allocator.create(ConfigStep) catch @panic("OOM");
-    self.* = ConfigStep{
+pub fn create(owner: *Build, chip: Chip, sections: []const Section, enable_runtime_resource_validation: bool) *Config_Step {
+    var self = owner.allocator.create(Config_Step) catch @panic("OOM");
+    self.* = Config_Step{
         .step = Step.init(.{
             .id = .custom,
             .name = "config",
@@ -33,10 +23,7 @@ pub fn create(owner: *Build, chip: Chip, sections: []const Section, enable_runti
     return self;
 }
 
-/// deprecated: use getOutput
-pub const getOutputSource = getOutput;
-
-pub fn getOutput(self: *const ConfigStep) std.Build.FileSource {
+pub fn get_output(self: *const Config_Step) std.Build.LazyPath {
     return .{ .generated = &self.output_file };
 }
 
@@ -44,7 +31,7 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
     _ = progress;
 
     const b = step.owner;
-    const self = @fieldParentPtr(ConfigStep, "step", step);
+    const self = @fieldParentPtr(Config_Step, "step", step);
     const chip = self.chip;
 
     var man = b.cache.obtain();
@@ -53,7 +40,7 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
     // Random bytes to make hash unique. Change this if implementation is modified.
     man.hash.add(@as(u32, 0x212b_4d27));
 
-    hash.addChipAndSections(&man.hash, chip, self.sections);
+    hash.add_chip_and_sections(&man.hash, chip, self.sections);
 
     if (try step.cacheHit(&man)) {
         // Cache hit, skip regenerating file.
@@ -237,3 +224,12 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
     try file.writeAll(contents.items);
     try man.writeManifest();
 }
+
+const Config_Step = @This();
+const Section = @import("Section.zig");
+const Chip = @import("Chip.zig");
+const hash = @import("hash.zig");
+const GeneratedFile = Build.GeneratedFile;
+const Step = Build.Step;
+const Build = std.Build;
+const std = @import("std");
