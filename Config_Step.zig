@@ -118,7 +118,7 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
 
     try writer.writeAll("\npub const regions = struct {\n");
     for (chip.memory_regions) |region| {
-        try writer.print("    pub const @\"{s}\" = memSlice(0x{X}, 0x{X});\n", .{ std.fmt.fmtSliceEscapeUpper(region.name), region.offset, region.length });
+        try writer.print("    pub const @\"{s}\" = mem_slice(0x{X}, 0x{X});\n", .{ std.fmt.fmtSliceEscapeUpper(region.name), region.offset, region.length });
     }
     try writer.writeAll(
         \\};
@@ -168,7 +168,7 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
 
     try writer.writeAll(
         \\
-        \\pub fn initRam() callconv(.C) void {
+        \\pub fn init_ram() callconv(.C) void {
         \\    @setCold(true);
         \\
     );
@@ -209,7 +209,7 @@ fn make(step: *Step, progress: *std.Progress.Node) !void {
     );
 
     try writer.writeAll(
-        \\fn memSlice(comptime begin: u32, comptime len: u32) []u8 {
+        \\fn mem_slice(comptime begin: u32, comptime len: u32) []u8 {
         \\    var slice: []u8 = undefined;
         \\    slice.ptr = @ptrFromInt(begin);
         \\    slice.len = len;
