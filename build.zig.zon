@@ -2,6 +2,17 @@
     .name = "microbe",
     .version = "0.0.0",
     .minimum_zig_version = "0.12.0-dev.2063+804cee3b9",
-    .paths = .{""},
+    .paths = .{
+        "build.zig",
+        "build.zig.zon",
+        "Chip.zig",
+        "Config_Step.zig",
+        "Core.zig",
+        "hash.zig",
+        "Linker_Script_Step.zig",
+        "Memory_Region.zig",
+        "Section.zig",
+        "src"
+    },
     .dependencies = .{},
 }
