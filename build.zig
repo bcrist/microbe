@@ -6,7 +6,7 @@ pub fn add_bin_to_uf2(b: *std.Build, input_file: std.Build.LazyPath, options: Bi
     return Bin_To_UF2_Step.create(b, input_file, options);
 }
 
-pub fn addExecutable(b: *std.Build, options: Executable_Options) *std.Build.Step.Compile {
+pub fn add_executable(b: *std.Build, options: Executable_Options) *std.Build.Step.Compile {
     const optimize = options.optimize orelse b.standardOptimizeOption(.{});
     const enable_runtime_resource_validation = options.enable_runtime_resource_validation orelse switch (optimize) {
         .Debug => true,
@@ -33,7 +33,7 @@ pub fn addExecutable(b: *std.Build, options: Executable_Options) *std.Build.Step
 
     var exe = b.addExecutable(.{
         .name = options.name,
-        .target = options.chip.core.target,
+        .target = b.resolveTargetQuery(options.chip.core.target),
         .root_source_file = options.root_source_file,
         .version = options.version,
         .optimize = optimize,
@@ -89,7 +89,7 @@ fn clone_module(b: *std.Build, dependency_name: []const u8, module_name: []const
 
     var iter = module.import_table.iterator();
     while (iter.next()) |entry| {
-        clone.addImport(entry.key_ptr.*, entry.value_ptr.*) catch @panic("OOM");
+        clone.addImport(entry.key_ptr.*, entry.value_ptr.*);
     }
 
     return clone;

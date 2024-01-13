@@ -48,7 +48,7 @@ Chip implementations may also provide `chip.clocks.get_config()` to provide a ve
 The clock config struct may also contain fields for configuring low-power modes or other power-related features.
 
 ### UARTs
-Chip implementations may provide one or more UART implementations that allow `std.io` streams to be used.  If there is only one implementation, `chip.uart.Uart` should be a function that takes a comptime configuration struct and returns an implementation struct.  If multiple implementations are provided via separate constructor functions.
+Chip implementations may provide one or more UART implementations that allow `std.io` streams to be used.  If there is only one implementation, `chip.uart.UART` should be a function that takes a comptime configuration struct and returns an implementation struct.  If multiple implementations are provided via separate constructor functions.
 
 The recommended names and types for some common configuration options are:
 
@@ -86,60 +86,60 @@ The recommended names and types for some common configuration options are:
 
 All UART implementations should expose at least these declarations:
 
-    const DataType // usually u8
+    const Data_Type // usually u8
     fn init() Self
     fn start(*Self) void
     fn stop(*Self) void
 
 Implementations that have reception capability should provide:
 
-    fn isRxIdle(*Self) bool // optional; some hardware may not be capable of reporting this
-    fn getRxAvailableCount(*Self) usize
-    fn canRead(*Self) bool
-    fn peek(*Self, []DataType) ReadError![]const DataType
-    fn peekOne(*Self) ReadError!?DataType
+    fn is_rx_idle(*Self) bool // optional; some hardware may not be capable of reporting this
+    fn get_rx_available_count(*Self) usize
+    fn can_read(*Self) bool
+    fn peek(*Self, []Data_Type) Read_Error![]const Data_Type
+    fn peek_one(*Self) Read_Error!?Data_Type
 
-    const ReadError
-    const Reader // usually std.io.Reader(..., ReadError, ...)
+    const Read_Error
+    const Reader // usually std.io.Reader(..., Read_Error, ...)
     fn reader(*Self) Reader
 
     const Read_Error_Nonblocking
-    const ReaderNonBlocking
-    fn readerNonBlocking(*Self) ReaderNonBlocking
+    const Reader_Nonblocking
+    fn reader_nonblocking(*Self) Reader_Nonblocking
 
-`ReadError` usually consists of some subset of:
+`Read_Error` usually consists of some subset of:
 
 - `error.Overrun`
     - Indicates some received data was lost because older data was not read fast enough
     - Attempting to read again should return at least one word before another Overrun can occur
-- `error.ParityError`
+- `error.Parity_Error`
     - Indicates potential data corruption due to parity mismatch
     - The character received should still be provided if another read is performed
-- `error.FramingError`
+- `error.Framing_Error`
     - Indicates an incorrect line state during the stop bit, which may indicate data corruption, configuration mismatch, or severe clock drift
     - The character received should still be provided if another read is performed
-- `error.BreakInterrupt`
+- `error.Break_Interrupt`
     - Indicates an entire frame of 0 bits was received, including stop bits
     - May be used as a data separator in some protocols, or may indicate a broken cable or other physical issue
     - Note some implementations may not be capable of differentiating a break character from a framing error
-- `error.NoiseError`
+- `error.Noise_Error`
     - Indicates that a signal transition was detected too close to the "center" of a bit period
     - May indicate borderline baud rate mismatch or significant noise on the line
     - The received noisy character should still be readable after this error is seen
 
 Implementations that have transmission capability should provide:
 
-    fn isTxIdle(*Self) bool // optional; some hardware may not be capable of reporting this
-    fn getTxAvailableCount(*Self) usize
-    fn canWrite(*Self) bool
+    fn is_tx_idle(*Self) bool // optional; some hardware may not be capable of reporting this
+    fn get_tx_available_count(*Self) usize
+    fn can_write(*Self) bool
 
-    const WriteError
-    const Writer // usually std.io.Writer(..., WriteError, ...)
+    const Write_Error
+    const Writer // usually std.io.Writer(..., Write_Error, ...)
     fn writer(*Self) Writer
 
     const Write_Error_Nonblocking
-    const WriterNonBlocking
-    fn writerNonBlocking(*Self) WriterNonBlocking
+    const Writer_Nonblocking
+    fn writer_nonblocking(*Self) Writer_Nonblocking
 
 The `Read_Error_Nonblocking` and `Write_Error_Nonblocking` should generally match include everything from the blocking variants, as well as `error.Would_Block`, which is returned when the buffer is empty/full and no more data can be read or written.  Ideally, when reading or writing multiple words, either the entire operation succeeds, or it has no effect if `Would_Block` is returned, except for functions that give feedback on how much work they accomplished (e.g. `Writer.write`).  This precludes the use of `std.io.Reader`/`Writer` for the non-blocking variants.
 

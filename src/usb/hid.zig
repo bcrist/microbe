@@ -90,13 +90,13 @@ pub fn Input_Reporter(comptime UsbConfigType: type, comptime Report: type, compt
     return struct {
         const Self = @This();
 
-        usb: *usb.Usb(UsbConfigType),
+        usb: *usb.USB(UsbConfigType),
         queue: Fifo = Fifo.init(),
         last_report: Report,
         idle_interval: IdleInterval,
         idle_timer: u8 = 0,
 
-        pub fn init(usb_ptr: *usb.Usb(UsbConfigType)) Self {
+        pub fn init(usb_ptr: *usb.USB(UsbConfigType)) Self {
             return .{
                 .usb = usb_ptr,
                 .queue = Fifo.init(),
