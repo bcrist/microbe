@@ -186,7 +186,7 @@ pub fn String(comptime utf8: []const u8) type {
     };
 }
 
-/// StringID 0 should map to this
+/// String_ID 0 should map to this
 pub fn Supported_Languages(comptime languages: []const Language) type {
     const len = languages.len;
     const ptr: *const [len]Language = @ptrCast(languages);

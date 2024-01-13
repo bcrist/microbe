@@ -2,7 +2,7 @@
 // TODO support remote resume
 
 comptime {
-    std.debug.assert(@import("builtin").cpu.arch.endian() == .Little);
+    std.debug.assert(@import("builtin").cpu.arch.endian() == .little);
 }
 
 const std = @import("std");
@@ -189,12 +189,12 @@ pub fn USB(comptime Cfg: anytype) type {
                         Config.handle_out_buffer(ep, info.buffer);
                         log.debug("ep{} out: {}", .{ ep, std.fmt.fmtSliceHexLower(@volatileCast(info.buffer)) });
                     }
-                    self.updateOutState(ep);
+                    self.update_out_state(ep);
                 },
             }
         }
 
-        fn updateInState(self: *Self, ep: endpoint.Index) void {
+        fn update_in_state(self: *Self, ep: endpoint.Index) void {
             const state = self.ep_state[ep];
             if (state.in_halted) {
                 if (state.in != .stalled) {
@@ -226,7 +226,7 @@ pub fn USB(comptime Cfg: anytype) type {
             }
         }
 
-        fn updateOutState(self: *Self, ep: endpoint.Index) void {
+        fn update_out_state(self: *Self, ep: endpoint.Index) void {
             const state = self.ep_state[ep];
             if (state.out_halted) {
                 if (state.out != .stalled) {
@@ -279,7 +279,7 @@ pub fn USB(comptime Cfg: anytype) type {
                     handled = true;
                 },
                 .get_descriptor => if (setup.direction == .in) {
-                    self.handleGetDescriptor(setup);
+                    self.handle_get_descriptor(setup);
                     handled = true;
                 },
                 .get_status => if (setup.direction == .in) {
@@ -324,11 +324,11 @@ pub fn USB(comptime Cfg: anytype) type {
                             switch (addr.dir) {
                                 .in => {
                                     self.ep_state[addr.ep].in_halted = halt;
-                                    self.updateInState(addr.ep);
+                                    self.update_in_state(addr.ep);
                                 },
                                 .out => {
                                     self.ep_state[addr.ep].out_halted = halt;
-                                    self.updateOutState(addr.ep);
+                                    self.update_out_state(addr.ep);
                                 },
                             }
                         },
@@ -367,23 +367,23 @@ pub fn USB(comptime Cfg: anytype) type {
                             log.info("get device descriptor {}B", .{ self.setup_data_bytes_remaining });
                         }
                         const d: descriptor.Device = Config.get_device_descriptor();
-                        self.setup_transfer_in_data(d.asBytes());
+                        self.setup_transfer_in_data(d.as_bytes());
                     },
                     .device_qualifier => {
                         if (self.setup_data_offset == 0) {
                             log.info("get device qualifier {}B", .{ self.setup_data_bytes_remaining });
                         }
                         const d: descriptor.Device = Config.get_device_descriptor();
-                        const dq: descriptor.DeviceQualifier = .{
+                        const dq: descriptor.Device_Qualifier = .{
                             .usb_version = d.usb_version,
                             .class = d.class,
                             .max_packet_size_bytes = d.max_packet_size_bytes,
                             .configuration_count = d.configuration_count,
                         };
-                        self.setup_transfer_in_data(dq.asBytes());
+                        self.setup_transfer_in_data(dq.as_bytes());
                     },
                     .string => {
-                        const id: descriptor.StringID = @enumFromInt(which.index);
+                        const id: descriptor.String_ID = @enumFromInt(which.index);
                         if (self.setup_data_offset == 0) {
                             log.info("get string {}B: id = {}, lang = {}", .{ self.setup_data_bytes_remaining, id, which.language });
                         }

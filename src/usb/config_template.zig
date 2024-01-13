@@ -60,7 +60,7 @@ const default_configuration = struct {
         pub const index = 0;
         // pub const alternate_setting: u8 = 0; // optional
         pub const class: classes.Class_Info = undefined; // TODO
-        // pub const name: StringID = .default_interface_name; // optional
+        // pub const name: String_ID = .default_interface_name; // optional
 
         pub const default_endpoint = struct {
             pub const address: endpoint.Address = .{

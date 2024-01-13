@@ -206,10 +206,10 @@ pub fn Output_Reporter(comptime UsbConfigType: type, comptime Report: type, comp
     return struct {
         const Self = @This();
 
-        usb: *usb.Usb(UsbConfigType),
+        usb: *usb.USB(UsbConfigType),
         current_report: Report,
 
-        pub fn init(usb_ptr: *usb.Usb(UsbConfigType)) Self {
+        pub fn init(usb_ptr: *usb.USB(UsbConfigType)) Self {
             return .{
                 .usb = usb_ptr,
                 .current_report = .{},
@@ -429,8 +429,8 @@ pub fn Descriptor(comptime locale: Locale, comptime class_descriptors: anytype) 
         num_descriptors: u8 = @intCast(fields.len),
         descriptors: SubDescriptorInfos = .{},
 
-        pub fn asBytes(self: *const @This()) []const u8 {
-            return descriptor.asBytes(self);
+        pub fn as_bytes(self: *const @This()) []const u8 {
+            return descriptor.as_bytes(self);
         }
     };
 }
@@ -627,8 +627,8 @@ pub const report = struct {
 
             pub const _len: u8 = @bitSizeOf(@This()) / 8;
             pub const _kind: descriptor.Kind = report_descriptor;
-            pub fn asBytes(self: *const @This()) []const u8 {
-                return descriptor.asBytes(self);
+            pub fn as_bytes(self: *const @This()) []const u8 {
+                return descriptor.as_bytes(self);
             }
         };
     }
