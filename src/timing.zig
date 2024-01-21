@@ -45,6 +45,7 @@ pub const Tick = enum (i32) {
 /// For most devices this is driven by an interrupt and may be disabled in at least
 /// some low power/sleep modes.
 pub const Microtick = enum (i64) {
+    _,
 
     pub fn now() Microtick {
         return chip.timing.current_microtick();
