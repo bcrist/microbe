@@ -386,7 +386,13 @@ pub fn UART(comptime USB_Config: type, comptime config: UART_Config) type {
         /// The response available notification can be sent when the received_encapsulated_command field is set (then unset it)
         pub fn handle_setup(self: *Self, setup: usb.Setup_Packet) bool {
             if (setup.kind != .class or setup.target != .interface) return false;
-            if (setup.get_interface_number_payload() != config.communications_interface_index) return false;
+
+            const payload: packed struct (u32) {
+                _reserved: u16,
+                interface: u16,
+            } = @bitCast(setup.payload);
+            if (payload.interface != config.communications_interface_index) return false;
+            
             switch (setup.request) {
                 requests.send_encapsulated_command => if (setup.direction == .out) {
                     log.info("send_gencapsulated_command", .{});
