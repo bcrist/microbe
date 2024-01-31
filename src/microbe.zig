@@ -28,10 +28,10 @@ fn default_log_prefix(comptime message_level: std.log.Level, comptime scope: @Ty
         .info =>  "I",
         .debug => "D",
     };
-    root.debug_uart.writer().print(level_prefix ++ "{: <11} {s}: ", .{
+    root.debug_uart.writer_nonblocking().print(level_prefix ++ "{: <11} {s}: ", .{
         @intFromEnum(timing.Tick.now()),
         scope_name,
-    }) catch unreachable;
+    }) catch {};
 }
 
 pub fn default_log(
@@ -42,9 +42,9 @@ pub fn default_log(
 ) void {
     if (@hasDecl(root, "debug_uart")) {
         default_log_prefix(message_level, scope);
-        var writer = root.debug_uart.writer();
-        writer.print(format, args) catch unreachable;
-        writer.writeByte('\n') catch unreachable;
+        var writer = root.debug_uart.writer_nonblocking();
+        writer.print(format, args) catch {};
+        writer.writeByte('\n') catch {};
     }
 }
 
