@@ -87,7 +87,7 @@ fn MMIO_RW(comptime T: type) type {
             };
         }
 
-        pub inline fn toggleBits(comptime self: *volatile Self, comptime fields: anytype) void {
+        pub inline fn toggle_bits(comptime self: *volatile Self, comptime fields: anytype) void {
             const bits_to_toggle = comptime get_bit_mask(fields);
             if (@hasDecl(chip, "toggle_register_bits")) {
                 chip.toggle_register_bits(&self.raw, bits_to_toggle);
