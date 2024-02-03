@@ -1,8 +1,3 @@
-const std = @import("std");
-const endpoint = @import("endpoint.zig");
-const classes = @import("classes.zig");
-const chip = @import("chip");
-
 pub const Kind = enum (u8) {
     device = 0x01,
     configuration = 0x02,
@@ -370,3 +365,8 @@ fn bytes(descriptor: anytype) []const u8 {
 }
 
 pub const as_bytes = bytes;
+
+const endpoint = @import("endpoint.zig");
+const classes = @import("classes.zig");
+const chip = @import("chip");
+const std = @import("std");

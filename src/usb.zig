@@ -209,8 +209,8 @@ pub fn USB(comptime Cfg: anytype) type {
                     log.debug("ep{} in waiting...", .{ ep });
                 }
             } else {
-                if (@hasDecl(Config, "getInBuffer")) {
-                    const data: []const u8 = Config.getInBuffer(ep, state.in_max_packet_size_bytes);
+                if (@hasDecl(Config, "get_in_buffer")) {
+                    const data: []const u8 = Config.get_in_buffer(ep, state.in_max_packet_size_bytes);
                     chip.usb.fill_buffer_in(ep, 0, data);
                     chip.usb.start_transfer_in(ep, data.len, state.next_in_pid, data.len < state.in_max_packet_size_bytes);
                     log.debug("ep{} in: {}", .{ ep, std.fmt.fmtSliceHexLower(data) });

@@ -3,24 +3,16 @@
 ///
 /// Standard CDC-ACM headers:
 ///
-/// InterfaceAssociation: class.control_interface, 2 interfaces
+/// Interface_Association: class.control_interface, 2 interfaces
 /// Interface: class.control_interface, 1 endpoint
-/// HeaderDescriptor
-/// CallManagementDescriptor
-/// AbstractControlManagementDescriptor
-/// UnionDescriptor
+/// Header_Descriptor
+/// Call_Management_Descriptor
+/// Abstract_Control_Management_Descriptor
+/// Union_Descriptor
 /// Endpoint: control endpoint, in, interrupt, 10-16ms polling
 /// Interface: class.data_interface, 2 endpoints
 /// Endpoint: data endpoint, in, bulk
 /// Endpoint: data endpoint, out, bulk
-
-const std = @import("std");
-const usb = @import("microbe").usb;
-const descriptor = @import("descriptor.zig");
-const classes = @import("classes.zig");
-const Class = classes.Class;
-const Subclass = classes.Subclass;
-const Protocol = classes.Protocol;
 
 pub const class = struct {
     pub const control_interface: classes.Info = .{
@@ -456,3 +448,11 @@ pub fn UART(comptime USB_Config: type, comptime config: UART_Config) type {
 
     };
 }
+
+const Class = classes.Class;
+const Subclass = classes.Subclass;
+const Protocol = classes.Protocol;
+const classes = @import("classes.zig");
+const descriptor = @import("descriptor.zig");
+const usb = @import("../usb.zig");
+const std = @import("std");

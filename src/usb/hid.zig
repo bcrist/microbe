@@ -1,11 +1,3 @@
-const std = @import("std");
-const usb = @import("microbe").usb;
-const descriptor = @import("descriptor.zig");
-const classes = @import("classes.zig");
-const Class = classes.Class;
-const Subclass = classes.Subclass;
-const Protocol = classes.Protocol;
-
 pub const class = struct {
     pub const default: classes.Info = .{
         .class = Class.hid,
@@ -39,7 +31,7 @@ pub const requests = struct {
     pub const set_protocol = request(0xB);
 
     // Used for get_report and set_report
-    pub const ReportPayload = packed struct (u32) {
+    pub const Report_Payload = packed struct (u32) {
         report_id: u8,
         report_kind: enum(u8) {
             input = 1,
@@ -51,14 +43,14 @@ pub const requests = struct {
     };
 
     // Used for get_idle and set_idle
-    pub const IdlePayload = packed struct (u32) {
+    pub const Idle_Payload = packed struct (u32) {
         report_id: u8,
-        interval: IdleInterval, // for get_idle, this is in the data phase
+        interval: Idle_Interval, // for get_idle, this is in the data phase
         interface: u16,
     };
 
     // Used for get_protocol and set_protocol
-    pub const ProtocolPayload = packed struct (u32) {
+    pub const Protocol_Payload = packed struct (u32) {
         protocol: u16, // for get_protocol, this is in the data phase
         interface: u16,
     };
@@ -68,20 +60,20 @@ pub const requests = struct {
     }
 };
 
-pub const IdleInterval = enum(u8) {
+pub const Idle_Interval = enum(u8) {
     infinite = 0,
     @"16ms" = 4,
     @"500ms" = 125,
     _, // units of 4 ms
 };
 
-pub const Input_ReporterConfig = struct {
+pub const Input_Reporter_Config = struct {
     max_buffer_size: usize,
     interface_index: u8,
     report_id: u8,
-    default_idle_interval: IdleInterval,
+    default_idle_interval: Idle_Interval,
 };
-pub fn Input_Reporter(comptime UsbConfigType: type, comptime Report: type, comptime config: Input_ReporterConfig) type {
+pub fn Input_Reporter(comptime Usb_Config_Type: type, comptime Report: type, comptime config: Input_Reporter_Config) type {
     if (!std.math.isPowerOfTwo(config.max_buffer_size)) {
         @compileError("Buffer size must be a power of two!");
     }
@@ -90,13 +82,13 @@ pub fn Input_Reporter(comptime UsbConfigType: type, comptime Report: type, compt
     return struct {
         const Self = @This();
 
-        usb: *usb.USB(UsbConfigType),
+        usb: *usb.USB(Usb_Config_Type),
         queue: Fifo = Fifo.init(),
         last_report: Report,
-        idle_interval: IdleInterval,
+        idle_interval: Idle_Interval,
         idle_timer: u8 = 0,
 
-        pub fn init(usb_ptr: *usb.USB(UsbConfigType)) Self {
+        pub fn init(usb_ptr: *usb.USB(Usb_Config_Type)) Self {
             return .{
                 .usb = usb_ptr,
                 .queue = Fifo.init(),
@@ -112,7 +104,7 @@ pub fn Input_Reporter(comptime UsbConfigType: type, comptime Report: type, compt
             self.idle_timer = 0;
         }
 
-        pub fn pushAll(self: *Self, reports: []const Report) void {
+        pub fn push_all(self: *Self, reports: []const Report) void {
             for (reports) |rpt| {
                 self.push(rpt);
             }
@@ -136,7 +128,7 @@ pub fn Input_Reporter(comptime UsbConfigType: type, comptime Report: type, compt
             return self.queue.buf[last_index];
         }
 
-        pub fn tailPtr(self: *Self) ?*Report {
+        pub fn tail_ptr(self: *Self) ?*Report {
             if (self.queue.readableLength() == 0) {
                 return null;
             }
@@ -157,36 +149,61 @@ pub fn Input_Reporter(comptime UsbConfigType: type, comptime Report: type, compt
             return self.idle_timer / 4 >= @intFromEnum(interval);
         }
 
-        pub fn getInBuffer(self: *Self) []const u8 {
+        pub fn get_in_buffer(self: *Self) []const u8 {
+            var buf: []const u8 = undefined;
             if (self.queue.readItem()) |next_report| {
                 self.last_report = next_report;
+                buf = std.mem.asBytes(&self.last_report)[0..report_bytes];
+                log.debug("Input_Reporter {} report {}: {}", .{
+                    config.interface_index,
+                    config.report_id,
+                    std.fmt.fmtSliceHexUpper(),
+                });
+            } else {
+                buf = std.mem.asBytes(&self.last_report)[0..report_bytes]
             }
             self.idle_timer = 0;
-            return std.mem.asBytes(&self.last_report)[0..report_bytes];
+            return buf;
         }
 
         pub fn handle_setup(self: *Self, setup: usb.Setup_Packet) bool {
             if (setup.kind != .class) return false;
             switch (setup.request) {
                 requests.set_idle => if (setup.direction == .out) {
-                    const payload: requests.IdlePayload = @bitCast(setup.payload);
+                    const payload: requests.Idle_Payload = @bitCast(setup.payload);
                     if (payload.interface == config.interface_index and payload.report_id == config.report_id) {
                         self.idle_interval = payload.interval;
                         self.usb.setup_status_in();
+                        log.info("Input_Reporter {} set_idle {}: {}", .{
+                            config.interface_index,
+                            config.report_id,
+                            self.idle_interval,
+                        });
                         return true;
                     }
                 },
                 requests.get_idle => if (setup.direction == .in) {
-                    const payload: requests.IdlePayload = @bitCast(setup.payload);
+                    const payload: requests.Idle_Payload = @bitCast(setup.payload);
                     if (payload.interface == config.interface_index and payload.report_id == config.report_id) {
+                        log.info("Input_Reporter {} get_idle {}: {}", .{
+                            config.interface_index,
+                            config.report_id,
+                            self.idle_interval,
+                        });
                         self.usb.setup_transfer_in_data(std.mem.asBytes(&self.idle_interval));
                         return true;
                     }
                 },
                 requests.get_report => if (setup.direction == .in) {
-                    const payload: requests.ReportPayload = @bitCast(setup.payload);
+                    const payload: requests.Report_Payload = @bitCast(setup.payload);
                     if (payload.interface == config.interface_index and payload.report_id == config.report_id and payload.report_kind == .input) {
-                        self.usb.setup_transfer_in_data(std.mem.asBytes(&self.last_report)[0..report_bytes]);
+                        const buf = std.mem.asBytes(&self.last_report)[0..report_bytes];
+                        log.debug("Input_Reporter {} get_report {}: {}", .{
+                            config.interface_index,
+                            config.report_id,
+                            std.fmt.fmtSliceHexUpper(buf),
+                        });
+                        self.usb.setup_transfer_in_data(buf);
                         return true;
                     }
                 },
@@ -197,19 +214,19 @@ pub fn Input_Reporter(comptime UsbConfigType: type, comptime Report: type, compt
     };
 }
 
-pub const OutputReportConfig = struct {
+pub const Output_Report_Config = struct {
     interface_index: u8,
     report_id: u8,
 };
-pub fn Output_Reporter(comptime UsbConfigType: type, comptime Report: type, comptime config: OutputReportConfig) type {
+pub fn Output_Reporter(comptime Usb_Config_Type: type, comptime Report: type, comptime config: Output_Report_Config) type {
     const report_bytes = @bitSizeOf(Report) / 8;
     return struct {
         const Self = @This();
 
-        usb: *usb.USB(UsbConfigType),
+        usb: *usb.USB(Usb_Config_Type),
         current_report: Report,
 
-        pub fn init(usb_ptr: *usb.USB(UsbConfigType)) Self {
+        pub fn init(usb_ptr: *usb.USB(Usb_Config_Type)) Self {
             return .{
                 .usb = usb_ptr,
                 .current_report = .{},
@@ -220,16 +237,26 @@ pub fn Output_Reporter(comptime UsbConfigType: type, comptime Report: type, comp
             if (setup.kind != .class) return false;
             switch (setup.request) {
                 requests.set_report => if (setup.direction == .out) {
-                    const payload: requests.ReportPayload = @bitCast(setup.payload);
+                    const payload: requests.Report_Payload = @bitCast(setup.payload);
                     if (payload.interface == config.interface_index and payload.report_id == config.report_id and payload.report_kind == .output) {
+                        log.debug("Output_Reporter {} set_report {} received", .{
+                            config.interface_index,
+                            config.report_id,
+                        });
                         self.usb.setup_transfer_out(setup.data_len);
                         return true;
                     }
                 },
                 requests.get_report => if (setup.direction == .in) {
-                    const payload: requests.ReportPayload = @bitCast(setup.payload);
+                    const payload: requests.Report_Payload = @bitCast(setup.payload);
                     if (payload.interface == config.interface_index and payload.report_id == config.report_id and payload.report_kind == .output) {
-                        self.usb.setup_transfer_in_data(std.mem.asBytes(&self.current_report)[0..report_bytes]);
+                        const buf = std.mem.asBytes(&self.current_report)[0..report_bytes];
+                        log.debug("Output_Reporter {} get_report {}: {}", .{
+                            config.interface_index,
+                            config.report_id,
+                            std.fmt.fmtSliceHexUpper(buf),
+                        });
+                        self.usb.setup_transfer_in_data(buf);
                         return true;
                     }
                 },
@@ -240,13 +267,19 @@ pub fn Output_Reporter(comptime UsbConfigType: type, comptime Report: type, comp
 
         pub fn handle_setup_out_buffer(self: *Self, setup: usb.Setup_Packet, offset: u16, data: []volatile const u8) bool {
             if (setup.kind != .class or setup.request != requests.set_report) return false;
-            const payload: requests.ReportPayload = @bitCast(setup.payload);
+            const payload: requests.Report_Payload = @bitCast(setup.payload);
             if (payload.interface == config.interface_index and payload.report_id == config.report_id and payload.report_kind == .output) {
                 if (offset > report_bytes) return true;
 
                 var buf = std.mem.asBytes(&self.current_report)[offset..report_bytes];
                 const bytes = @min(data.len, buf.len);
                 @memcpy(buf[0..bytes], data[0..bytes]);
+
+                log.debug("Output_Reporter {} set_report {}: {}", .{
+                    config.interface_index,
+                    config.report_id,
+                    std.fmt.fmtSliceHexUpper(buf),
+                });
                 return true;
             }
             return false;
@@ -295,32 +328,32 @@ pub const Locale = enum(u8) {
 };
 
 pub const boot_keyboard = struct {
-    pub const HidDescriptor = Descriptor(.generic, .{ ReportDescriptor });
-    pub const ReportDescriptor = report.Descriptor(.{
-        report.UsagePage(.generic_desktop),
-        report.Usage(page.GenericDesktop.keyboard),
+    pub const HID_Descriptor = Descriptor(.generic, .{ Report_Descriptor });
+    pub const Report_Descriptor = report.Descriptor(.{
+        report.Usage_Page(.generic_desktop),
+        report.Usage(page.Generic_Desktop.keyboard),
         report.Collection(.application, .{
-            report.BitCount(8),
-            report.UsagePage(.keyboard),
-            report.UsageRange(page.Keyboard.lcontrol, page.Keyboard.rgui),
-            report.LogicalRange(0, 1),
-            report.AbsoluteInput(.linear, .returns_to_preferred_state, .no_null_state),
-            report.ByteCount(1),
-            report.ConstantInput,
-            report.ByteCount(6),
-            report.UsageRange(0, 255),
-            report.LogicalRange(0, 255),
-            report.ArrayInput,
+            report.Bit_Count(8),
+            report.Usage_Page(.keyboard),
+            report.Usage_Range(page.Keyboard.lcontrol, page.Keyboard.rgui),
+            report.Logical_Range(0, 1),
+            report.Absolute_Input(.linear, .returns_to_preferred_state, .no_null_state),
+            report.Byte_Count(1),
+            report.Constant_Input,
+            report.Byte_Count(6),
+            report.Usage_Range(0, 255),
+            report.Logical_Range(0, 255),
+            report.Array_Input,
 
-            report.BitCount(5),
-            report.UsagePage(.leds),
-            report.UsageRange(1, 5),
-            report.AbsoluteOutput(.linear, .no_null_state, .nonvolatile),
-            report.BitCount(3),
-            report.ConstantOutput,
+            report.Bit_Count(3),
+            report.Usage_Page(.leds),
+            report.Usage_Range(page.LEDs.num_lock, page.LEDs.scroll_lock),
+            report.Absolute_Output(.linear, .no_null_state, .nonvolatile),
+            report.Bit_Count(5),
+            report.Constant_Output,
         }),
     });
-    pub const InputReport = extern struct {
+    pub const Input_Report = extern struct {
         modifiers: packed struct (u8) {
             left_control: bool = false,
             left_shift: bool = false,
@@ -334,7 +367,7 @@ pub const boot_keyboard = struct {
         _reserved: u8 = 0,
         keys: [6]page.Keyboard = std.mem.zeroes([6]page.Keyboard),
     };
-    pub const OutputReport = packed struct (u8) {
+    pub const Output_Report = packed struct (u8) {
         num_lock: bool = false,
         caps_lock: bool = false,
         scroll_lock: bool = false,
@@ -345,30 +378,30 @@ pub const boot_keyboard = struct {
 };
 
 pub const boot_mouse = struct {
-    pub const HidDescriptor = Descriptor(.generic, .{ ReportDescriptor });
-    pub const ReportDescriptor = report.Descriptor(.{
-        report.UsagePage(.generic_desktop),
-        report.Usage(page.GenericDesktop.mouse),
+    pub const HID_Descriptor = Descriptor(.generic, .{ Report_Descriptor });
+    pub const Report_Descriptor = report.Descriptor(.{
+        report.Usage_Page(.generic_desktop),
+        report.Usage(page.Generic_Desktop.mouse),
         report.Collection(.application, .{
-            report.Usage(.pointer),
+            report.Usage(page.Generic_Desktop.pointer),
             report.Collection(.physical, .{
-                report.BitCount(3),
-                report.UsagePage(.buttons),
-                report.UsageRange(1, 3),
-                report.LogicalRange(0, 1),
-                report.AbsoluteInput(.linear, .returns_to_preferred_state, .no_null_state),
-                report.BitCount(5),
-                report.ConstantInput,
-                report.ByteCount(2),
-                report.UsagePage(.generic_desktop),
-                report.Usage(page.GenericDesktop.x),
-                report.Usage(page.GenericDesktop.y),
-                report.LogicalRange(-127, 127),
-                report.RelativeInput,
+                report.Bit_Count(3),
+                report.Usage_Page(.buttons),
+                report.Usage_Range(1, 3),
+                report.Logical_Range(0, 1),
+                report.Absolute_Input(.linear, .returns_to_preferred_state, .no_null_state),
+                report.Bit_Count(5),
+                report.Constant_Input,
+                report.Byte_Count(2),
+                report.Usage_Page(.generic_desktop),
+                report.Usage(page.Generic_Desktop.x),
+                report.Usage(page.Generic_Desktop.y),
+                report.Logical_Range(-127, 127),
+                report.Relative_Input,
             }),
         }),
     });
-    pub const InputReport = packed struct (u24) {
+    pub const Input_Report = packed struct (u24) {
         left_btn: bool = false,
         right_btn: bool = false,
         middle_btn: bool = false,
@@ -437,38 +470,38 @@ pub fn Descriptor(comptime locale: Locale, comptime class_descriptors: anytype) 
 
 pub const report = struct {
 
-    pub fn BitCount(comptime count: comptime_int) type {
-        return CountAndSize(count, 1);
+    pub fn Bit_Count(comptime count: comptime_int) type {
+        return Count_And_Size(count, 1);
     }
-    pub fn ByteCount(comptime count: comptime_int) type {
-        return CountAndSize(count, 8);
+    pub fn Byte_Count(comptime count: comptime_int) type {
+        return Count_And_Size(count, 8);
     }
-    pub fn CountAndSize(comptime count: comptime_int, comptime size: comptime_int) type {
+    pub fn Count_And_Size(comptime count: comptime_int, comptime size: comptime_int) type {
         return packed struct {
-            _size: ShortItem(.global_report_size, size) = .{},
-            _count: ShortItem(.global_report_count, count) = .{},
+            _size: Short_Item(.global_report_size, size) = .{},
+            _count: Short_Item(.global_report_count, count) = .{},
         };
     }
 
-    pub fn LogicalRange(comptime min: comptime_int, comptime max: comptime_int) type {
+    pub fn Logical_Range(comptime min: comptime_int, comptime max: comptime_int) type {
         return packed struct {
-            _min: ShortItem(.global_logical_minimum, min) = .{},
-            _max: ShortItem(.global_logical_maximum, max) = .{},
+            _min: Short_Item(.global_logical_minimum, min) = .{},
+            _max: Short_Item(.global_logical_maximum, max) = .{},
         };
     }
 
-    pub fn UsageRange(comptime min: anytype, comptime max: anytype) type {
+    pub fn Usage_Range(comptime min: anytype, comptime max: anytype) type {
         return packed struct {
-            _min: ShortItem(.local_usage_minimum, intOrEnum(min)) = .{},
-            _max: ShortItem(.local_usage_maximum, intOrEnum(max)) = .{},
+            _min: Short_Item(.local_usage_minimum, int_or_enum(min)) = .{},
+            _max: Short_Item(.local_usage_maximum, int_or_enum(max)) = .{},
         };
     }
 
     pub fn Usage(comptime usage: anytype) type {
-        return ShortItem(.local_usage, intOrEnum(usage));
+        return Short_Item(.local_usage, int_or_enum(usage));
     }
 
-    fn intOrEnum(comptime a: anytype) comptime_int {
+    fn int_or_enum(comptime a: anytype) comptime_int {
         return switch (@typeInfo(@TypeOf(a))) {
             .Enum => @intFromEnum(a),
             .Int, .ComptimeInt => a,
@@ -476,7 +509,7 @@ pub const report = struct {
         };
     }
 
-    pub const UsagePageKind = enum(u16) {
+    pub const Usage_Page_Kind = enum(u16) {
         generic_desktop = 0x1,
         simulation_controls = 0x2,
         vr_controls = 0x3,
@@ -514,17 +547,17 @@ pub const report = struct {
         fido_alliance = 0xF1D0,
         _,
     };
-    pub fn UsagePage(comptime kind: UsagePageKind) type {
-        return ShortItem(.global_usage_page, @intFromEnum(kind));
+    pub fn Usage_Page(comptime kind: Usage_Page_Kind) type {
+        return Short_Item(.global_usage_page, @intFromEnum(kind));
     }
 
-    pub const ConstantInput = Input(.{ .disposition = .constant });
-    pub const ConstantOutput = Output(.{ .disposition = .constant });
+    pub const Constant_Input = Input(.{ .disposition = .constant });
+    pub const Constant_Output = Output(.{ .disposition = .constant });
 
-    pub const ArrayInput = Input(.{ .disposition = .array, .nullability = .has_null_state });
-    pub const ArrayOutput = Output(.{ .disposition = .array, .nullability = .has_null_state });
+    pub const Array_Input = Input(.{ .disposition = .array, .nullability = .has_null_state });
+    pub const Array_Output = Output(.{ .disposition = .array, .nullability = .has_null_state });
 
-    pub fn AbsoluteInput(comptime linearity: IOFlags.Linearity, comptime autonomy: IOFlags.Autonomy, comptime nullability: IOFlags.Nullability) type {
+    pub fn Absolute_Input(comptime linearity: IO_Flags.Linearity, comptime autonomy: IO_Flags.Autonomy, comptime nullability: IO_Flags.Nullability) type {
         return Input(.{
             .disposition = .variable,
             .basis = .absolute,
@@ -533,7 +566,7 @@ pub const report = struct {
             .nullability = nullability,
         });
     }
-    pub fn AbsoluteOutput(comptime linearity: IOFlags.Linearity, comptime nullability: IOFlags.Nullability, comptime volatility: IOFlags.Volatility) type {
+    pub fn Absolute_Output(comptime linearity: IO_Flags.Linearity, comptime nullability: IO_Flags.Nullability, comptime volatility: IO_Flags.Volatility) type {
         return Output(.{
             .disposition = .variable,
             .basis = .absolute,
@@ -542,7 +575,7 @@ pub const report = struct {
             .volatility = volatility,
         });
     }
-    pub fn WrappedInput(comptime linearity: IOFlags.Linearity, comptime autonomy: IOFlags.Autonomy, comptime nullability: IOFlags.Nullability) type {
+    pub fn Wrapped_Input(comptime linearity: IO_Flags.Linearity, comptime autonomy: IO_Flags.Autonomy, comptime nullability: IO_Flags.Nullability) type {
         return Input(.{
             .disposition = .variable,
             .basis = .absolute_wrapped,
@@ -551,8 +584,8 @@ pub const report = struct {
             .nullability = nullability,
         });
     }
-    pub const RelativeInput = Input(.{ .disposition = .variable, .basis = .relative, .autonomy = .none });
-    pub fn RelativeOutput(comptime volatility: IOFlags.Volatility) type {
+    pub const Relative_Input = Input(.{ .disposition = .variable, .basis = .relative, .autonomy = .none });
+    pub fn Relative_Output(comptime volatility: IO_Flags.Volatility) type {
         return Output(.{
             .disposition = .variable,
             .basis = .relative,
@@ -560,7 +593,7 @@ pub const report = struct {
         });
     }
 
-    pub const IOFlags = packed struct (u16) {
+    pub const IO_Flags = packed struct (u16) {
         disposition: enum (u2) {
             array = 0,
             constant = 1,
@@ -596,14 +629,14 @@ pub const report = struct {
             @"volatile" = 1,
         };
     };
-    pub fn Input(comptime flags: IOFlags) type {
-        return ShortItem(.input, @as(u16, @bitCast(flags)));
+    pub fn Input(comptime flags: IO_Flags) type {
+        return Short_Item(.input, @as(u16, @bitCast(flags)));
     }
-    pub fn Output(comptime flags: IOFlags) type {
-        return ShortItem(.output, @as(u16, @bitCast(flags)));
+    pub fn Output(comptime flags: IO_Flags) type {
+        return Short_Item(.output, @as(u16, @bitCast(flags)));
     }
 
-    pub const CollectionKind = enum(u8) {
+    pub const Collection_Kind = enum(u8) {
         physical = 0, // group of axes
         application = 1, // mouse, keybaord
         logical = 2, // interrelated data
@@ -613,11 +646,11 @@ pub const report = struct {
         usage_modifier = 6,
         _,
     };
-    pub fn Collection(comptime kind: CollectionKind, comptime contents: anytype) type {
+    pub fn Collection(comptime kind: Collection_Kind, comptime contents: anytype) type {
         return packed struct {
-            collection: ShortItem(.collection, @intFromEnum(kind)) = .{},
+            collection: Short_Item(.collection, @intFromEnum(kind)) = .{},
             items: Items(contents) = .{},
-            end: ShortItem(.end_collection, 0) = .{},
+            end: Short_Item(.end_collection, 0) = .{},
         };
     }
 
@@ -660,7 +693,7 @@ pub const report = struct {
         }});
     }
 
-    pub const ShortItemKind = enum (u6) {
+    pub const Short_Item_Kind = enum (u6) {
         global_usage_page = 0b1,
         global_logical_minimum = 0b101,
         global_logical_maximum = 0b1001,
@@ -693,7 +726,7 @@ pub const report = struct {
 
         _,
     };
-    pub fn ShortItem(comptime kind: ShortItemKind, comptime data: comptime_int) type {
+    pub fn Short_Item(comptime kind: Short_Item_Kind, comptime data: comptime_int) type {
         comptime var can_be_zero_bytes = false;
         comptime var can_be_signed = false;
 
@@ -706,26 +739,26 @@ pub const report = struct {
         if (can_be_zero_bytes and data == 0) {
             return packed struct (u8) {
                 _size: u2 = 0,
-                _kind: ShortItemKind = kind,
+                _kind: Short_Item_Kind = kind,
             };
         } else if (can_be_signed) {
             const idata: i32 = @intCast(data);
             if (@as(i8, @truncate(idata)) == idata) {
                 return packed struct (u16) {
                     _size: u2 = 1,
-                    _kind: ShortItemKind = kind,
+                    _kind: Short_Item_Kind = kind,
                     data: i8 = @truncate(idata),
                 };
             } else if (@as(i16, @truncate(idata)) == idata) {
                 return packed struct (u24) {
                     _size: u2 = 2,
-                    _kind: ShortItemKind = kind,
+                    _kind: Short_Item_Kind = kind,
                     data: i16 = @truncate(idata),
                 };
             } else {
                 return packed struct (u40) {
                     _size: u2 = 3,
-                    _kind: ShortItemKind = kind,
+                    _kind: Short_Item_Kind = kind,
                     data: i32 = idata,
                 };
             }
@@ -734,26 +767,26 @@ pub const report = struct {
             if (@as(u8, @truncate(udata)) == udata) {
                 return packed struct (u16) {
                     _size: u2 = 1,
-                    _kind: ShortItemKind = kind,
+                    _kind: Short_Item_Kind = kind,
                     data: u8 = @truncate(udata),
                 };
             } else if (@as(u16, @truncate(udata)) == udata) {
                 return packed struct (u24) {
                     _size: u2 = 2,
-                    _kind: ShortItemKind = kind,
+                    _kind: Short_Item_Kind = kind,
                     data: u16 = @truncate(udata),
                 };
             } else {
                 return packed struct (u40) {
                     _size: u2 = 3,
-                    _kind: ShortItemKind = kind,
+                    _kind: Short_Item_Kind = kind,
                     data: u32 = udata,
                 };
             }
         }
     }
 
-    pub fn LongItem(comptime tag: u8, comptime data: []const u8) type {
+    pub fn Long_Item(comptime tag: u8, comptime data: []const u8) type {
         const len = data.len;
         const ptr: *const [len]u8 = @ptrCast(data);
 
@@ -769,7 +802,7 @@ pub const report = struct {
 
 pub const page = struct {
 
-    pub const GenericDesktop = enum(u8) {
+    pub const Generic_Desktop = enum(u8) {
         // Collection (Application)
         mouse = 2,
         joystick = 4,
@@ -1005,7 +1038,7 @@ pub const page = struct {
         kp_f = 0xC1,
         kp_xor = 0xC2,
         kp_caret = 0xC3,
-        kp_precent = 0xC4,
+        kp_percent = 0xC4,
         kp_lessthan = 0xC5,
         kp_greaterthan = 0xC6,
         kp_ampersand = 0xC7,
@@ -1043,7 +1076,7 @@ pub const page = struct {
         _,
     };
 
-    pub const Leds = enum(u8) {
+    pub const LEDs = enum(u8) {
         num_lock = 0x01,
         caps_lock = 0x02,
         scroll_lock = 0x03,
@@ -1055,3 +1088,13 @@ pub const page = struct {
     };
 
 };
+
+const log = std.log.scoped(.hid);
+
+const Class = classes.Class;
+const Subclass = classes.Subclass;
+const Protocol = classes.Protocol;
+const classes = @import("classes.zig");
+const descriptor = @import("descriptor.zig");
+const usb = @import("../usb.zig");
+const std = @import("std");
