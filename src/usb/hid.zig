@@ -727,11 +727,7 @@ pub const report = struct {
         _,
     };
     pub fn Short_Item(comptime kind: Short_Item_Kind, comptime data: comptime_int) type {
-        // USB HID spec v1.11: 6.2.2.4: Remarks: "The default data value for all Main items is zero (0)."
-        // This would lead one to believe Collection(Physical) could be encoded as 0xA0 instead of 0xA1 0x00,
-        // but it's normally done the latter way, and Windows won't accept the former.
-        // Therefore we never encode Collection items with size 0:
-        comptime var can_be_zero_bytes = kind != .collection;
+        comptime var can_be_zero_bytes = false;
         comptime var can_be_signed = false;
 
         switch (@as(u2, @truncate(@intFromEnum(kind)))) {
@@ -739,6 +735,12 @@ pub const report = struct {
             1 => can_be_signed = true, // global item
             else  => {}
         }
+
+        // USB HID spec v1.11: 6.2.2.4: Remarks: "The default data value for all Main items is zero (0)."
+        // This would lead one to believe Collection(Physical) could be encoded as 0xA0 instead of 0xA1 0x00,
+        // but it's normally done the latter way, and Windows won't accept the former.
+        // Therefore we never encode Collection items with size 0:
+        if (kind == .collection) can_be_zero_bytes = false;
 
         if (can_be_zero_bytes and data == 0) {
             return packed struct (u8) {
