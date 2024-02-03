@@ -1,8 +1,3 @@
-const std = @import("std");
-const root = @import("root");
-const builtin = @import("builtin");
-const config = @import("config");
-
 pub const util = @import("util.zig");
 pub const MMIO = @import("mmio.zig").MMIO;
 const timing = @import("timing.zig");
@@ -20,7 +15,7 @@ pub const Runtime_Resource_Validator = if (config.runtime_resource_validation)
     validation.Runtime_Resource_Validator else validation.Null_Resource_Validator;
 pub const Comptime_Resource_Validator = validation.Comptime_Resource_Validator;
 
-fn default_log_prefix(comptime message_level: std.log.Level, comptime scope: @Type(.EnumLiteral)) void {
+fn default_log_prefix(comptime message_level: std.log.Level, comptime scope: @Type(.EnumLiteral), writer: anytype) void {
     const scope_name = if (std.mem.eql(u8, @tagName(scope), "default")) "" else @tagName(scope);
     const level_prefix = switch (message_level) {
         .err =>   "E",
@@ -28,7 +23,7 @@ fn default_log_prefix(comptime message_level: std.log.Level, comptime scope: @Ty
         .info =>  "I",
         .debug => "D",
     };
-    root.debug_uart.writer_nonblocking().print(level_prefix ++ "{: <11} {s}: ", .{
+    writer.print(level_prefix ++ "{: <11} {s}: ", .{
         @intFromEnum(timing.Tick.now()),
         scope_name,
     }) catch {};
@@ -41,10 +36,17 @@ pub fn default_log(
     args: anytype,
 ) void {
     if (@hasDecl(root, "debug_uart")) {
-        default_log_prefix(message_level, scope);
-        var writer = root.debug_uart.writer_nonblocking();
-        writer.print(format, args) catch {};
-        writer.writeByte('\n') catch {};
+        if (@import("chip").interrupts.is_in_handler()) {
+            var writer = root.debug_uart.writer_nonblocking();
+            default_log_prefix(message_level, scope, writer);
+            writer.print(format, args) catch {};
+            writer.writeByte('\n') catch {};
+        } else {
+            var writer = root.debug_uart.writer();
+            default_log_prefix(message_level, scope, writer);
+            writer.print(format, args) catch {};
+            writer.writeByte('\n') catch {};
+        }
     }
 }
 
@@ -97,3 +99,8 @@ fn dump_trace(trace: ?*std.builtin.StackTrace) void {
         }
     }
 }
+
+const config = @import("config");
+const root = @import("root");
+const builtin = @import("builtin");
+const std = @import("std");
