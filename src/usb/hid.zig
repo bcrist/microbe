@@ -157,10 +157,10 @@ pub fn Input_Reporter(comptime Usb_Config_Type: type, comptime Report: type, com
                 log.debug("Input_Reporter {} report {}: {}", .{
                     config.interface_index,
                     config.report_id,
-                    std.fmt.fmtSliceHexUpper(),
+                    std.fmt.fmtSliceHexUpper(buf),
                 });
             } else {
-                buf = std.mem.asBytes(&self.last_report)[0..report_bytes]
+                buf = std.mem.asBytes(&self.last_report)[0..report_bytes];
             }
             self.idle_timer = 0;
             return buf;
