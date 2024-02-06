@@ -473,7 +473,7 @@ pub const boot_mouse = struct {
         report.Collection(.application, .{
             report.Usage(page.Generic_Desktop.pointer),
             report.Collection(.physical, .{
-                report.Bit_Count(3),
+                report.Bit_Count(8),
                 report.Usage_Page(.buttons),
                 report.Usage_Range(1, 8),
                 report.Logical_Range(0, 1),
