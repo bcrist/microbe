@@ -214,6 +214,94 @@ pub fn Input_Reporter(comptime Usb_Config_Type: type, comptime Report: type, com
     };
 }
 
+pub const Callback_Input_Reporter_Config = struct {
+    interface_index: u8,
+    report_id: u8,
+};
+
+pub fn Callback_Input_Reporter(comptime Usb_Config_Type: type, comptime Report: type, comptime callback: *const fn() Report, comptime config: Callback_Input_Reporter_Config) type {
+    const report_bytes = @bitSizeOf(Report) / 8;
+    return struct {
+        const Self = @This();
+
+        usb: *usb.USB(Usb_Config_Type),
+        last_report: Report,
+
+        pub fn init(usb_ptr: *usb.USB(Usb_Config_Type)) Self {
+            return .{
+                .usb = usb_ptr,
+                .last_report = .{},
+            };
+        }
+
+        pub fn reset(self: *Self) void {
+            self.last_report = .{};
+        }
+
+        pub fn tail(self: *Self) Report {
+            return self.last_report;
+        }
+
+        pub fn get_in_buffer(self: *Self) []const u8 {
+            self.last_report = callback();
+            const buf = std.mem.asBytes(&self.last_report)[0..report_bytes];
+            log.debug("Callback_Input_Reporter {} report {}: {}", .{
+                config.interface_index,
+                config.report_id,
+                std.fmt.fmtSliceHexUpper(buf),
+            });
+            return buf;
+        }
+
+        pub fn handle_setup(self: *Self, setup: usb.Setup_Packet) bool {
+            if (setup.kind != .class) return false;
+            switch (setup.request) {
+                requests.set_idle => if (setup.direction == .out) {
+                    const payload: requests.Idle_Payload = @bitCast(setup.payload);
+                    if (payload.interface == config.interface_index and payload.report_id == config.report_id) {
+                        const idle_interval = payload.interval;
+                        self.usb.setup_status_in();
+                        log.info("Callback_Input_Reporter {} set_idle {}: {}", .{
+                            config.interface_index,
+                            config.report_id,
+                            idle_interval,
+                        });
+                        return true;
+                    }
+                },
+                requests.get_idle => if (setup.direction == .in) {
+                    const payload: requests.Idle_Payload = @bitCast(setup.payload);
+                    if (payload.interface == config.interface_index and payload.report_id == config.report_id) {
+                        const idle_interval: Idle_Interval = .infinite;
+                        log.info("Callback_Input_Reporter {} get_idle {}: {}", .{
+                            config.interface_index,
+                            config.report_id,
+                            idle_interval,
+                        });
+                        self.usb.setup_transfer_in_data(std.mem.asBytes(&idle_interval));
+                        return true;
+                    }
+                },
+                requests.get_report => if (setup.direction == .in) {
+                    const payload: requests.Report_Payload = @bitCast(setup.payload);
+                    if (payload.interface == config.interface_index and payload.report_id == config.report_id and payload.report_kind == .input) {
+                        const buf = std.mem.asBytes(&self.last_report)[0..report_bytes];
+                        log.debug("Callback_Input_Reporter {} get_report {}: {}", .{
+                            config.interface_index,
+                            config.report_id,
+                            std.fmt.fmtSliceHexUpper(buf),
+                        });
+                        self.usb.setup_transfer_in_data(buf);
+                        return true;
+                    }
+                },
+                else => {},
+            }
+            return false;
+        }
+    };
+}
+
 pub const Output_Report_Config = struct {
     interface_index: u8,
     report_id: u8,
@@ -387,11 +475,9 @@ pub const boot_mouse = struct {
             report.Collection(.physical, .{
                 report.Bit_Count(3),
                 report.Usage_Page(.buttons),
-                report.Usage_Range(1, 3),
+                report.Usage_Range(1, 8),
                 report.Logical_Range(0, 1),
                 report.Absolute_Input(.linear, .returns_to_preferred_state, .no_null_state),
-                report.Bit_Count(5),
-                report.Constant_Input,
                 report.Byte_Count(2),
                 report.Usage_Page(.generic_desktop),
                 report.Usage(page.Generic_Desktop.x),
@@ -405,7 +491,6 @@ pub const boot_mouse = struct {
         left_btn: bool = false,
         right_btn: bool = false,
         middle_btn: bool = false,
-        // report descriptor will need to be modified to use these:
         btn_4: bool = false,
         btn_5: bool = false,
         btn_6: bool = false,
