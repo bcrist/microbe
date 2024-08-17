@@ -137,7 +137,7 @@ pub fn add_bin_to_uf2(b: *std.Build, basename: []const u8, input_files: []const 
     return output_path;
 }
 
-fn add_chip_and_section_args(run: *std.Build.Step.Run, options: Executable_Options) void {
+pub fn add_chip_and_section_args(run: *std.Build.Step.Run, options: Executable_Options) void {
     run.addArgs(&.{
         "--chip", options.chip.name,
         "-c", options.chip.core.name,
