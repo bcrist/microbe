@@ -111,8 +111,8 @@ pub fn add_bin_to_uf2(b: *std.Build, basename: []const u8, input_files: []const 
     var last_block_size: usize = 1234;
     var last_family: ?std.meta.FieldType(Bin_To_UF2_Source, .family) = null;
     for (input_files) |f| {
-        run.addArg("--family");
-        if (std.meta.eql(last_family, f.family)) {
+        if (!std.meta.eql(last_family, f.family)) {
+            run.addArg("--family");
             switch (f.family) {
                 .custom => |family| {
                     run.addArg(b.fmt("0x{X}", .{ family }));
