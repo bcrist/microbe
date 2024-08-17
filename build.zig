@@ -112,12 +112,12 @@ pub fn add_bin_to_uf2(b: *std.Build, basename: []const u8, input_files: []const 
     var last_family: ?std.meta.FieldType(Bin_To_UF2_Source, .family) = null;
     for (input_files) |f| {
         run.addArg("--family");
-        if (f.family != last_family) {
+        if (std.meta.eql(last_family, f.family)) {
             switch (f.family) {
                 .custom => |family| {
                     run.addArg(b.fmt("0x{X}", .{ family }));
                 },
-                inline else => |family| {
+                inline else => |_, family| {
                     run.addArg(@tagName(family));
                 },
             }
@@ -263,26 +263,26 @@ pub fn replace_imports(module: *std.Build.Module, replacements: *std.StringHashM
 pub fn build(b: *std.Build) void {
     _ = b.addModule("microbe", .{ .root_source_file = b.path("src/microbe.zig") });
 
-    _ = b.addExecutable(.{
+    b.installArtifact(b.addExecutable(.{
         .name = "bin_to_uf2",
-        .root_source_file = b.path("tools/bin_to_uf2.zig"),
+        .root_source_file = b.path("build/bin_to_uf2.zig"),
         .target = b.host,
         .optimize = .ReleaseSafe,
-    });
+    }));
 
-    _ = b.addExecutable(.{
+    b.installArtifact(b.addExecutable(.{
         .name = "generate_linkerscript",
-        .root_source_file = b.path("tools/generate_linkerscript.zig"),
+        .root_source_file = b.path("build/generate_linkerscript.zig"),
         .target = b.host,
         .optimize = .ReleaseSafe,
-    });
+    }));
 
-    _ = b.addExecutable(.{
+    b.installArtifact(b.addExecutable(.{
         .name = "generate_config",
-        .root_source_file = b.path("tools/generate_config.zig"),
+        .root_source_file = b.path("build/generate_config.zig"),
         .target = b.host,
         .optimize = .ReleaseSafe,
-    });
+    }));
 }
 
 pub const Core = @import("build/Core.zig");

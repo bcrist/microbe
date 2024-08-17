@@ -13,22 +13,22 @@ pub fn main() !void {
     var sources = try std.ArrayList(Source).initCapacity(arena.allocator(), 2);
 
     var base_address: u32 = 0;
-    var block_size: usize = 256;
+    var block_size: u32 = 256;
     var family_id: ?u32 = null;
     var expected_source = false;
 
     var arg_iter = try std.process.argsWithAllocator(arena.allocator());
     defer arg_iter.deinit();
     while (arg_iter.next()) |arg| {
-        if (std.mem.eql(u8, arg, "--output") or std.mem.eql(u8, "-o")) {
+        if (std.mem.eql(u8, arg, "--output") or std.mem.eql(u8, arg, "-o")) {
             output_path = arg_iter.next() orelse return error.ExpectedOutputPath;
-        } else if (std.mem.eql(u8, arg, "--base-addr") or std.mem.eql(u8, "-a")) {
+        } else if (std.mem.eql(u8, arg, "--base-addr") or std.mem.eql(u8, arg, "-a")) {
             const base_addr_str = arg_iter.next() orelse return error.ExpectedBaseAddress;
             base_address = std.fmt.parseInt(u32, base_addr_str, 0) catch return error.InvalidBaseAddress;
             expected_source = true;
         } else if (std.mem.eql(u8, arg, "--block-size")) {
             const block_size_str = arg_iter.next() orelse return error.ExpectedBlockSize;
-            block_size = std.fmt.parseInt(usize, block_size_str, 0) catch return error.InvalidBlockSize;
+            block_size = std.fmt.parseInt(u32, block_size_str, 0) catch return error.InvalidBlockSize;
             if (block_size > 476) {
                 try std.io.getStdErr().writer().print("{} is larger than the maximum allowed block size of 476", .{ block_size });
                 return error.InvalidBlockSize;
@@ -55,9 +55,9 @@ pub fn main() !void {
                     } else {
                         try std.io.getStdErr().writer().print(
                             \\Expected family ID to be one of:
-                            \\   {}_arm_nonsecure
-                            \\   {}_arm_secure
-                            \\   {}_risc_v
+                            \\   {s}_arm_nonsecure
+                            \\   {s}_arm_secure
+                            \\   {s}_risc_v
                             , .{ id_str[0..6], id_str[0..6], id_str[0..6] });
                         return error.InvalidFamilyID;
                     }
@@ -88,11 +88,11 @@ pub fn main() !void {
         return error.InvalidUsage;
     }
 
-    var out_file = try std.io.cwd().createFile(output_path, .{});
+    var out_file = try std.fs.cwd().createFile(output_path, .{});
     defer out_file.close();
     var writer = out_file.writer();
 
-    for (sources) |source| {
+    for (sources.items) |source| {
         const num_blocks = (source.data.len + source.block_size - 1) / source.block_size;
 
         var flags: u32 = 0;

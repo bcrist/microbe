@@ -21,19 +21,20 @@ pub fn main() !void {
     var arg_iter = try std.process.argsWithAllocator(allocator);
     defer arg_iter.deinit();
     while (arg_iter.next()) |arg| {
-        if (std.mem.eql(u8, arg, "--output") or std.mem.eql(u8, "-o")) {
+        if (std.mem.eql(u8, arg, "--output") or std.mem.eql(u8, arg, "-o")) {
             output_path = arg_iter.next() orelse return error.ExpectedOutputPath;
         } else if (std.mem.eql(u8, arg, "--runtime-resource-validation")) {
             runtime_resource_validation = true;
-        } else if (!(try args.try_chip_args(allocator, arg_iter, arg, &chip)) and !(try args.try_section(allocator, arg_iter, arg, &sections))) {
+        } else if (!(try args.try_chip_args(allocator, &arg_iter, arg, &chip)) and !(try args.try_section(allocator, &arg_iter, arg, &sections))) {
             try std.io.getStdErr().writer().print("Unrecognized argument: {s}", .{ arg });
             return error.InvalidArgument;
         }
     }
 
-    var out_file = try std.io.cwd().createFile(output_path, .{});
+    var out_file = try std.fs.cwd().createFile(output_path, .{});
     defer out_file.close();
-    make(allocator, chip, sections.items, runtime_resource_validation, out_file.writer());
+    const writer = out_file.writer();
+    try make(allocator, chip, sections.items, runtime_resource_validation, writer.any());
 }
 
 fn make(allocator: std.mem.Allocator, chip: Chip, sections: []const Section, runtime_resource_validation: bool, writer: std.io.AnyWriter) !void {
@@ -77,9 +78,9 @@ fn make(allocator: std.mem.Allocator, chip: Chip, sections: []const Section, run
 
     for (chip.extra_config) |option| {
         if (option.escape) {
-            try writer.print("pub const {s} = \"{s}\";\n", .{ std.zig.fmtId(option.name), std.fmt.fmtSliceEscapeUpper(option.value) });
+            try writer.print("pub const {} = \"{s}\";\n", .{ std.zig.fmtId(option.name), std.fmt.fmtSliceEscapeUpper(option.value) });
         } else {
-            try writer.print("pub const {s} = {s};\n", .{ std.zig.fmtId(option.name), option.value });
+            try writer.print("pub const {} = {s};\n", .{ std.zig.fmtId(option.name), option.value });
         }
     }
 

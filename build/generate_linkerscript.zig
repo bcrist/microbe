@@ -20,17 +20,18 @@ pub fn main() !void {
     var arg_iter = try std.process.argsWithAllocator(allocator);
     defer arg_iter.deinit();
     while (arg_iter.next()) |arg| {
-        if (std.mem.eql(u8, arg, "--output") or std.mem.eql(u8, "-o")) {
+        if (std.mem.eql(u8, arg, "--output") or std.mem.eql(u8, arg, "-o")) {
             output_path = arg_iter.next() orelse return error.ExpectedOutputPath;
-        } else if (!(try args.try_chip_args(allocator, arg_iter, arg, &chip)) and !(try args.try_section(allocator, arg_iter, arg, &sections))) {
+        } else if (!(try args.try_chip_args(allocator, &arg_iter, arg, &chip)) and !(try args.try_section(allocator, &arg_iter, arg, &sections))) {
             try std.io.getStdErr().writer().print("Unrecognized argument: {s}", .{ arg });
             return error.InvalidArgument;
         }
     }
 
-    var out_file = try std.io.cwd().createFile(output_path, .{});
+    var out_file = try std.fs.cwd().createFile(output_path, .{});
     defer out_file.close();
-    make(allocator, chip, sections.items, out_file.writer());
+    const writer = out_file.writer();
+    try make(allocator, chip, sections.items, writer.any());
 }
 
 fn make(temp: std.mem.Allocator, chip: Chip, sections: []const Section, writer: std.io.AnyWriter) !void {

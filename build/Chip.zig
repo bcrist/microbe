@@ -5,9 +5,9 @@ core: Core,
 memory_regions: []const Memory_Region,
 single_threaded: bool = true,
 entry_point: []const u8 = "_boot2",
-extra_config: []const ExtraOption = &.{},
+extra_config: []const Extra_Option = &.{},
 
-pub const ExtraOption = struct {
+pub const Extra_Option = struct {
     name: []const u8,
     value: []const u8,
     escape: bool = false,

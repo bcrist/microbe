@@ -41,7 +41,7 @@ pub fn try_chip_args(allocator: std.mem.Allocator, arg_iter: *std.process.ArgIte
     } else if (std.mem.eql(u8, arg, "--multi-core")) {
         chip.single_threaded = false;
     } else if (std.mem.eql(u8, arg, "--extra")) {
-        const new_extra = allocator.alloc([]const u8, chip.extra_config.len + 1);
+        const new_extra = try allocator.alloc(Chip.Extra_Option, chip.extra_config.len + 1);
         @memcpy(new_extra.ptr, chip.extra_config);
         new_extra[new_extra.len - 1] = .{
             .name = arg_iter.next() orelse return error.ExpectedConfigName,
@@ -49,7 +49,7 @@ pub fn try_chip_args(allocator: std.mem.Allocator, arg_iter: *std.process.ArgIte
             .escape = false,
         };
     } else if (std.mem.eql(u8, arg, "--extra-escaped")) {
-        const new_extra = allocator.alloc([]const u8, chip.extra_config.len + 1);
+        const new_extra = try allocator.alloc(Chip.Extra_Option, chip.extra_config.len + 1);
         @memcpy(new_extra.ptr, chip.extra_config);
         new_extra[new_extra.len - 1] = .{
             .name = arg_iter.next() orelse return error.ExpectedConfigName,
@@ -145,7 +145,7 @@ pub fn try_section(allocator: std.mem.Allocator, arg_iter: *std.process.ArgItera
         if (rom_addr_str.len > 0) section.rom_address = std.fmt.parseInt(u32, rom_addr_str, 0) catch return error.InvalidSectionRomAddress;
         if (ram_addr_str.len > 0) section.ram_address = std.fmt.parseInt(u32, ram_addr_str, 0) catch return error.InvalidSectionRamAddress;
 
-        if (std.ascii.eqlIgnoreCase(u8, init_str, "skip")) {
+        if (std.ascii.eqlIgnoreCase(init_str, "skip")) {
             section.skip_init = true;
         } else if (init_str.len > 0) {
             section.init_value = std.fmt.parseInt(u8, init_str, 0) catch return error.InvalidSectionInitValue;
