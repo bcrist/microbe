@@ -17,6 +17,21 @@ pub fn Bitset_Resource_Validator(comptime K: type, comptime resource_name: []con
             }
         }
 
+        pub fn release(comptime resource: K, owner: [*:0]const u8) void {
+            if (reservations.contains(resource)) {
+                reservations.remove(resource);
+            } else {
+                std.log.err("{s} attempted release by: {s}", .{ @tagName(resource), owner });
+                @panic("Attempted to release " ++ resource_name ++ " that's not reserved!");
+            }
+        }
+
+        pub fn release_all(comptime resources: []const K, owner: [*:0]const u8) void {
+            inline for (resources) |resource| {
+                release(resource, owner);
+            }
+        }
+
         pub fn is_reserved(comptime resource: K) bool {
             return reservations.contains(resource);
         }

@@ -533,7 +533,7 @@ pub fn Descriptor(comptime locale: Locale, comptime class_descriptors: anytype) 
     };
 
     const SubDescriptorInfos = @Type(.{ .Struct = .{
-        .layout = .Packed,
+        .layout = .@"packed",
         .fields = fields,
         .decls = &.{},
         .is_tuple = false,
@@ -771,7 +771,7 @@ pub const report = struct {
         };
 
         return @Type(.{ .Struct = .{
-            .layout = .Packed,
+            .layout = .@"packed",
             .fields = types,
             .decls = &.{},
             .is_tuple = false,
