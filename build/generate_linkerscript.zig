@@ -238,7 +238,7 @@ fn find_memory_region_index(region_name: []const u8, chip: Chip) !usize {
             return i;
         }
     }
-    std.log.err("chip {s} does not have a memory region named {any}", .{ chip.name, region_name });
+    std.log.err("chip {s} does not have a memory region named {s}", .{ chip.name, region_name });
     return error.MissingMemoryRegion;
 }
 
