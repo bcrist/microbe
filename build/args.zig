@@ -53,6 +53,7 @@ pub fn try_chip_args(allocator: std.mem.Allocator, arg_iter: *std.process.ArgIte
             .value = arg_iter.next() orelse return error.ExpectedConfigValue,
             .escape = false,
         };
+        chip.extra_config = new_extra;
     } else if (std.mem.eql(u8, arg, "--extra-escaped")) {
         const new_extra = try allocator.alloc(Chip.Extra_Option, chip.extra_config.len + 1);
         @memcpy(new_extra.ptr, chip.extra_config);
@@ -61,6 +62,7 @@ pub fn try_chip_args(allocator: std.mem.Allocator, arg_iter: *std.process.ArgIte
             .value = arg_iter.next() orelse return error.ExpectedConfigValue,
             .escape = true,
         };
+        chip.extra_config = new_extra;
     } else return false;
     return true;
 }
