@@ -70,7 +70,7 @@ pub const gpio = struct {
 
 pub const validation = struct {
     const i = chip.validation;
-    pub const pads = i.pads; // Comptime_Resource_Validator(Pad_ID)
+    pub const pads = i.pads;
 };
 
 pub const timing = struct {

@@ -1,43 +1,28 @@
-pub fn Comptime_Resource_Validator(comptime K: type, comptime resource_name: []const u8) type {
-    comptime var owners: std.enums.EnumFieldStruct(K, Owner, .{}) = .{};
-
+pub fn Bitset_Resource_Validator(comptime K: type, comptime resource_name: []const u8) type {
     return struct {
-        pub fn reserve(comptime resource: K, comptime owner: [*:0]const u8) void {
-            comptime {
-                const actual_owner = @field(owners, @tagName(resource)).name;
-                if (actual_owner[0] == 0) {
-                    @field(owners, @tagName(resource)) = .{ .name = owner };
-                } else {
-                    @compileError(std.fmt.comptimePrint(
-                        \\Attempted to reserve {s} {s} that's already owned!
-                        \\   attempted owner: {s}
-                        \\   actual owner: {s}
-                        \\
-                    , .{
-                        resource_name,
-                        @tagName(resource),
-                        owner,
-                        actual_owner,
-                    }));
-                }
+        var reservations = std.enums.EnumSet(K).initEmpty();
+
+        pub fn reserve(comptime resource: K, owner: [*:0]const u8) void {
+            if (!reservations.contains(resource)) {
+                reservations.insert(resource);
+            } else {
+                std.log.err("{s} attempted new owner: {s}", .{ @tagName(resource), owner });
+                @panic("Attempted to reserve a " ++ resource_name ++ " that's already owned!");
             }
         }
 
-        pub fn reserve_all(comptime array: []const K, comptime owner: [*:0]const u8) void {
-            comptime {
-                for (array) |resource| {
-                    reserve(resource, owner);
-                }
+        pub fn reserve_all(comptime array: []const K, owner: [*:0]const u8) void {
+            inline for (array) |resource| {
+                reserve(resource, owner);
             }
         }
 
         pub fn is_reserved(comptime resource: K) bool {
-            return comptime @field(owners, @tagName(resource)).name[0] != 0;
+            return reservations.contains(resource);
         }
 
         pub fn get_owner(comptime resource: K) ?[*:0]const u8 {
-            const owner = @field(owners, @tagName(resource)).name;
-            return comptime if (owner[0] == 0) null else owner;
+            return if (is_reserved(resource)) "?" else null;
         }
     };
 }

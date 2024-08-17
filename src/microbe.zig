@@ -13,7 +13,7 @@ pub const jtag = @import("jtag.zig");
 const validation = @import("resource_validation.zig");
 pub const Runtime_Resource_Validator = if (config.runtime_resource_validation)
     validation.Runtime_Resource_Validator else validation.Null_Resource_Validator;
-pub const Comptime_Resource_Validator = validation.Comptime_Resource_Validator;
+pub const Bitset_Resource_Validator = validation.Bitset_Resource_Validator;
 
 fn default_log_prefix(comptime message_level: std.log.Level, comptime scope: @Type(.EnumLiteral), writer: anytype) void {
     const scope_name = if (std.mem.eql(u8, @tagName(scope), "default")) "" else @tagName(scope);
