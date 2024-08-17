@@ -42,8 +42,8 @@ pub fn add_executable(b: *std.Build, options: Executable_Options) *std.Build.Ste
 
     // We need to clone the microbe/chip modules because we're going to add the build-specific config import to them.
     // If we didn't clone them you wouldn't be able to compile multiple microbe executables with the same `zig build` invocation.
-    const microbe_module = clone_module(b, b.dependencyFromBuildZig(@This(), .{}), "microbe");
-    const chip_module = clone_module(b, b.dependency(options.chip.dependency_name, .{}), options.chip.module_name);
+    const microbe_module = clone_module(b.dependencyFromBuildZig(@This(), .{}).module("microbe"));
+    const chip_module = clone_module(b.dependency(options.chip.dependency_name, .{}).module(options.chip.module_name));
     const config_module = b.createModule(.{ .root_source_file = config_module_path });
 
     config_module.addImport("microbe", microbe_module);
@@ -53,9 +53,12 @@ pub fn add_executable(b: *std.Build, options: Executable_Options) *std.Build.Ste
     microbe_module.addImport("config", config_module);
     microbe_module.addImport("microbe", microbe_module);
 
-    chip_module.addImport("chip", chip_module);
-    chip_module.addImport("config", config_module);
-    chip_module.addImport("microbe", microbe_module);
+    var replacement_modules = std.StringHashMap(*std.Build.Module).init(b.allocator);
+    replacement_modules.put("microbe", microbe_module);
+    replacement_modules.put("config", config_module);
+    replacement_modules.put("chip", chip_module);
+    
+    replace_imports(chip_module, &replacement_modules);
 
     var exe = b.addExecutable(.{
         .name = options.name,
@@ -229,8 +232,7 @@ fn fmt_maybe_u32(b: *std.Build, maybe_num: ?u32) []const u8 {
      return "";
 }
 
-fn clone_module(dependency: *std.Build.Dependency, module_name: []const u8) *std.Build.Module {
-    const module = dependency.module(module_name);
+pub fn clone_module(module: *std.Build.Module) *std.Build.Module {
     const clone = module.owner.createModule(.{
         .root_source_file = module.root_source_file,
     });
@@ -241,6 +243,21 @@ fn clone_module(dependency: *std.Build.Dependency, module_name: []const u8) *std
     }
 
     return clone;
+}
+
+pub fn replace_imports(module: *std.Build.Module, replacements: *std.StringHashMap(*std.Build.Module)) void {
+    var chip_imports_iter = module.import_table.iterator();
+    while (chip_imports_iter.next()) |entry| {
+        const gop = replacements.getOrPut(entry.key_ptr.*);
+        if (gop.found_existing) {
+            entry.value_ptr.* = gop.value_ptr.*;
+        } else {
+            const cloned = clone_module(entry.value_ptr.*);
+            gop.key_ptr.* = entry.key_ptr.*;
+            gop.value_ptr.* = cloned;
+            replace_imports(cloned, replacements);
+        }
+    }
 }
 
 pub fn build(b: *std.Build) void {
