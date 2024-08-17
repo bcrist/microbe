@@ -52,5 +52,15 @@ pub const cortex_m4fpu = Core {
     },
 };
 
+pub const cortex_m33fpu = Core {
+    .name = "ARM Cortex-M33 with FPU",
+    .target = std.Target.Query {
+        .cpu_arch = .thumb,
+        .cpu_model = .{ .explicit = &std.Target.arm.cpu.cortex_m33 },
+        .os_tag = .freestanding,
+        .abi = .eabihf,
+    },
+};
+
 const Core = @This();
 const std = @import("std");

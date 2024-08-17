@@ -9,6 +9,10 @@ ram_address: ?u32 = null,
 init_value: ?u8 = null,
 skip_init: bool = false, // used by RP2040 boot2 section (it gets loaded by the built-in ROM instead)
 
+pub fn is_align4(self: Section) bool {
+    return self.start_alignment_bytes == 4 and self.end_alignment_bytes == 4;
+}
+
 pub fn keep_rom_section(comptime name: []const u8, comptime rom_region: []const u8) Section {
     return .{
         .name = name,

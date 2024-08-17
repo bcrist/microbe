@@ -4,6 +4,7 @@ module_name: []const u8,
 core: Core,
 memory_regions: []const Memory_Region,
 single_threaded: bool = true,
+entry_point: []const u8 = "_boot2",
 extra_config: []const ExtraOption = &.{},
 
 pub const ExtraOption = struct {
