@@ -19,6 +19,7 @@ pub fn main() !void {
 
     var arg_iter = try std.process.argsWithAllocator(arena.allocator());
     defer arg_iter.deinit();
+    _ = arg_iter.next(); // exe name
     while (arg_iter.next()) |arg| {
         if (std.mem.eql(u8, arg, "--output") or std.mem.eql(u8, arg, "-o")) {
             output_path = arg_iter.next() orelse return error.ExpectedOutputPath;
