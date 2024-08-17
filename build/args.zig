@@ -36,6 +36,11 @@ pub fn try_chip_args(allocator: std.mem.Allocator, arg_iter: *std.process.ArgIte
             'x' => .executable,
             else => return error.InvalidMemoryRegionAccessFlags,
         });
+
+        const new_regions = try allocator.alloc(Memory_Region, chip.memory_regions.len + 1);
+        @memcpy(new_regions.ptr, chip.memory_regions);
+        new_regions[new_regions.len - 1] = region;
+        chip.memory_regions = new_regions;
     } else if (std.mem.eql(u8, arg, "--entry")) {
         chip.entry_point = arg_iter.next() orelse return error.ExpectedEntryPointName;
     } else if (std.mem.eql(u8, arg, "--multi-core")) {
