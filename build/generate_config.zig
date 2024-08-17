@@ -85,7 +85,7 @@ fn make(allocator: std.mem.Allocator, chip: Chip, sections: []const Section, run
 
     try writer.writeAll("\npub const regions = struct {\n");
     for (chip.memory_regions) |region| {
-        try writer.print("    pub const @\"{s}\" = mem_slice(0x{X}, 0x{X});\n", .{ std.fmt.fmtSliceEscapeUpper(region.name), region.offset, region.length });
+        try writer.print("    pub const {} = mem_slice(0x{X}, 0x{X});\n", .{ std.zig.fmtId(region.name), region.offset, region.length });
     }
     try writer.writeAll(
         \\};
