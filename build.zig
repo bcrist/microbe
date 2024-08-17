@@ -54,10 +54,10 @@ pub fn add_executable(b: *std.Build, options: Executable_Options) *std.Build.Ste
     microbe_module.addImport("microbe", microbe_module);
 
     var replacement_modules = std.StringHashMap(*std.Build.Module).init(b.allocator);
-    replacement_modules.put("microbe", microbe_module);
-    replacement_modules.put("config", config_module);
-    replacement_modules.put("chip", chip_module);
-    
+    replacement_modules.put("microbe", microbe_module) catch unreachable;
+    replacement_modules.put("config", config_module) catch unreachable;
+    replacement_modules.put("chip", chip_module) catch unreachable;
+
     replace_imports(chip_module, &replacement_modules);
 
     var exe = b.addExecutable(.{
@@ -248,7 +248,7 @@ pub fn clone_module(module: *std.Build.Module) *std.Build.Module {
 pub fn replace_imports(module: *std.Build.Module, replacements: *std.StringHashMap(*std.Build.Module)) void {
     var chip_imports_iter = module.import_table.iterator();
     while (chip_imports_iter.next()) |entry| {
-        const gop = replacements.getOrPut(entry.key_ptr.*);
+        const gop = replacements.getOrPut(entry.key_ptr.*) catch unreachable;
         if (gop.found_existing) {
             entry.value_ptr.* = gop.value_ptr.*;
         } else {
