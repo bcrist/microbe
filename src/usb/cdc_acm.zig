@@ -215,10 +215,10 @@ pub fn UART(comptime USB_Config: type, comptime config: UART_Config) type {
     const Rx_FIFO = std.fifo.LinearFifo(u8, .{ .Static = config.rx_buffer_size });
 
     const Errors = struct {
-        const Read            = error {};
+        const Read            = error { Disconnected };
         const ReadNonBlocking = error { Would_Block };
 
-        const Write            = error {};
+        const Write            = error { Disconnected };
         const write_nonblocking = error { Would_Block };
     };
 
@@ -330,6 +330,7 @@ pub fn UART(comptime USB_Config: type, comptime config: UART_Config) type {
             var remaining = out;
             while (remaining.len > 0) {
                 while (self.rx.readableLength() == 0) {
+                    if (self.usb.state != .connected) return error.Disconnected;
                     self.usb.update();
                 }
 
@@ -351,6 +352,7 @@ pub fn UART(comptime USB_Config: type, comptime config: UART_Config) type {
             while (remaining.len > 0) {
                 var bytes_to_write = self.tx.writableLength();
                 while (bytes_to_write == 0) {
+                    if (self.usb.state != .connected) return error.Disconnected;
                     self.usb.update();
                     bytes_to_write = self.tx.writableLength();
                 }

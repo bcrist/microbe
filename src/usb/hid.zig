@@ -113,6 +113,10 @@ pub fn Input_Reporter(comptime Usb_Config_Type: type, comptime Report: type, com
         pub fn push(self: *Self, rpt: Report) void {
             if (!std.meta.eql(rpt, self.tail())) {
                 while (self.queue.writableLength() == 0) {
+                    if (self.usb.state != .connected) {
+                        log.warn("Discarding input report; FIFO is full and USB is disconnected");
+                        return;
+                    }
                     self.usb.update();
                 }
                 self.queue.writeItemAssumeCapacity(rpt);
