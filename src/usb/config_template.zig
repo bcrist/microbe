@@ -223,6 +223,12 @@ pub fn handle_configuration_changed(configuration: u8) void {
     // TODO
 }
 
+/// Called when the USB connection state changes
+pub fn handle_state_changed(state: usb.State) void {
+    _ = state;
+    // TODO
+}
+
 /// Used to respond to the get_status setup request
 pub fn is_device_self_powered() bool {
     return false;

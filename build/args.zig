@@ -71,41 +71,41 @@ pub fn try_section(allocator: std.mem.Allocator, arg_iter: *std.process.ArgItera
     if (std.mem.eql(u8, arg, "--keep-rom")) {
         const name_str = arg_iter.next() orelse return error.ExpectedSectionName;
         const region_str = arg_iter.next() orelse return error.RomRegionName;
+        const contents = try allocator.alloc([]const u8, 1);
+        contents[0] = try std.fmt.allocPrint(allocator, "KEEP(*(.{s}*))", .{ name_str });
         try sections.append(.{
             .name = name_str,
-            .contents = &.{
-                try std.fmt.allocPrint(allocator, "KEEP(*(.{s}*))", .{ name_str }),
-            },
+            .contents = contents,
             .rom_region = region_str,
         });
     } else if (std.mem.eql(u8, arg, "--rom")) {
         const name_str = arg_iter.next() orelse return error.ExpectedSectionName;
         const region_str = arg_iter.next() orelse return error.RomRegionName;
+        const contents = try allocator.alloc([]const u8, 1);
+        contents[0] = try std.fmt.allocPrint(allocator, "*(.{s}*)", .{ name_str });
         try sections.append(.{
             .name = name_str,
-            .contents = &.{
-                try std.fmt.allocPrint(allocator, "*(.{s}*)", .{ name_str }),
-            },
+            .contents = contents,
             .rom_region = region_str,
         });
     } else if (std.mem.eql(u8, arg, "--uram")) {
         const name_str = arg_iter.next() orelse return error.ExpectedSectionName;
         const ram_region_str = arg_iter.next() orelse return error.RamRegionName;
+        const contents = try allocator.alloc([]const u8, 1);
+        contents[0] = try std.fmt.allocPrint(allocator, "*(.{s}*)", .{ name_str });
         try sections.append(.{
             .name = name_str,
-            .contents = &.{
-                try std.fmt.allocPrint(allocator, "*(.{s}*)", .{ name_str }),
-            },
+            .contents = contents,
             .ram_region = ram_region_str,
         });
     } else if (std.mem.eql(u8, arg, "--zram")) {
         const name_str = arg_iter.next() orelse return error.ExpectedSectionName;
         const ram_region_str = arg_iter.next() orelse return error.RamRegionName;
+        const contents = try allocator.alloc([]const u8, 1);
+        contents[0] = try std.fmt.allocPrint(allocator, "*(.{s}*)", .{ name_str });
         try sections.append(.{
             .name = name_str,
-            .contents = &.{
-                try std.fmt.allocPrint(allocator, "*(.{s}*)", .{ name_str }),
-            },
+            .contents = contents,
             .ram_region = ram_region_str,
             .init_value = 0,
         });
@@ -113,11 +113,11 @@ pub fn try_section(allocator: std.mem.Allocator, arg_iter: *std.process.ArgItera
         const name_str = arg_iter.next() orelse return error.ExpectedSectionName;
         const rom_region_str = arg_iter.next() orelse return error.RomRegionName;
         const ram_region_str = arg_iter.next() orelse return error.RamRegionName;
+        const contents = try allocator.alloc([]const u8, 1);
+        contents[0] = try std.fmt.allocPrint(allocator, "*(.{s}*)", .{ name_str });
         try sections.append(.{
             .name = name_str,
-            .contents = &.{
-                try std.fmt.allocPrint(allocator, "*(.{s}*)", .{ name_str }),
-            },
+            .contents = contents,
             .rom_region = rom_region_str,
             .ram_region = ram_region_str,
         });

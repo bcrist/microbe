@@ -3,13 +3,13 @@ pub const Executable_Options = struct {
     root_source_file: ?std.Build.LazyPath = null,
     chip: Chip,
     sections: []const Section,
-    enable_runtime_resource_validation: ?bool = null,
+    runtime_resource_validation: ?bool = null,
+    breakpoint_on_panic: ?bool = null,
     version: ?std.SemanticVersion = null,
     optimize: ?std.builtin.Mode = null,
     max_rss: usize = 0,
     link_libc: ?bool = null,
     pic: ?bool = null,
-    strip: ?bool = null,
     unwind_tables: ?bool = null,
     omit_frame_pointer: ?bool = null,
     sanitize_thread: ?bool = null,
@@ -17,10 +17,16 @@ pub const Executable_Options = struct {
     use_llvm: ?bool = null,
     use_lld: ?bool = null,
     zig_lib_dir: ?std.Build.LazyPath = null,
+
+    // ReleaseSmall by default implies strip = true.
+    // But we don't care about the size of the elf file, just the bin file,
+    // and indeed, we really would like to have the debug info available.
+    strip: ?bool = false,
 };
+
 pub fn add_executable(b: *std.Build, options: Executable_Options) *std.Build.Step.Compile {
     const optimize = options.optimize orelse b.standardOptimizeOption(.{});
-    const enable_runtime_resource_validation = options.enable_runtime_resource_validation orelse switch (optimize) {
+    const is_debug = switch (optimize) {
         .Debug => true,
         else => false,
     };
@@ -36,8 +42,11 @@ pub fn add_executable(b: *std.Build, options: Executable_Options) *std.Build.Ste
     generate_config.addArg("-o");
     const config_module_path = generate_config.addOutputFileArg("config.zig");
     add_chip_and_section_args(generate_config, options);
-    if (enable_runtime_resource_validation) {
+    if (options.runtime_resource_validation orelse is_debug) {
         generate_config.addArg("--runtime-resource-validation");
+    }
+    if (options.breakpoint_on_panic orelse is_debug) {
+        generate_config.addArg("--breakpoint-on-panic");
     }
 
     // We need to clone the microbe/chip modules because we're going to add the build-specific config import to them.

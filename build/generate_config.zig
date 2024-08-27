@@ -1,3 +1,8 @@
+const Options = struct {
+    runtime_resource_validation: bool = false,
+    breakpoint_on_panic: bool = false,
+};
+
 pub fn main() !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
     defer arena.deinit();
@@ -5,7 +10,7 @@ pub fn main() !void {
     const allocator = arena.allocator();
 
     var output_path: []const u8 = "config.zig";
-    var runtime_resource_validation = false;
+    var options: Options = .{};
 
     var chip: Chip = .{
         .name = "",
@@ -25,7 +30,9 @@ pub fn main() !void {
         if (std.mem.eql(u8, arg, "--output") or std.mem.eql(u8, arg, "-o")) {
             output_path = arg_iter.next() orelse return error.ExpectedOutputPath;
         } else if (std.mem.eql(u8, arg, "--runtime-resource-validation")) {
-            runtime_resource_validation = true;
+            options.runtime_resource_validation = true;
+        } else if (std.mem.eql(u8, arg, "--breakpoint-on-panic")) {
+            options.breakpoint_on_panic = true;
         } else if (!(try args.try_chip_args(allocator, &arg_iter, arg, &chip)) and !(try args.try_section(allocator, &arg_iter, arg, &sections))) {
             try std.io.getStdErr().writer().print("Unrecognized argument: {s}", .{ arg });
             return error.InvalidArgument;
@@ -35,10 +42,11 @@ pub fn main() !void {
     var out_file = try std.fs.cwd().createFile(output_path, .{});
     defer out_file.close();
     const writer = out_file.writer();
-    try make(allocator, chip, sections.items, runtime_resource_validation, writer.any());
+    try make(allocator, chip, sections.items, options, writer.any());
 }
 
-fn make(allocator: std.mem.Allocator, chip: Chip, sections: []const Section, runtime_resource_validation: bool, writer: std.io.AnyWriter) !void {
+
+fn make(allocator: std.mem.Allocator, chip: Chip, sections: []const Section, options: Options, writer: std.io.AnyWriter) !void {
     try writer.writeAll(
         \\const std = @import("std");
         \\const chip = @import("chip");
@@ -54,12 +62,14 @@ fn make(allocator: std.mem.Allocator, chip: Chip, sections: []const Section, run
         \\pub const target = "{s}";
         \\
         \\pub const runtime_resource_validation = {};
+        \\pub const breakpoint_on_panic = {};
         \\
     , .{
         std.fmt.fmtSliceEscapeUpper(chip.name),
         std.fmt.fmtSliceEscapeUpper(chip.core.name),
         std.fmt.fmtSliceEscapeUpper(try std.zig.CrossTarget.zigTriple(chip.core.target, allocator)),
-        runtime_resource_validation,
+        options.runtime_resource_validation,
+        options.breakpoint_on_panic,
     });
 
     try writer.writeAll(

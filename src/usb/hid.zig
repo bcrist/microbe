@@ -893,7 +893,7 @@ pub const report = struct {
 
 pub const page = struct {
 
-    pub const Generic_Desktop = enum(u8) {
+    pub const Generic_Desktop = enum(u8) { // Page 0x01
         // Collection (Application)
         mouse = 2,
         joystick = 4,
@@ -901,6 +901,7 @@ pub const page = struct {
         keyboard = 6,
         keypad = 7,
         multi_axis_controller = 8,
+        system_control = 0x80,
 
         // Collection (Physical)
         pointer = 1,
@@ -936,6 +937,9 @@ pub const page = struct {
 
         // One Shot Control
         motion_wakeup = 0x3C,
+        system_power_down = 0x81,
+        system_sleep = 0x82,
+        system_wake_up = 0x83,
 
         // On/Off Control
         start = 0x3D,
@@ -944,7 +948,7 @@ pub const page = struct {
         _,
     };
 
-    pub const Keyboard = enum(u8) {
+    pub const Keyboard = enum(u8) { // Page 0x07
         error_rollover = 0x01,  // reserved for typical keyboard status or keyboard errors.  not a physical key
         post_fail = 0x02,       // reserved for typical keyboard status or keyboard errors.  not a physical key
         error_undefined = 0x03, // reserved for typical keyboard status or keyboard errors.  not a physical key
@@ -1167,7 +1171,7 @@ pub const page = struct {
         _,
     };
 
-    pub const LEDs = enum(u8) {
+    pub const LEDs = enum(u8) { // Page 0x08
         num_lock = 0x01,
         caps_lock = 0x02,
         scroll_lock = 0x03,
@@ -1176,6 +1180,22 @@ pub const page = struct {
         shift = 0x07,
 
         _,
+    };
+
+    pub const Consumer = enum(u8) { // Page 0x0C
+        play = 0xB0,
+        pause = 0xB1,
+        record = 0xB2,
+        fast_forward = 0xB3,
+        rewind = 0xB4,
+        next_track = 0xB5,
+        prev_track = 0xB6,
+        stop = 0xB7,
+        eject = 0xB8,
+        random_play = 0xB9,
+        stop_eject = 0xCC,
+        play_pause = 0xCD,
+        mute = 0xE1,
     };
 
 };

@@ -9,6 +9,7 @@ pub const Bus = bus.Bus;
 pub const usb = @import("usb.zig");
 pub const USB = usb.USB;
 pub const jtag = @import("jtag.zig");
+const chip = @import("chip");
 
 const validation = @import("resource_validation.zig");
 pub const Runtime_Resource_Validator = if (config.runtime_resource_validation)
@@ -36,7 +37,7 @@ pub fn default_log(
     args: anytype,
 ) void {
     if (@hasDecl(root, "debug_uart")) {
-        if (@import("chip").interrupts.is_in_handler()) {
+        if (chip.interrupts.is_in_handler()) {
             var writer = root.debug_uart.writer_nonblocking();
             default_log_prefix(message_level, scope, writer);
             writer.print(format, args) catch {};
@@ -56,12 +57,17 @@ pub fn default_panic(message: []const u8, trace: ?*std.builtin.StackTrace, _: ?u
     std.log.err("PANIC: {s}", .{message});
     dump_trace(trace);
 
-    if (@import("builtin").mode == .Debug) {
+    if (config.breakpoint_on_panic) {
         // attach a breakpoint, this might trigger another
         // panic internally, so only do that in debug mode.
         @breakpoint();
     }
-    hang();
+
+    if (@hasDecl(chip, "panic_hang")) {
+        chip.panic_hang();
+    } else {
+        hang();
+    }
 }
 
 pub fn hang() noreturn {
@@ -97,6 +103,9 @@ fn dump_trace(trace: ?*std.builtin.StackTrace) void {
             }
             std.log.err("{d: >3}: 0x{X:0>8}", .{ index, address });
         }
+    }
+    if (chip.interrupts.is_in_handler()) {
+        std.log.err("{}", .{ chip.interrupts.current_exception() });
     }
 }
 

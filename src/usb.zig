@@ -1,13 +1,6 @@
 // TODO add support for devices with more than one USB interface
 // TODO support remote resume
 
-comptime {
-    std.debug.assert(@import("builtin").cpu.arch.endian() == .little);
-}
-
-const std = @import("std");
-const chip = @import("chip");
-
 pub const log = std.log.scoped(.usb);
 pub const classes = @import("usb/classes.zig");
 pub const descriptor = @import("usb/descriptor.zig");
@@ -40,12 +33,7 @@ pub fn USB(comptime Cfg: anytype) type {
             in_halted: bool = false,
             out_halted: bool = false,
         } = undefined,
-
-        const Endpoint_State = enum (u2) {
-            waiting,
-            active,
-            stalled,
-        };
+        state: State = .disconnected,
 
         pub fn init(self: *Self) void {
             self.init_state();
@@ -69,6 +57,13 @@ pub fn USB(comptime Cfg: anytype) type {
         /// Call from main loop
         pub fn update(self: *Self) void {
             const events: Events = chip.usb.poll_events();
+
+            if (events.state) |new_state| {
+                if (self.state != new_state) {
+                    self.state = new_state;
+                    Config.handle_state_changed(new_state);
+                }
+            }
 
             if (events.start_of_frame) {
                 Config.handle_start_of_frame();
@@ -539,7 +534,20 @@ pub fn USB(comptime Cfg: anytype) type {
     };
 }
 
+pub const State = enum (u2) {
+    disconnected,
+    connected,
+    suspended,
+};
+
+pub const Endpoint_State = enum (u2) {
+    waiting,
+    active,
+    stalled,
+};
+
 pub const Events = struct {
+    state: ?State = null,
     start_of_frame: bool = false,
     buffer_ready: bool = false,
     bus_reset: bool = false,
@@ -693,3 +701,10 @@ pub const PID = enum (u1) {
         };
     }
 };
+
+comptime {
+    std.debug.assert(@import("builtin").cpu.arch.endian() == .little);
+}
+
+const chip = @import("chip");
+const std = @import("std");
