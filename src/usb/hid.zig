@@ -1187,6 +1187,8 @@ pub const page = struct {
     };
 
     pub const Consumer = enum(u8) { // Page 0x0C
+        consumer_control = 0x01,
+
         play = 0xB0,
         pause = 0xB1,
         record = 0xB2,
@@ -1199,7 +1201,11 @@ pub const page = struct {
         random_play = 0xB9,
         stop_eject = 0xCC,
         play_pause = 0xCD,
-        mute = 0xE1,
+        mute = 0xE2,
+        volume_up = 0xE9,
+        volume_down = 0xEA,
+
+        _,
     };
 
 };
