@@ -327,18 +327,13 @@ pub fn UART(comptime USB_Config: type, comptime config: UART_Config) type {
         }
 
         fn read_blocking(self: *Self, out: []Data_Type) Read_Error!usize {
-            var remaining = out;
-            while (remaining.len > 0) {
-                while (self.rx.readableLength() == 0) {
-                    if (self.usb.state != .connected) return error.Disconnected;
-                    self.usb.update();
-                }
-
-                const bytes_read = self.rx.read(remaining);
-                remaining = remaining[bytes_read..];
+            if (out.len == 0) return 0;
+            while (self.rx.readableLength() == 0) {
+                if (self.usb.state != .connected) return error.Disconnected;
+                self.usb.update();
             }
 
-            return out.len;
+            return self.rx.read(out);
         }
 
         fn read_nonblocking(self: *Self, out: []Data_Type) Read_Error_Nonblocking!usize {
@@ -348,29 +343,25 @@ pub fn UART(comptime USB_Config: type, comptime config: UART_Config) type {
         }
 
         fn write_blocking(self: *Self, data_to_write: []const Data_Type) Write_Error!usize {
-            var remaining = data_to_write;
-            while (remaining.len > 0) {
-                var bytes_to_write = self.tx.writableLength();
-                while (bytes_to_write == 0) {
-                    if (self.usb.state != .connected) return error.Disconnected;
-                    self.usb.update();
-                    bytes_to_write = self.tx.writableLength();
-                }
-
-                if (bytes_to_write > remaining.len) {
-                    bytes_to_write = remaining.len;
-                }
-
-                self.tx.writeAssumeCapacity(remaining[0..bytes_to_write]);
-                remaining = remaining[bytes_to_write..];
+            if (data_to_write.len == 0) return 0;
+            var bytes_to_write = self.tx.writableLength();
+            while (bytes_to_write == 0) {
+                if (self.usb.state != .connected) return error.Disconnected;
+                self.usb.update();
+                bytes_to_write = self.tx.writableLength();
             }
 
-            return data_to_write.len;
+            if (bytes_to_write > data_to_write.len) {
+                bytes_to_write = data_to_write.len;
+            }
+
+            self.tx.writeAssumeCapacity(data_to_write[0..bytes_to_write]);
+            return bytes_to_write;
         }
 
         fn write_nonblocking(self: *Self, data_to_write: []const Data_Type) Write_Error_Nonblocking!usize {
             if (data_to_write.len == 0) return 0;
-            const len = self.tx.writableLength();
+            const len = @min(data_to_write.len, self.tx.writableLength());
             if (len == 0) return error.Would_Block;
             self.tx.writeAssumeCapacity(data_to_write[0..len]);
             return len;

@@ -115,16 +115,16 @@ pub fn error_set_contains_all(comptime Haystack: type, comptime Needle: type) bo
 
 pub inline fn to_int(comptime T: type, value: anytype) T {
     return switch (@typeInfo(@TypeOf(value))) {
-        .Enum => @intFromEnum(value),
-        .Pointer => @intFromPtr(value),
+        .@"enum" => @intFromEnum(value),
+        .pointer => @intFromPtr(value),
         else => @bitCast(value),
     };
 }
 
 pub inline fn from_int(comptime T: type, int_value: anytype) T {
     return switch (@typeInfo(T)) {
-        .Enum => @enumFromInt(int_value),
-        .Pointer => @ptrFromInt(int_value),
+        .@"enum" => @enumFromInt(int_value),
+        .pointer => @ptrFromInt(int_value),
         else => @bitCast(int_value),
     };
 }

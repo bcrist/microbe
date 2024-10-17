@@ -81,6 +81,7 @@ pub fn Input_Reporter(comptime Usb_Config_Type: type, comptime Report: type, com
     const Fifo = std.fifo.LinearFifo(Report, .{ .Static = config.max_buffer_size });
     return struct {
         const Self = @This();
+        pub const Input_Report = Report;
 
         usb: *usb.USB(Usb_Config_Type),
         queue: Fifo = Fifo.init(),
@@ -227,6 +228,7 @@ pub fn Callback_Input_Reporter(comptime Usb_Config_Type: type, comptime Report: 
     const report_bytes = @bitSizeOf(Report) / 8;
     return struct {
         const Self = @This();
+        pub const Input_Report = Report;
 
         usb: *usb.USB(Usb_Config_Type),
         last_report: Report,
@@ -314,6 +316,7 @@ pub fn Output_Reporter(comptime Usb_Config_Type: type, comptime Report: type, co
     const report_bytes = @bitSizeOf(Report) / 8;
     return struct {
         const Self = @This();
+        pub const Output_Report = Report;
 
         usb: *usb.USB(Usb_Config_Type),
         current_report: Report,
@@ -508,7 +511,7 @@ pub const boot_mouse = struct {
 
 // Takes a tuple of report/physical descriptors (usually just the report descriptor)
 pub fn Descriptor(comptime locale: Locale, comptime class_descriptors: anytype) type {
-    const SubDescriptorInfo = packed struct {
+    const Sub_Descriptor_Info = packed struct {
         kind: descriptor.Kind,
         len: u16
     };
@@ -518,14 +521,14 @@ pub fn Descriptor(comptime locale: Locale, comptime class_descriptors: anytype) 
 
         for (0.., class_descriptors) |i, desc| {
             const DescType = if (@TypeOf(desc) == type) desc else @TypeOf(desc);
-            const default: SubDescriptorInfo = .{
+            const default: Sub_Descriptor_Info = .{
                 .kind = DescType._kind,
                 .len = DescType._len,
             };
 
             const t: std.builtin.Type.StructField = .{
                 .name = std.fmt.comptimePrint("{}", .{ i }),
-                .type = SubDescriptorInfo,
+                .type = Sub_Descriptor_Info,
                 .default_value = &default,
                 .is_comptime = false,
                 .alignment = 0,
@@ -536,7 +539,7 @@ pub fn Descriptor(comptime locale: Locale, comptime class_descriptors: anytype) 
         break :blk fields;
     };
 
-    const SubDescriptorInfos = @Type(.{ .Struct = .{
+    const Sub_Descriptor_Infos = @Type(.{ .@"struct" = .{
         .layout = .@"packed",
         .fields = fields,
         .decls = &.{},
@@ -549,7 +552,7 @@ pub fn Descriptor(comptime locale: Locale, comptime class_descriptors: anytype) 
         hid_version: descriptor.Version = .{ .major = 1, .minor = 1, .rev = 1 },
         locale: Locale = locale,
         num_descriptors: u8 = @intCast(fields.len),
-        descriptors: SubDescriptorInfos = .{},
+        descriptors: Sub_Descriptor_Infos = .{},
 
         pub fn as_bytes(self: *const @This()) []const u8 {
             return descriptor.as_bytes(self);
@@ -592,8 +595,8 @@ pub const report = struct {
 
     fn int_or_enum(comptime a: anytype) comptime_int {
         return switch (@typeInfo(@TypeOf(a))) {
-            .Enum => @intFromEnum(a),
-            .Int, .ComptimeInt => a,
+            .@"enum" => @intFromEnum(a),
+            .int, .comptime_int => a,
             else => @compileError("Expected enum or integer"),
         };
     }
@@ -774,7 +777,7 @@ pub const report = struct {
             break :blk types;
         };
 
-        return @Type(.{ .Struct = .{
+        return @Type(.{ .@"struct" = .{
             .layout = .@"packed",
             .fields = types,
             .decls = &.{},

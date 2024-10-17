@@ -16,7 +16,7 @@ pub const Runtime_Resource_Validator = if (config.runtime_resource_validation)
     validation.Runtime_Resource_Validator else validation.Null_Resource_Validator;
 pub const Bitset_Resource_Validator = validation.Bitset_Resource_Validator;
 
-fn default_log_prefix(comptime message_level: std.log.Level, comptime scope: @Type(.EnumLiteral), writer: anytype) void {
+fn default_log_prefix(comptime message_level: std.log.Level, comptime scope: @Type(.enum_literal), writer: anytype) void {
     const scope_name = if (std.mem.eql(u8, @tagName(scope), "default")) "" else @tagName(scope);
     const level_prefix = switch (message_level) {
         .err =>   "E",
@@ -25,14 +25,14 @@ fn default_log_prefix(comptime message_level: std.log.Level, comptime scope: @Ty
         .debug => "D",
     };
     writer.print(level_prefix ++ "{: <11} {s}: ", .{
-        @intFromEnum(timing.Tick.now()),
+        @intFromEnum(timing.Microtick.now()),
         scope_name,
     }) catch {};
 }
 
-pub fn default_log(
+pub fn default_blocking_log(
     comptime message_level: std.log.Level,
-    comptime scope: @Type(.EnumLiteral),
+    comptime scope: @Type(.enum_literal),
     comptime format: []const u8,
     args: anytype,
 ) void {
@@ -51,8 +51,22 @@ pub fn default_log(
     }
 }
 
+pub fn default_nonblocking_log(
+    comptime message_level: std.log.Level,
+    comptime scope: @Type(.enum_literal),
+    comptime format: []const u8,
+    args: anytype,
+) void {
+    if (@hasDecl(root, "debug_uart")) {
+        var writer = root.debug_uart.writer_nonblocking();
+        default_log_prefix(message_level, scope, writer);
+        writer.print(format, args) catch {};
+        writer.writeByte('\n') catch {};
+    }
+}
+
 pub fn default_panic(message: []const u8, trace: ?*std.builtin.StackTrace, _: ?usize) noreturn {
-    @setCold(true);
+    @branchHint(.cold);
 
     std.log.err("PANIC: {s}", .{message});
     dump_trace(trace);

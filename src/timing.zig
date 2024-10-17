@@ -14,28 +14,32 @@
 pub const Tick = enum (i32) {
     _,
 
-    pub fn now() Tick {
+    pub inline fn now() Tick {
         return chip.timing.current_tick();
     }
 
-    pub fn is_after(self: Tick, other: Tick) bool {
-        return (@intFromEnum(self) -% @intFromEnum(other)) > 0;
+    pub inline fn ticks_since(self: Tick, t0: Tick) i64 {
+        return @intFromEnum(self) -% @intFromEnum(t0);
     }
 
-    pub fn is_before(self: Tick, other: Tick) bool {
-        return (@intFromEnum(self) -% @intFromEnum(other)) < 0;
+    pub inline fn is_after(self: Tick, other: Tick) bool {
+        return self.ticks_since(other) > 0;
     }
 
-    pub fn plus(self: Tick, comptime time: anytype) Tick {
+    pub inline fn is_before(self: Tick, other: Tick) bool {
+        return self.ticks_since(other) < 0;
+    }
+
+    pub inline fn plus(self: Tick, comptime time: anytype) Tick {
         const extra = comptime parse_duration(i32, time, frequency_hz());
         return @enumFromInt(@intFromEnum(self) +% extra);
     }
 
-    pub fn delay(comptime time: anytype) void {
+    pub inline fn delay(comptime time: anytype) void {
         chip.timing.block_until_tick(now().plus(time));
     }
 
-    pub fn frequency_hz() comptime_int {
+    pub inline fn frequency_hz() comptime_int {
         return chip.timing.get_tick_frequency_hz();
     }
 };
@@ -47,28 +51,32 @@ pub const Tick = enum (i32) {
 pub const Microtick = enum (i64) {
     _,
 
-    pub fn now() Microtick {
+    pub inline fn now() Microtick {
         return chip.timing.current_microtick();
     }
 
-    pub fn is_after(self: Microtick, other: Microtick) bool {
-        return (@intFromEnum(self) -% @intFromEnum(other)) > 0;
+    pub inline fn ticks_since(self: Microtick, t0: Microtick) i64 {
+        return @intFromEnum(self) -% @intFromEnum(t0);
     }
 
-    pub fn is_before(self: Microtick, other: Microtick) bool {
-        return (@intFromEnum(self) -% @intFromEnum(other)) < 0;
+    pub inline fn is_after(self: Microtick, other: Microtick) bool {
+        return self.ticks_since(other) > 0;
     }
 
-    pub fn plus(self: Microtick, comptime time: anytype) Microtick {
+    pub inline fn is_before(self: Microtick, other: Microtick) bool {
+        return self.ticks_since(other) < 0;
+    }
+
+    pub inline fn plus(self: Microtick, comptime time: anytype) Microtick {
         const extra = comptime parse_duration(i64, time, frequency_hz());
         return @enumFromInt(@intFromEnum(self) +% extra);
     }
 
-    pub fn delay(comptime time: anytype) void {
+    pub inline fn delay(comptime time: anytype) void {
         chip.timing.block_until_microtick(now().plus(time));
     }
 
-    pub fn frequency_hz() comptime_int {
+    pub inline fn frequency_hz() comptime_int {
         return chip.timing.get_microtick_frequency_hz();
     }
 };
@@ -76,7 +84,7 @@ pub const Microtick = enum (i64) {
 fn parse_duration(comptime T: type, comptime time: anytype, comptime tick_frequency_hz: comptime_int) T {
     var extra: T = 0;
     const time_info = @typeInfo(@TypeOf(time));
-    inline for (time_info.Struct.fields) |field| {
+    inline for (time_info.@"struct".fields) |field| {
         const v: comptime_int = @field(time, field.name);
         extra +%= if (std.mem.eql(u8, field.name, "minutes"))
             v * 60 * tick_frequency_hz

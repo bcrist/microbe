@@ -67,7 +67,7 @@ fn make(allocator: std.mem.Allocator, chip: Chip, sections: []const Section, opt
     , .{
         std.fmt.fmtSliceEscapeUpper(chip.name),
         std.fmt.fmtSliceEscapeUpper(chip.core.name),
-        std.fmt.fmtSliceEscapeUpper(try std.zig.CrossTarget.zigTriple(chip.core.target, allocator)),
+        std.fmt.fmtSliceEscapeUpper(try std.Target.Query.zigTriple(chip.core.target, allocator)),
         options.runtime_resource_validation,
         options.breakpoint_on_panic,
     });
@@ -146,7 +146,7 @@ fn make(allocator: std.mem.Allocator, chip: Chip, sections: []const Section, opt
     try writer.writeAll(
         \\
         \\pub fn init_ram() callconv(.C) void {
-        \\    @setCold(true);
+        \\    @branchHint(.cold);
         \\
     );
 

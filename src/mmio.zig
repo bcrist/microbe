@@ -19,7 +19,7 @@ pub fn MMIO(comptime T: type, comptime access: Access_Type) type {
     }
 
     return switch (access) {
-        .rw => if (@typeInfo(@TypeOf(T)) == .Int) MMIO_RW_Int(T) else MMIO_RW(T),
+        .rw => if (@typeInfo(@TypeOf(T)) == .int) MMIO_RW_Int(T) else MMIO_RW(T),
         .r => MMIO_R(T),
         .w => MMIO_W(T),
     };
@@ -44,7 +44,7 @@ fn MMIO_RW(comptime T: type) type {
 
         pub inline fn rmw(self: *volatile Self, fields: anytype) void {
             var val = self.read();
-            inline for (@typeInfo(@TypeOf(fields)).Struct.fields) |field| {
+            inline for (@typeInfo(@TypeOf(fields)).@"struct".fields) |field| {
                 @field(val, field.name) = @field(fields, field.name);
             }
             self.write(val);
@@ -54,7 +54,7 @@ fn MMIO_RW(comptime T: type) type {
             if (@hasDecl(chip, "modify_register")) {
                 comptime var bits_to_set = from_int(Type, @as(Raw_Type, 0));
                 comptime var bits_to_clear = from_int(Type, ~@as(Raw_Type, 0));
-                inline for (@typeInfo(@TypeOf(fields)).Struct.fields) |field| {
+                inline for (@typeInfo(@TypeOf(fields)).@"struct".fields) |field| {
                     @field(bits_to_set, field.name) = @field(fields, field.name);
                     @field(bits_to_clear, field.name) = @field(fields, field.name);
                 }
@@ -70,12 +70,12 @@ fn MMIO_RW(comptime T: type) type {
                 if (@TypeOf(fields) == Type) {
                     ones = fields;
                 } else switch (@typeInfo(@TypeOf(fields))) {
-                    .Struct => |info| {
+                    .@"struct" => |info| {
                         for (info.fields) |field| {
                             @field(ones, field.name) = @field(fields, field.name);
                         }
                     },
-                    .EnumLiteral => {
+                    .enum_literal => {
                         const field = @tagName(fields);
                         const Field_Type = @TypeOf(@field(ones, field));
                         const Raw_Field_Type = std.meta.Int(.unsigned, @bitSizeOf(Field_Type));

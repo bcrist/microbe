@@ -1,14 +1,18 @@
 pub const Config = struct {
     name: [:0]const u8 = "Bus",
     gpio_config: ?chip.gpio.Config = null,
+    State: ?type = null,
 };
 
 pub fn Bus(comptime pad_ids: []const chip.Pad_ID, comptime config: Config) type {
     const Raw_Int = std.meta.Int(.unsigned, pad_ids.len);
     const ports = chip.gpio.get_ports(pad_ids);
+    const State_Type = config.State orelse Raw_Int;
+
+    std.debug.assert(@bitSizeOf(State_Type) == @bitSizeOf(Raw_Int));
 
     return struct {
-        pub const State = Raw_Int;
+        pub const State = State_Type;
 
         pub fn init() void {
             chip.validation.pads.reserve_all(pad_ids, config.name);

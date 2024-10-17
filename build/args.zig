@@ -4,7 +4,7 @@ pub fn try_chip_args(allocator: std.mem.Allocator, arg_iter: *std.process.ArgIte
     } else if (std.mem.eql(u8, arg, "--core") or std.mem.eql(u8, arg, "-c")) {
         const core_name = arg_iter.next() orelse return error.ExpectedCoreName;
         var found_core = false;
-        inline for (@typeInfo(Core).Struct.decls) |decl| {
+        inline for (@typeInfo(Core).@"struct".decls) |decl| {
             if (std.mem.eql(u8, core_name, decl.name) or std.mem.eql(u8, core_name, @field(Core, decl.name).name)) {
                 chip.core = @field(Core, decl.name);
                 found_core = true;
