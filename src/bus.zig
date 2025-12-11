@@ -50,7 +50,7 @@ pub fn Bus(comptime pad_ids: []const chip.Pad_ID, comptime config: Config) type 
                     }
                 }
             }
-            return util.from_int(State, raw);
+            return microbe.from_int(State, raw);
         }
         pub inline fn read_inline() State {
             return @call(.always_inline, read, .{});
@@ -69,14 +69,14 @@ pub fn Bus(comptime pad_ids: []const chip.Pad_ID, comptime config: Config) type 
                     }
                 }
             }
-            return util.from_int(State, raw);
+            return microbe.from_int(State, raw);
         }
         pub inline fn get_inline() State {
             return @call(.always_inline, get, .{});
         }
 
         pub fn modify(state: State) void {
-            const raw = util.to_int(Raw_Int, state);
+            const raw = microbe.to_int(Raw_Int, state);
             inline for (ports) |port| {
                 var to_clear: chip.gpio.Port_Data_Type = 0;
                 var to_set: chip.gpio.Port_Data_Type = 0;
@@ -98,7 +98,7 @@ pub fn Bus(comptime pad_ids: []const chip.Pad_ID, comptime config: Config) type 
         }
 
         pub fn set_bits(state: State) void {
-            const raw = util.to_int(Raw_Int, state);
+            const raw = microbe.to_int(Raw_Int, state);
             inline for (ports) |port| {
                 var to_set: chip.gpio.Port_Data_Type = 0;
                 inline for (pad_ids, 0..) |pad, raw_bit| {
@@ -116,7 +116,7 @@ pub fn Bus(comptime pad_ids: []const chip.Pad_ID, comptime config: Config) type 
         }
 
         pub fn clear_bits(state: State) void {
-            const raw = util.to_int(state);
+            const raw = microbe.to_int(state);
             inline for (ports) |port| {
                 var to_clear: chip.gpio.Port_Data_Type = 0;
                 inline for (pad_ids, 0..) |pad, raw_bit| {
@@ -136,6 +136,6 @@ pub fn Bus(comptime pad_ids: []const chip.Pad_ID, comptime config: Config) type 
 }
 
 pub const Pad_ID = chip.Pad_ID;
-const chip = @import("chip_interface.zig");
-const util = @import("util.zig");
+const chip = @import("chip");
+const microbe = @import("microbe.zig");
 const std = @import("std");

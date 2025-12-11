@@ -20,8 +20,8 @@ pub fn main() !void {
         .memory_regions = &.{},
     };
 
-    var sections = std.ArrayList(Section).init(allocator);
-    defer sections.deinit();
+    var sections: std.ArrayList(Section) = .empty;
+    defer sections.deinit(allocator);
 
     var arg_iter = try std.process.argsWithAllocator(allocator);
     defer arg_iter.deinit();
@@ -34,19 +34,21 @@ pub fn main() !void {
         } else if (std.mem.eql(u8, arg, "--breakpoint-on-panic")) {
             options.breakpoint_on_panic = true;
         } else if (!(try args.try_chip_args(allocator, &arg_iter, arg, &chip)) and !(try args.try_section(allocator, &arg_iter, arg, &sections))) {
-            try std.io.getStdErr().writer().print("Unrecognized argument: {s}", .{ arg });
+            log.err("Unrecognized argument: {s}", .{ arg });
             return error.InvalidArgument;
         }
     }
 
     var out_file = try std.fs.cwd().createFile(output_path, .{});
     defer out_file.close();
-    const writer = out_file.writer();
-    try make(allocator, chip, sections.items, options, writer.any());
+    var buf: [16384]u8 = undefined;
+    var writer = out_file.writer(&buf);
+    try make(allocator, chip, sections.items, options, &writer.interface);
+    try writer.interface.flush();
 }
 
 
-fn make(allocator: std.mem.Allocator, chip: Chip, sections: []const Section, options: Options, writer: std.io.AnyWriter) !void {
+fn make(allocator: std.mem.Allocator, chip: Chip, sections: []const Section, options: Options, writer: *std.io.Writer) !void {
     try writer.writeAll(
         \\const std = @import("std");
         \\const chip = @import("chip");
@@ -56,18 +58,18 @@ fn make(allocator: std.mem.Allocator, chip: Chip, sections: []const Section, opt
 
     // TODO consider putting git commit hash in here
     try writer.print(
-        \\pub const chip_name = "{}";
-        \\pub const core_name = "{}";
+        \\pub const chip_name = "{f}";
+        \\pub const core_name = "{f}";
         \\
-        \\pub const target = "{s}";
+        \\pub const target = "{f}";
         \\
         \\pub const runtime_resource_validation = {};
         \\pub const breakpoint_on_panic = {};
         \\
     , .{
-        std.fmt.fmtSliceEscapeUpper(chip.name),
-        std.fmt.fmtSliceEscapeUpper(chip.core.name),
-        std.fmt.fmtSliceEscapeUpper(try std.Target.Query.zigTriple(chip.core.target, allocator)),
+        std.zig.fmtString(chip.name),
+        std.zig.fmtString(chip.core.name),
+        std.zig.fmtString(try std.Target.Query.zigTriple(chip.core.target, allocator)),
         options.runtime_resource_validation,
         options.breakpoint_on_panic,
     });
@@ -89,15 +91,15 @@ fn make(allocator: std.mem.Allocator, chip: Chip, sections: []const Section, opt
 
     for (chip.extra_config) |option| {
         if (option.escape) {
-            try writer.print("pub const {} = \"{s}\";\n", .{ std.zig.fmtId(option.name), std.fmt.fmtSliceEscapeUpper(option.value) });
+            try writer.print("pub const {f} = \"{f}\";\n", .{ std.zig.fmtId(option.name), std.zig.fmtString(option.value) });
         } else {
-            try writer.print("pub const {} = {s};\n", .{ std.zig.fmtId(option.name), option.value });
+            try writer.print("pub const {f} = {s};\n", .{ std.zig.fmtId(option.name), option.value });
         }
     }
 
     try writer.writeAll("\npub const regions = struct {\n");
     for (chip.memory_regions) |region| {
-        try writer.print("    pub const {} = mem_slice(0x{X}, 0x{X});\n", .{ std.zig.fmtId(region.name), region.offset, region.length });
+        try writer.print("    pub const {f} = mem_slice(0x{X}, 0x{X});\n", .{ std.zig.fmtId(region.name), region.offset, region.length });
     }
     try writer.writeAll(
         \\};
@@ -195,6 +197,8 @@ fn make(allocator: std.mem.Allocator, chip: Chip, sections: []const Section, opt
         \\
     );
 }
+
+const log = std.log.scoped(.generate_microbe_config);
 
 const Chip = @import("Chip.zig");
 const Core = @import("Core.zig");

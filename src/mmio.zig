@@ -1,10 +1,3 @@
-const std = @import("std");
-const chip = @import("chip");
-const util = @import("util.zig");
-
-const to_int = util.to_int;
-const from_int = util.from_int;
-
 pub const Access_Type = enum { rw, r, w };
 
 pub fn MMIO(comptime T: type, comptime access: Access_Type) type {
@@ -51,17 +44,28 @@ fn MMIO_RW(comptime T: type) type {
         }
 
         pub inline fn modify(comptime self: *volatile Self, comptime fields: anytype) void {
-            if (@hasDecl(chip, "modify_register")) {
-                comptime var bits_to_set = from_int(Type, @as(Raw_Type, 0));
-                comptime var bits_to_clear = from_int(Type, ~@as(Raw_Type, 0));
-                inline for (@typeInfo(@TypeOf(fields)).@"struct".fields) |field| {
-                    @field(bits_to_set, field.name) = @field(fields, field.name);
-                    @field(bits_to_clear, field.name) = @field(fields, field.name);
-                }
-                chip.modify_register(&self.raw, comptime to_int(Raw_Type, bits_to_set), ~comptime to_int(Raw_Type, bits_to_clear));
-            } else {
-                self.rmw(fields);
+            comptime var bits_to_set = from_int(Type, @as(Raw_Type, 0));
+            comptime var bits_to_clear = from_int(Type, ~@as(Raw_Type, 0));
+            inline for (@typeInfo(@TypeOf(fields)).@"struct".fields) |field| {
+                @field(bits_to_set, field.name) = @field(fields, field.name);
+                @field(bits_to_clear, field.name) = @field(fields, field.name);
             }
+            chip.modify_register(&self.raw, comptime to_int(Raw_Type, bits_to_set), ~comptime to_int(Raw_Type, bits_to_clear));
+        }
+
+        pub inline fn toggle_bits(comptime self: *volatile Self, comptime fields: anytype) void {
+            const bits_to_toggle = comptime get_bit_mask(fields);
+            chip.toggle_register_bits(&self.raw, bits_to_toggle);
+        }
+
+        pub inline fn clear_bits(comptime self: *volatile Self, comptime fields: anytype) void {
+            const bits_to_clear = comptime get_bit_mask(fields);
+            chip.clear_register_bits(&self.raw, bits_to_clear);
+        }
+
+        pub inline fn set_bits(comptime self: *volatile Self, comptime fields: anytype) void {
+            const bits_to_set = comptime get_bit_mask(fields);
+            chip.set_register_bits(&self.raw, bits_to_set);
         }
 
         pub fn get_bit_mask(comptime fields: anytype) Raw_Type {
@@ -85,37 +89,6 @@ fn MMIO_RW(comptime T: type) type {
                 }
                 break :bits to_int(Raw_Type, ones);
             };
-        }
-
-        pub inline fn toggle_bits(comptime self: *volatile Self, comptime fields: anytype) void {
-            const bits_to_toggle = comptime get_bit_mask(fields);
-            if (@hasDecl(chip, "toggle_register_bits")) {
-                chip.toggle_register_bits(&self.raw, bits_to_toggle);
-            } else {
-                self.raw ^= bits_to_toggle;
-            }
-        }
-
-        pub inline fn clear_bits(comptime self: *volatile Self, comptime fields: anytype) void {
-            const bits_to_clear = comptime get_bit_mask(fields);
-            if (@hasDecl(chip, "clear_register_bits")) {
-                chip.clear_register_bits(&self.raw, bits_to_clear);
-            } else if (@hasDecl(chip, "modify_register")) {
-                chip.modify_register(&self.raw, 0, bits_to_clear);
-            } else {
-                self.raw &= ~bits_to_clear;
-            }
-        }
-
-        pub inline fn set_bits(comptime self: *volatile Self, comptime fields: anytype) void {
-            const bits_to_set = comptime get_bit_mask(fields);
-            if (@hasDecl(chip, "set_register_bits")) {
-                chip.set_register_bits(&self.raw, bits_to_set);
-            } else if (@hasDecl(chip, "modify_register")) {
-                chip.modify_register(&self.raw, bits_to_set, 0);
-            } else {
-                self.raw |= bits_to_set;
-            }
         }
     };
 }
@@ -168,3 +141,10 @@ fn MMIO_W(comptime T: type) type {
         }
     };
 }
+
+const to_int = microbe.to_int;
+const from_int = microbe.from_int;
+
+const chip = @import("chip");
+const microbe = @import("microbe.zig");
+const std = @import("std");

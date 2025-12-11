@@ -73,7 +73,7 @@ pub fn try_section(allocator: std.mem.Allocator, arg_iter: *std.process.ArgItera
         const region_str = arg_iter.next() orelse return error.RomRegionName;
         const contents = try allocator.alloc([]const u8, 1);
         contents[0] = try std.fmt.allocPrint(allocator, "KEEP(*(.{s}*))", .{ name_str });
-        try sections.append(.{
+        try sections.append(allocator, .{
             .name = name_str,
             .contents = contents,
             .rom_region = region_str,
@@ -83,7 +83,7 @@ pub fn try_section(allocator: std.mem.Allocator, arg_iter: *std.process.ArgItera
         const region_str = arg_iter.next() orelse return error.RomRegionName;
         const contents = try allocator.alloc([]const u8, 1);
         contents[0] = try std.fmt.allocPrint(allocator, "*(.{s}*)", .{ name_str });
-        try sections.append(.{
+        try sections.append(allocator, .{
             .name = name_str,
             .contents = contents,
             .rom_region = region_str,
@@ -93,7 +93,7 @@ pub fn try_section(allocator: std.mem.Allocator, arg_iter: *std.process.ArgItera
         const ram_region_str = arg_iter.next() orelse return error.RamRegionName;
         const contents = try allocator.alloc([]const u8, 1);
         contents[0] = try std.fmt.allocPrint(allocator, "*(.{s}*)", .{ name_str });
-        try sections.append(.{
+        try sections.append(allocator, .{
             .name = name_str,
             .contents = contents,
             .ram_region = ram_region_str,
@@ -103,7 +103,7 @@ pub fn try_section(allocator: std.mem.Allocator, arg_iter: *std.process.ArgItera
         const ram_region_str = arg_iter.next() orelse return error.RamRegionName;
         const contents = try allocator.alloc([]const u8, 1);
         contents[0] = try std.fmt.allocPrint(allocator, "*(.{s}*)", .{ name_str });
-        try sections.append(.{
+        try sections.append(allocator, .{
             .name = name_str,
             .contents = contents,
             .ram_region = ram_region_str,
@@ -115,7 +115,7 @@ pub fn try_section(allocator: std.mem.Allocator, arg_iter: *std.process.ArgItera
         const ram_region_str = arg_iter.next() orelse return error.RamRegionName;
         const contents = try allocator.alloc([]const u8, 1);
         contents[0] = try std.fmt.allocPrint(allocator, "*(.{s}*)", .{ name_str });
-        try sections.append(.{
+        try sections.append(allocator, .{
             .name = name_str,
             .contents = contents,
             .rom_region = rom_region_str,
@@ -158,7 +158,7 @@ pub fn try_section(allocator: std.mem.Allocator, arg_iter: *std.process.ArgItera
             section.init_value = std.fmt.parseInt(u8, init_str, 0) catch return error.InvalidSectionInitValue;
         }
 
-        try sections.append(section);
+        try sections.append(allocator, section);
     } else return false;
     return true;
 }

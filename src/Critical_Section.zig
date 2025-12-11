@@ -18,4 +18,5 @@ pub fn leave(self: Critical_Section) void {
 enable_on_leave: bool,
 
 const Critical_Section = @This();
-const chip = @import("chip_interface.zig");
+
+const chip = @import("chip");

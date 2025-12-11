@@ -31,7 +31,7 @@ pub fn main() !void {
             const block_size_str = arg_iter.next() orelse return error.ExpectedBlockSize;
             block_size = std.fmt.parseInt(u32, block_size_str, 0) catch return error.InvalidBlockSize;
             if (block_size > 476) {
-                try std.io.getStdErr().writer().print("{} is larger than the maximum allowed block size of 476", .{ block_size });
+                log.err("{} is larger than the maximum allowed block size of 476", .{ block_size });
                 return error.InvalidBlockSize;
             }
             expected_source = true;
@@ -54,7 +54,7 @@ pub fn main() !void {
                     } else if (std.ascii.eqlIgnoreCase(suffix, "risc_v")) {
                         family_id = 0xE48BFF5A;
                     } else {
-                        try std.io.getStdErr().writer().print(
+                        log.err(
                             \\Expected family ID to be one of:
                             \\   {s}_arm_nonsecure
                             \\   {s}_arm_secure
@@ -69,7 +69,7 @@ pub fn main() !void {
             expected_source = true;
         } else {
             const file_contents = try std.fs.cwd().readFileAlloc(arena.allocator(), arg, 1_000_000_000);
-            try sources.append(.{
+            try sources.append(arena.allocator(), .{
                 .block_size = block_size,
                 .family_id = family_id,
                 .base_address = base_address,
@@ -85,13 +85,15 @@ pub fn main() !void {
     }
 
     if (expected_source) {
-        try std.io.getStdErr().writer().writeAll("`--base-addr`, `--block-size` and `--family` must be specified before the binary file(s) they affect");
+        log.err("`--base-addr`, `--block-size` and `--family` must be specified before the binary file(s) they affect", .{});
         return error.InvalidUsage;
     }
 
     var out_file = try std.fs.cwd().createFile(output_path, .{});
     defer out_file.close();
-    var writer = out_file.writer();
+    var buf: [16384]u8 = undefined;
+    var file_writer = out_file.writer(&buf);
+    var writer = &file_writer.interface;
 
     for (sources.items) |source| {
         const num_blocks = (source.data.len + source.block_size - 1) / source.block_size;
@@ -116,13 +118,17 @@ pub fn main() !void {
             try writer.writeInt(u32, source.family_id orelse @intCast(source.data.len), .little);
             try writer.writeAll(block);
             if (block.len < 476) {
-                try writer.writeByteNTimes(0, 476 - block.len);
+                try writer.splatByteAll(0, 476 - block.len);
             }
             try writer.writeInt(u32, 0x0AB16F30, .little); // UF2 magic number
 
             address += block_size;
         }
     }
+
+    try writer.flush();
 }
+
+const log = std.log.scoped(.bin_to_uf2);
 
 const std = @import("std");

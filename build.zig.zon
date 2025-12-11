@@ -1,9 +1,11 @@
 .{
-    .name = "microbe",
-    .version = "0.0.0",
-    .minimum_zig_version = "0.14.0-dev.1694+3b465ebec",
+    .name = .microbe,
+    .fingerprint = 0x6ecad9ac7cbb5cf7,
+    .version = "0.1.0",
+    .minimum_zig_version = "0.15.2",
     .paths = .{
         "src",
+        "template",
         "build",
         "build.zig",
         "build.zig.zon",

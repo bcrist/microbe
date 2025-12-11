@@ -14,8 +14,8 @@ pub fn main() !void {
         .memory_regions = &.{},
     };
 
-    var sections = std.ArrayList(Section).init(allocator);
-    defer sections.deinit();
+    var sections: std.ArrayList(Section) = .empty;
+    defer sections.deinit(allocator);
 
     var arg_iter = try std.process.argsWithAllocator(allocator);
     defer arg_iter.deinit();
@@ -24,18 +24,20 @@ pub fn main() !void {
         if (std.mem.eql(u8, arg, "--output") or std.mem.eql(u8, arg, "-o")) {
             output_path = arg_iter.next() orelse return error.ExpectedOutputPath;
         } else if (!(try args.try_chip_args(allocator, &arg_iter, arg, &chip)) and !(try args.try_section(allocator, &arg_iter, arg, &sections))) {
-            try std.io.getStdErr().writer().print("Unrecognized argument: {s}", .{ arg });
+            log.err("Unrecognized argument: {s}", .{ arg });
             return error.InvalidArgument;
         }
     }
 
     var out_file = try std.fs.cwd().createFile(output_path, .{});
     defer out_file.close();
-    const writer = out_file.writer();
-    try make(allocator, chip, sections.items, writer.any());
+    var buf: [16384]u8 = undefined;
+    var writer = out_file.writer(&buf);
+    try make(allocator, chip, sections.items, &writer.interface);
+    try writer.interface.flush();
 }
 
-fn make(temp: std.mem.Allocator, chip: Chip, sections: []const Section, writer: std.io.AnyWriter) !void {
+fn make(temp: std.mem.Allocator, chip: Chip, sections: []const Section, writer: *std.io.Writer) !void {
     try writer.print(
         \\ENTRY({s});
         \\
@@ -111,7 +113,7 @@ fn make(temp: std.mem.Allocator, chip: Chip, sections: []const Section, writer: 
             const is_final_section = final_sections[r] == section_index;
             try write_section_rom(writer, section, is_final_section);
         } else {
-            std.log.err("Section {s} must be assigned to a ROM or RAM memory range, or both!", .{ section.name });
+            log.err("Section {s} must be assigned to a ROM or RAM memory range, or both!", .{ section.name });
             return error.InvalidSection;
         }
     }
@@ -238,7 +240,7 @@ fn find_memory_region_index(region_name: []const u8, chip: Chip) !usize {
             return i;
         }
     }
-    std.log.err("chip {s} does not have a memory region named {s}", .{ chip.name, region_name });
+    log.err("chip {s} does not have a memory region named {s}", .{ chip.name, region_name });
     return error.MissingMemoryRegion;
 }
 
@@ -248,9 +250,11 @@ fn find_memory_region_index_by_address(address: u32, chip: Chip) !usize {
             return i;
         }
     }
-    std.log.err("chip {s} does not have a memory region containing address 0x{X}", .{ chip.name, address });
+    log.err("chip {s} does not have a memory region containing address 0x{X}", .{ chip.name, address });
     return error.MissingMemoryRegion;
 }
+
+const log = std.log.scoped(.generate_linkerscript);
 
 const Chip = @import("Chip.zig");
 const Core = @import("Core.zig");
